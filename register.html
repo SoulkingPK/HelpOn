@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - HelpOn</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container d-flex flex-column min-vh-100 justify-content-center">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body p-4 p-sm-5">
+                        <div class="text-center mb-4">
+                            <img src="assets/images/logo.png" alt="Logo" height="48" class="mb-3">
+                            <h2 class="fw-bold text-primary">Join HelpOn</h2>
+                            <p class="text-muted">Save and Be Saved</p>
+                        </div>
+                        
+                        <form action="index.html" method="GET">
+                            <div class="mb-3">
+                                <label class="form-label">Full Name</label>
+                                <input type="text" class="form-control form-control-lg" required placeholder="Enter your full name" title="Full Name">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control form-control-lg" required placeholder="Enter your phone number" title="Phone Number">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Email (recommended)</label>
+                                <input type="email" class="form-control form-control-lg" required placeholder="Enter your email" title="Email">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control form-control-lg" required placeholder="Enter your password" title="Password">
+                                    <button class="btn btn-outline-secondary" type="button" title="Show password" aria-label="Show password">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="progress mt-2 progress-custom-height">
+                                    <div class="progress-bar bg-success progress-bar-65"></div>
+                                </div>
+                                <small class="text-muted">Medium strength</small>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label">Confirm Password</label>
+                                <input type="password" class="form-control form-control-lg" required placeholder="Confirm your password" title="Confirm Password">
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label">I want to:</label>
+                                <div class="d-flex gap-2">
+                                    <div class="form-check form-check-inline flex-grow-1">
+                                        <input class="form-check-input" type="checkbox" id="getHelp" checked>
+                                        <label class="form-check-label" for="getHelp">Get Help</label>
+                                    </div>
+                                    <div class="form-check form-check-inline flex-grow-1">
+                                        <input class="form-check-input" type="checkbox" id="offerHelp">
+                                        <label class="form-check-label" for="offerHelp">Offer Help</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="terms" required>
+                                    <label class="form-check-label" for="terms">
+                                        I agree to the <a href="#" class="text-decoration-none">Terms</a> and <a href="#" class="text-decoration-none">Privacy Policy</a>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary btn-lg">Create Account</button>
+                            </div>
+                            
+                            <div class="alert alert-info d-flex align-items-center">
+                                <i class="bi bi-info-circle-fill me-2"></i>
+                                <div>HelpOn works best with location access</div>
+                            </div>
+                            
+                            <div class="text-center mt-3">
+                                <p class="text-muted">Already have an account? <a href="login.html" class="text-decoration-none">Login</a></p>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

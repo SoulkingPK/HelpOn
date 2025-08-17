@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rewards - HelpOn</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        .reward-card {
+            transition: all 0.3s;
+            border-radius: 12px;
+        }
+        .reward-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .progress-bar-gradient {
+            background: linear-gradient(90deg, #ffc107 0%, #ff9800 100%);
+        }
+        .nav-pills .nav-link.active {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body class="bg-light" style="padding-bottom: 80px;">
+    <!-- Top Header -->
+    <header class="bg-white shadow-sm sticky-top">
+        <div class="container py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <a href="index.html" class="btn btn-outline-secondary btn-sm me-2">
+                        <i class="bi bi-arrow-left"></i>
+                    </a>
+                    <h5 class="mb-0 fw-bold text-primary">Rewards</h5>
+                </div>
+                <span class="badge bg-warning text-dark">
+                    <i class="bi bi-coin"></i> 1,250 Points
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <main class="container py-3">
+        <!-- Points Summary -->
+        <section class="card mb-4 border-0 shadow-sm">
+            <div class="card-body text-center">
+                <h2 class="text-warning mb-1">1,250</h2>
+                <p class="text-muted mb-3">Available HelpPoints</p>
+                <div class="progress mb-2" style="height: 10px;">
+                    <div class="progress-bar progress-bar-gradient" style="width: 65%"></div>
+                </div>
+                <small class="text-muted">Next tier at 2,000 points (750 more)</small>
+            </div>
+        </section>
+
+        <!-- Reward Tabs -->
+        <ul class="nav nav-pills mb-4 justify-content-center">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="pill" href="#vouchers">Vouchers</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="pill" href="#donations">Donations</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="pill" href="#badges">Badges</a>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content">
+            <!-- Vouchers Tab -->
+            <div class="tab-pane fade show active" id="vouchers">
+                <div class="row g-3">
+                    <!-- Reward 1 -->
+                    <div class="col-md-6">
+                        <div class="card reward-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex">
+                                    <img src="https://via.placeholder.com/80" class="rounded-3 me-3" alt="Amazon">
+                                    <div>
+                                        <h5>₹500 Amazon Voucher</h5>
+                                        <p class="text-muted small">Use for any purchase on Amazon</p>
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-coin"></i> 1,000
+                                            </span>
+                                            <form action="redeem-success.html">
+                                                <input type="hidden" name="reward" value="amazon_500">
+                                                <button type="submit" class="btn btn-sm btn-primary">Redeem</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Reward 2 -->
+                    <div class="col-md-6">
+                        <div class="card reward-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex">
+                                    <img src="https://via.placeholder.com/80" class="rounded-3 me-3" alt="Zomato">
+                                    <div>
+                                        <h5>₹300 Zomato Credit</h5>
+                                        <p class="text-muted small">Food delivery or dining</p>
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-coin"></i> 600
+                                            </span>
+                                            <form action="redeem-success.html">
+                                                <input type="hidden" name="reward" value="zomato_300">
+                                                <button type="submit" class="btn btn-sm btn-primary">Redeem</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Reward 3 -->
+                    <div class="col-md-6">
+                        <div class="card reward-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex">
+                                    <img src="https://via.placeholder.com/80" class="rounded-3 me-3" alt="Flipkart">
+                                    <div>
+                                        <h5>₹200 Flipkart Voucher</h5>
+                                        <p class="text-muted small">Apply at checkout</p>
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-coin"></i> 400
+                                            </span>
+                                            <form action="redeem-success.html">
+                                                <input type="hidden" name="reward" value="flipkart_200">
+                                                <button type="submit" class="btn btn-sm btn-primary">Redeem</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Reward 4 -->
+                    <div class="col-md-6">
+                        <div class="card reward-card h-100">
+                            <div class="card-body">
+                                <div class="d-flex">
+                                    <img src="https://via.placeholder.com/80" class="rounded-3 me-3" alt="Paytm">
+                                    <div>
+                                        <h5>₹100 Paytm Cash</h5>
+                                        <p class="text-muted small">Direct wallet transfer</p>
+                                        <div class="d-flex justify-content-between align-items-center mt-3">
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-coin"></i> 200
+                                            </span>
+                                            <form action="redeem-success.html">
+                                                <input type="hidden" name="reward" value="paytm_100">
+                                                <button type="submit" class="btn btn-sm btn-primary">Redeem</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Donations Tab -->
+            <div class="tab-pane fade" id="donations">
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <h5><i class="bi bi-heart-fill text-danger"></i> Donate Your Points</h5>
+                        <p class="text-muted">Support NGOs and community initiatives</p>
+                        
+                        <div class="list-group">
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">Help Children Foundation</h6>
+                                        <small>Education for underprivileged kids</small>
+                                    </div>
+                                    <form action="donate-success.html">
+                                        <input type="hidden" name="ngo" value="children_foundation">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            Donate <i class="bi bi-coin"></i> 500
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">Elder Care Initiative</h6>
+                                        <small>Supporting senior citizens</small>
+                                    </div>
+                                    <form action="donate-success.html">
+                                        <input type="hidden" name="ngo" value="elder_care">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            Donate <i class="bi bi-coin"></i> 500
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Badges Tab -->
+            <div class="tab-pane fade" id="badges">
+                <div class="row text-center">
+                    <div class="col-6 col-md-3 mb-3">
+                        <div class="p-3">
+                            <i class="bi bi-trophy-fill fs-1 text-warning"></i>
+                            <h6 class="mt-2">Guardian</h6>
+                            <small class="text-muted">Top 5% helper</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <div class="p-3">
+                            <i class="bi bi-lightning-charge-fill fs-1 text-secondary"></i>
+                            <h6 class="mt-2">Quick Responder</h6>
+                            <small class="text-muted">Avg. response <2min</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <div class="p-3">
+                            <i class="bi bi-heart-fill fs-1 text-danger"></i>
+                            <h6 class="mt-2">Life Saver</h6>
+                            <small class="text-muted">10+ health emergencies</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <div class="p-3">
+                            <i class="bi bi-star-fill fs-1 text-primary"></i>
+                            <h6 class="mt-2">5-Star Helper</h6>
+                            <small class="text-muted">Consistent 5★ ratings</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="navbar fixed-bottom bg-white shadow-sm border-top">
+        <div class="container">
+            <div class="d-flex justify-content-around w-100">
+                <a href="index.html" class="text-center text-muted d-flex flex-column align-items-center py-2">
+                    <i class="bi bi-house-door fs-5"></i>
+                    <span class="small">Home</span>
+                </a>
+                <a href="map.html" class="text-center text-muted d-flex flex-column align-items-center py-2">
+                    <i class="bi bi-map fs-5"></i>
+                    <span class="small">Map</span>
+                </a>
+                <a href="rewards.html" class="text-center text-primary d-flex flex-column align-items-center py-2">
+                    <i class="bi bi-gift-fill fs-5"></i>
+                    <span class="small">Rewards</span>
+                </a>
+                <a href="inbox.html" class="text-center text-muted d-flex flex-column align-items-center py-2">
+                    <i class="bi bi-inbox fs-5"></i>
+                    <span class="small">Inbox</span>
+                </a>
+                <a href="profile.html" class="text-center text-muted d-flex flex-column align-items-center py-2">
+                    <i class="bi bi-person fs-5"></i>
+                    <span class="small">Profile</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Bootstrap JS (for tabs) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+Small overrides to complement Bootstrap
+:root {
+    --bs-body-font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Wave emoji animation */
+.wave {
+    display: inline-block;
+    animation: wave 2s infinite;
+}
+
+@keyframes wave {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(-15deg); }
+    75% { transform: rotate(15deg); }
+}
+
+/* Login/Register card max width */
+@media (min-width: 768px) {
+    .auth-card {
+        max-width: 450px;
+    }
+}
+
+/* Make bottom nav icons more prominent */
+.navbar.fixed-bottom i {
+    font-size: 1.25rem;
+}
+
+/* SOS button shadow */
+.btn-sos {
+    box-shadow: 0 4px 20px rgba(220, 53, 69, 0.3);
+}
