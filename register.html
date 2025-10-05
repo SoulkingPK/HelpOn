@@ -6,53 +6,144 @@
     <title>Register - HelpOn</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    <link href="css/style.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 20px;
+        }
+        .form-control:focus {
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            background-color: #1e40af;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .password-toggle {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .password-toggle:hover {
+            color: #2563eb !important;
+        }
+        .logo-text {
+            font-weight: 700;
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+        .progress-custom-height {
+            height: 6px;
+        }
+        .role-option {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .role-option:hover {
+            border-color: #2563eb;
+            background-color: #f0f7ff;
+        }
+        .role-option.selected {
+            border-color: #2563eb;
+            background-color: #e0e7ff;
+        }
+        .form-check-input:checked {
+            background-color: #2563eb;
+            border-color: #2563eb;
+        }
+    </style>
 </head>
-<body class="bg-light">
-    <div class="container d-flex flex-column min-vh-100 justify-content-center">
+<body>
+    <div class="container">
         <div class="row justify-content-center">
             <div class="col-md-8 col-lg-6">
-                <div class="card shadow-sm border-0">
+                <div class="card">
                     <div class="card-body p-4 p-sm-5">
                         <div class="text-center mb-4">
-                            <img src="assets/images/logo.png" alt="Logo" height="48" class="mb-3">
-                            <h2 class="fw-bold text-primary">Join HelpOn</h2>
+                            <img src="assets/images/logo.png" alt="Logo" height="60" class="mb-3">
+                            <h2 class="logo-text">Join HelpOn</h2>
                             <p class="text-muted">Save and Be Saved</p>
                         </div>
                         
-                        <form action="home.html" method="GET">
+                        <div id="registerAlert" class="alert alert-danger d-none" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <span id="alertMessage"></span>
+                        </div>
+                        
+                        <form id="registerForm">
                             <div class="mb-3">
                                 <label class="form-label">Full Name</label>
-                                <input type="text" class="form-control form-control-lg" required placeholder="Enter your full name" title="Full Name">
+                                <input type="text" class="form-control form-control-lg" id="fullName" 
+                                    required placeholder="Enter your full name">
+                                <div class="invalid-feedback" id="fullNameFeedback"></div>
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label">Phone Number</label>
-                                <input type="tel" class="form-control form-control-lg" required placeholder="Enter your phone number" title="Phone Number">
+                                <input type="tel" class="form-control form-control-lg" id="phoneNumber" 
+                                    required placeholder="Enter your phone number">
+                                <div class="invalid-feedback" id="phoneFeedback"></div>
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label">Email (recommended)</label>
-                                <input type="email" class="form-control form-control-lg" required placeholder="Enter your email" title="Email">
+                                <input type="email" class="form-control form-control-lg" id="email" 
+                                    placeholder="Enter your email">
+                                <div class="invalid-feedback" id="emailFeedback"></div>
                             </div>
                             
                             <div class="mb-3">
                                 <label class="form-label">Password</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control form-control-lg" required placeholder="Enter your password" title="Password">
-                                    <button class="btn btn-outline-secondary" type="button" title="Show password" aria-label="Show password">
+                                    <input type="password" class="form-control form-control-lg" id="password" 
+                                        required placeholder="Create a password">
+                                    <button type="button" class="btn btn-outline-secondary password-toggle" id="togglePassword">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
                                 <div class="progress mt-2 progress-custom-height">
-                                    <div class="progress-bar bg-success progress-bar-65"></div>
+                                    <div class="progress-bar" id="passwordStrengthBar"></div>
                                 </div>
-                                <small class="text-muted">Medium strength</small>
+                                <small class="text-muted" id="passwordStrengthText">Password strength</small>
+                                <div class="invalid-feedback" id="passwordFeedback"></div>
                             </div>
                             
                             <div class="mb-4">
                                 <label class="form-label">Confirm Password</label>
-                                <input type="password" class="form-control form-control-lg" required placeholder="Confirm your password" title="Confirm Password">
+                                <div class="input-group">
+                                    <input type="password" class="form-control form-control-lg" id="confirmPassword" 
+                                        required placeholder="Confirm your password">
+                                    <button type="button" class="btn btn-outline-secondary password-toggle" id="toggleConfirmPassword">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="invalid-feedback" id="confirmPasswordFeedback"></div>
                             </div>
                             
                             <div class="mb-4">
@@ -76,10 +167,14 @@
                                         I agree to the <a href="#" class="text-decoration-none">Terms</a> and <a href="#" class="text-decoration-none">Privacy Policy</a>
                                     </label>
                                 </div>
+                                <div class="invalid-feedback" id="termsFeedback"></div>
                             </div>
                             
                             <div class="d-grid mb-3">
-                                <button type="submit" class="btn btn-primary btn-lg">Create Account</button>
+                                <button type="submit" class="btn btn-primary btn-lg" id="registerBtn">
+                                    <span class="spinner-border spinner-border-sm d-none" id="registerSpinner"></span>
+                                    <span id="registerText">Create Account</span>
+                                </button>
                             </div>
                             
                             <div class="alert alert-info d-flex align-items-center">
@@ -96,5 +191,204 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const registerForm = document.getElementById('registerForm');
+            const fullNameInput = document.getElementById('fullName');
+            const phoneInput = document.getElementById('phoneNumber');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+            const termsCheckbox = document.getElementById('terms');
+            const togglePassword = document.getElementById('togglePassword');
+            const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+            const registerBtn = document.getElementById('registerBtn');
+            const registerSpinner = document.getElementById('registerSpinner');
+            const registerText = document.getElementById('registerText');
+            const registerAlert = document.getElementById('registerAlert');
+            const alertMessage = document.getElementById('alertMessage');
+            const passwordStrengthBar = document.getElementById('passwordStrengthBar');
+            const passwordStrengthText = document.getElementById('passwordStrengthText');
+            
+            // Toggle password visibility
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                
+                const eyeIcon = this.querySelector('i');
+                if (type === 'password') {
+                    eyeIcon.classList.remove('bi-eye-slash');
+                    eyeIcon.classList.add('bi-eye');
+                } else {
+                    eyeIcon.classList.remove('bi-eye');
+                    eyeIcon.classList.add('bi-eye-slash');
+                }
+            });
+            
+            // Toggle confirm password visibility
+            toggleConfirmPassword.addEventListener('click', function() {
+                const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                confirmPasswordInput.setAttribute('type', type);
+                
+                const eyeIcon = this.querySelector('i');
+                if (type === 'password') {
+                    eyeIcon.classList.remove('bi-eye-slash');
+                    eyeIcon.classList.add('bi-eye');
+                } else {
+                    eyeIcon.classList.remove('bi-eye');
+                    eyeIcon.classList.add('bi-eye-slash');
+                }
+            });
+            
+            // Password strength indicator
+            passwordInput.addEventListener('input', function() {
+                const password = this.value;
+                let strength = 0;
+                let message = '';
+                let barColor = '';
+                let barWidth = '0%';
+                
+                if (password.length > 0) {
+                    // Check password strength
+                    if (password.length < 6) {
+                        strength = 1;
+                        message = 'Too short';
+                        barColor = 'bg-danger';
+                        barWidth = '25%';
+                    } else {
+                        // Check for complexity
+                        const hasUpperCase = /[A-Z]/.test(password);
+                        const hasLowerCase = /[a-z]/.test(password);
+                        const hasNumbers = /\d/.test(password);
+                        const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+                        
+                        let complexity = 0;
+                        if (hasUpperCase) complexity++;
+                        if (hasLowerCase) complexity++;
+                        if (hasNumbers) complexity++;
+                        if (hasSpecial) complexity++;
+                        
+                        if (complexity === 1) {
+                            strength = 2;
+                            message = 'Weak';
+                            barColor = 'bg-danger';
+                            barWidth = '35%';
+                        } else if (complexity === 2) {
+                            strength = 3;
+                            message = 'Fair';
+                            barColor = 'bg-warning';
+                            barWidth = '50%';
+                        } else if (complexity === 3) {
+                            strength = 4;
+                            message = 'Good';
+                            barColor = 'bg-info';
+                            barWidth = '75%';
+                        } else if (complexity === 4) {
+                            strength = 5;
+                            message = 'Strong';
+                            barColor = 'bg-success';
+                            barWidth = '100%';
+                        }
+                    }
+                }
+                
+                passwordStrengthBar.style.width = barWidth;
+                passwordStrengthBar.className = `progress-bar ${barColor}`;
+                passwordStrengthText.textContent = message || 'Password strength';
+            });
+            
+            // Form validation
+            registerForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Reset validation
+                fullNameInput.classList.remove('is-invalid');
+                phoneInput.classList.remove('is-invalid');
+                emailInput.classList.remove('is-invalid');
+                passwordInput.classList.remove('is-invalid');
+                confirmPasswordInput.classList.remove('is-invalid');
+                termsCheckbox.classList.remove('is-invalid');
+                registerAlert.classList.add('d-none');
+                
+                let isValid = true;
+                
+                // Validate full name
+                if (!fullNameInput.value.trim()) {
+                    fullNameInput.classList.add('is-invalid');
+                    document.getElementById('fullNameFeedback').textContent = 'Please enter your full name';
+                    isValid = false;
+                }
+                
+                // Validate phone number
+                if (!phoneInput.value.trim()) {
+                    phoneInput.classList.add('is-invalid');
+                    document.getElementById('phoneFeedback').textContent = 'Please enter your phone number';
+                    isValid = false;
+                } else if (!/^[\+]?[1-9][\d]{0,15}$/.test(phoneInput.value.replace(/\D/g, ''))) {
+                    phoneInput.classList.add('is-invalid');
+                    document.getElementById('phoneFeedback').textContent = 'Please enter a valid phone number';
+                    isValid = false;
+                }
+                
+                // Validate email if provided
+                if (emailInput.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value)) {
+                    emailInput.classList.add('is-invalid');
+                    document.getElementById('emailFeedback').textContent = 'Please enter a valid email address';
+                    isValid = false;
+                }
+                
+                // Validate password
+                if (!passwordInput.value) {
+                    passwordInput.classList.add('is-invalid');
+                    document.getElementById('passwordFeedback').textContent = 'Please enter a password';
+                    isValid = false;
+                } else if (passwordInput.value.length < 6) {
+                    passwordInput.classList.add('is-invalid');
+                    document.getElementById('passwordFeedback').textContent = 'Password must be at least 6 characters';
+                    isValid = false;
+                }
+                
+                // Validate confirm password
+                if (passwordInput.value !== confirmPasswordInput.value) {
+                    confirmPasswordInput.classList.add('is-invalid');
+                    document.getElementById('confirmPasswordFeedback').textContent = 'Passwords do not match';
+                    isValid = false;
+                }
+                
+                // Validate terms
+                if (!termsCheckbox.checked) {
+                    termsCheckbox.classList.add('is-invalid');
+                    document.getElementById('termsFeedback').textContent = 'You must agree to the terms and conditions';
+                    isValid = false;
+                }
+                
+                if (!isValid) return;
+                
+                // Simulate registration process
+                registerBtn.disabled = true;
+                registerSpinner.classList.remove('d-none');
+                registerText.textContent = 'Creating account...';
+                
+                // Simulate API call
+                setTimeout(() => {
+                    // For demo purposes, always succeed
+                    window.location.href = 'home.html';
+                    
+                    // In a real app, you would handle the response accordingly
+                    if (response.success) {
+                        window.location.href = 'home.html';
+                    } else {
+                        registerAlert.classList.remove('d-none');
+                        alertMessage.textContent = response.message;
+                        registerBtn.disabled = false;
+                        registerSpinner.classList.add('d-none');
+                        registerText.textContent = 'Create Account';
+                    }
+                }, 2000);
+            });
+        });
+    </script>
 </body>
 </html>

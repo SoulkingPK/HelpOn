@@ -27,7 +27,7 @@
         }
         
         .map-container {
-            height: 100vh;
+            height: 60vh;
             position: relative;
             overflow: hidden;
             background-color: #e9ecef;
@@ -104,6 +104,8 @@
             box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
             padding: 16px;
             z-index: 1000;
+            max-height: 40vh;
+            overflow-y: auto;
         }
         
         .emergency-card {
@@ -153,6 +155,51 @@
             align-items: center;
             padding: 8px 0;
         }
+        
+        .map-pin {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            transform: translate(-50%, -50%);
+            z-index: 500;
+            cursor: pointer;
+        }
+        
+        .map-pin::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: inherit;
+            border-radius: 50%;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        .toast-container {
+            z-index: 1055;
+        }
+        
+        .overlay-hidden {
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .overlay-visible {
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .filter-hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -160,15 +207,15 @@
     <header class="map-header py-3">
         <div class="container">
             <div class="d-flex justify-content-between align-items-center">
-                <a href="home.html" class="btn btn-outline-light btn-sm">
+                <a href="home.html" class="btn btn-outline-light btn-sm" id="backBtn">
                     <i class="bi bi-arrow-left"></i> Back
                 </a>
                 <h5 class="mb-0">Map View</h5>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-light btn-sm" title="Filter Map">
+                    <button class="btn btn-light btn-sm" id="filterToggleBtn" title="Filter Map">
                         <i class="bi bi-layers"></i>
                     </button>
-                    <button class="btn btn-light btn-sm" title="Settings">
+                    <button class="btn btn-light btn-sm" id="settingsBtn" title="Settings">
                         <i class="bi bi-gear"></i>
                     </button>
                 </div>
@@ -179,21 +226,45 @@
     <!-- Map Container -->
     <div class="map-container">
         <!-- Map placeholder (would be replaced with real map in production) -->
-        <div class="map-placeholder">
+        <div class="map-placeholder" id="mapPlaceholder">
             <i class="bi bi-geo-alt-fill fs-1 mb-2" style="color: #adb5bd;"></i>
             <h4>Interactive Map</h4>
             <p class="text-center">Live map showing your location and nearby helpers</p>
         </div>
         
+        <!-- Map Pins (Simulated) -->
+        <div class="map-pin user-pin" style="top: 50%; left: 50%;" title="Your Location">
+            <i class="bi bi-person-fill"></i>
+        </div>
+        
+        <!-- Helper Pins -->
+        <div class="map-pin helper-pin" style="top: 45%; left: 48%;" title="Helper (150m)">
+            <i class="bi bi-person-check"></i>
+        </div>
+        <div class="map-pin helper-pin" style="top: 52%; left: 53%;" title="Helper (280m)">
+            <i class="bi bi-person-check"></i>
+        </div>
+        <div class="map-pin helper-pin" style="top: 48%; left: 46%;" title="Helper (320m)">
+            <i class="bi bi-person-check"></i>
+        </div>
+        
+        <!-- Emergency Pins -->
+        <div class="map-pin emergency-pin" style="top: 43%; left: 52%;" title="Emergency (200m)">
+            <i class="bi bi-exclamation-triangle"></i>
+        </div>
+        <div class="map-pin emergency-pin" style="top: 55%; left: 47%;" title="Emergency (450m)">
+            <i class="bi bi-exclamation-triangle"></i>
+        </div>
+        
         <!-- Map Controls -->
         <div class="map-controls">
-            <button class="btn btn-light rounded-circle shadow-sm" style="width: 40px; height: 40px;" title="Zoom In">
+            <button class="btn btn-light rounded-circle shadow-sm" id="zoomInBtn" style="width: 40px; height: 40px;" title="Zoom In">
                 <i class="bi bi-plus-lg"></i>
             </button>
-            <button class="btn btn-light rounded-circle shadow-sm" style="width: 40px; height: 40px;" title="Zoom Out">
+            <button class="btn btn-light rounded-circle shadow-sm" id="zoomOutBtn" style="width: 40px; height: 40px;" title="Zoom Out">
                 <i class="bi bi-dash-lg"></i>
             </button>
-            <button class="btn btn-primary rounded-circle shadow-sm" style="width: 40px; height: 40px;" title="Locate Me">
+            <button class="btn btn-primary rounded-circle shadow-sm" id="locateMeBtn" style="width: 40px; height: 40px;" title="Locate Me">
                 <i class="bi bi-geo-alt"></i>
             </button>
         </div>
@@ -215,13 +286,13 @@
         </div>
         
         <!-- Emergency Overlay -->
-        <div class="map-overlay">
+        <div class="map-overlay overlay-visible" id="emergencyOverlay">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0">Nearby Emergencies</h5>
-                <a href="#" class="small">View All</a>
+                <a href="#" class="small" id="viewAllEmergencies">View All</a>
             </div>
             
-            <div class="card emergency-card mb-3">
+            <div class="card emergency-card mb-3" data-emergency-id="1">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
@@ -229,12 +300,12 @@
                             <p class="mb-0">200m away - 5 mins ago</p>
                             <small>Cardiac patient needs immediate assistance</small>
                         </div>
-                        <button class="btn btn-primary btn-sm">Assist</button>
+                        <button class="btn btn-primary btn-sm assist-btn">Assist</button>
                     </div>
                 </div>
             </div>
             
-            <div class="card emergency-card">
+            <div class="card emergency-card" data-emergency-id="2">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
@@ -242,7 +313,7 @@
                             <p class="mb-0">450m away - 8 mins ago</p>
                             <small>Harassment situation, need backup</small>
                         </div>
-                        <button class="btn btn-primary btn-sm">Assist</button>
+                        <button class="btn btn-primary btn-sm assist-btn">Assist</button>
                     </div>
                 </div>
             </div>
@@ -250,7 +321,7 @@
     </div>
     
     <!-- Map Filter Options -->
-    <div class="container map-filter">
+    <div class="container map-filter filter-hidden" id="mapFilter">
         <h5 class="mb-3">Map Filters</h5>
         <div class="filter-option">
             <div class="form-check form-switch me-3">
@@ -272,6 +343,67 @@
                 <label class="form-check-label" for="policeToggle">Police Stations</label>
             </div>
         </div>
+        <div class="mt-3">
+            <button class="btn btn-primary btn-sm" id="applyFiltersBtn">Apply Filters</button>
+            <button class="btn btn-outline-secondary btn-sm ms-2" id="resetFiltersBtn">Reset</button>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Map Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="bi bi-bell me-2"></i> Emergency Notifications
+                            </span>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="emergencyNotifications" checked>
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="bi bi-geo-alt me-2"></i> Auto-locate
+                            </span>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="autoLocate" checked>
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="bi bi-map me-2"></i> Satellite View
+                            </span>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="satelliteView">
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="bi bi-speedometer2 me-2"></i> Traffic Data
+                            </span>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="trafficData">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveSettingsBtn">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container for Notifications -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <!-- Toasts will be added here dynamically -->
     </div>
     
     <!-- Bottom Navigation -->
@@ -303,5 +435,377 @@
     </nav>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Map Manager Class
+        class MapManager {
+            constructor() {
+                this.zoomLevel = 1;
+                this.isFilterVisible = false;
+                this.helpersVisible = true;
+                this.emergenciesVisible = true;
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.showToast('Map loaded successfully', 'success');
+            }
+            
+            setupEventListeners() {
+                // Back button
+                document.getElementById('backBtn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.goBack();
+                });
+                
+                // Filter toggle
+                document.getElementById('filterToggleBtn').addEventListener('click', () => {
+                    this.toggleFilter();
+                });
+                
+                // Settings button
+                document.getElementById('settingsBtn').addEventListener('click', () => {
+                    this.openSettings();
+                });
+                
+                // Zoom controls
+                document.getElementById('zoomInBtn').addEventListener('click', () => {
+                    this.zoomIn();
+                });
+                
+                document.getElementById('zoomOutBtn').addEventListener('click', () => {
+                    this.zoomOut();
+                });
+                
+                // Locate me button
+                document.getElementById('locateMeBtn').addEventListener('click', () => {
+                    this.locateMe();
+                });
+                
+                // Emergency overlay toggle
+                document.getElementById('viewAllEmergencies').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.viewAllEmergencies();
+                });
+                
+                // Assist buttons
+                document.querySelectorAll('.assist-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const card = e.target.closest('.card');
+                        const emergencyId = card.dataset.emergencyId;
+                        this.assistEmergency(emergencyId);
+                    });
+                });
+                
+                // Filter controls
+                document.getElementById('applyFiltersBtn').addEventListener('click', () => {
+                    this.applyFilters();
+                });
+                
+                document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+                    this.resetFilters();
+                });
+                
+                // Settings modal
+                document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+                    this.saveSettings();
+                });
+                
+                // Map pin clicks
+                document.querySelectorAll('.map-pin').forEach(pin => {
+                    pin.addEventListener('click', () => {
+                        const title = pin.getAttribute('title');
+                        this.showPinInfo(title);
+                    });
+                });
+                
+                // Emergency overlay drag handler
+                this.setupOverlayDrag();
+            }
+            
+            goBack() {
+                this.showToast('Returning to home...', 'info');
+                // In a real app, this would navigate back
+                setTimeout(() => {
+                    window.location.href = 'home.html';
+                }, 500);
+            }
+            
+            toggleFilter() {
+                const filter = document.getElementById('mapFilter');
+                if (this.isFilterVisible) {
+                    filter.classList.add('filter-hidden');
+                    this.showToast('Filters hidden', 'info');
+                } else {
+                    filter.classList.remove('filter-hidden');
+                    this.showToast('Filters shown', 'info');
+                }
+                this.isFilterVisible = !this.isFilterVisible;
+            }
+            
+            openSettings() {
+                const settingsModal = new bootstrap.Modal(document.getElementById('settingsModal'));
+                settingsModal.show();
+            }
+            
+            zoomIn() {
+                if (this.zoomLevel < 2) {
+                    this.zoomLevel += 0.1;
+                    this.updateZoom();
+                    this.showToast(`Zoomed in (${Math.round(this.zoomLevel * 100)}%)`, 'info');
+                } else {
+                    this.showToast('Maximum zoom level reached', 'warning');
+                }
+            }
+            
+            zoomOut() {
+                if (this.zoomLevel > 0.5) {
+                    this.zoomLevel -= 0.1;
+                    this.updateZoom();
+                    this.showToast(`Zoomed out (${Math.round(this.zoomLevel * 100)}%)`, 'info');
+                } else {
+                    this.showToast('Minimum zoom level reached', 'warning');
+                }
+            }
+            
+            updateZoom() {
+                // In a real app, this would update the actual map zoom
+                const mapPlaceholder = document.getElementById('mapPlaceholder');
+                mapPlaceholder.style.transform = `scale(${this.zoomLevel})`;
+                mapPlaceholder.style.transformOrigin = 'center center';
+            }
+            
+            locateMe() {
+                this.showToast('Locating your position...', 'info');
+                
+                // Simulate location detection
+                setTimeout(() => {
+                    // Center on user pin
+                    const userPin = document.querySelector('.user-pin');
+                    userPin.style.animation = 'pulse 1s 3';
+                    
+                    this.showToast('Location found!', 'success');
+                    
+                    // Reset animation
+                    setTimeout(() => {
+                        userPin.style.animation = '';
+                    }, 3000);
+                }, 1500);
+            }
+            
+            viewAllEmergencies() {
+                this.showToast('Opening all emergencies view...', 'info');
+                // In a real app, this would navigate to emergencies page
+            }
+            
+            assistEmergency(emergencyId) {
+                if (confirm('Are you sure you want to assist with this emergency?')) {
+                    this.showToast('Assistance confirmed! Navigating to emergency...', 'success');
+                    
+                    // Simulate navigation to emergency
+                    setTimeout(() => {
+                        // Highlight the emergency pin
+                        const emergencyPins = document.querySelectorAll('.emergency-pin');
+                        if (emergencyPins[emergencyId - 1]) {
+                            emergencyPins[emergencyId - 1].style.animation = 'pulse 1s infinite';
+                            
+                            // Update the assist button
+                            const assistBtn = document.querySelector(`[data-emergency-id="${emergencyId}"] .assist-btn`);
+                            assistBtn.textContent = 'Assisting...';
+                            assistBtn.classList.remove('btn-primary');
+                            assistBtn.classList.add('btn-success');
+                            assistBtn.disabled = true;
+                        }
+                    }, 1000);
+                }
+            }
+            
+            applyFilters() {
+                const helpersToggle = document.getElementById('helpersToggle');
+                const emergenciesToggle = document.getElementById('emergenciesToggle');
+                const hospitalsToggle = document.getElementById('hospitalsToggle');
+                const policeToggle = document.getElementById('policeToggle');
+                
+                this.helpersVisible = helpersToggle.checked;
+                this.emergenciesVisible = emergenciesToggle.checked;
+                
+                // Show/hide helpers
+                const helperPins = document.querySelectorAll('.helper-pin');
+                helperPins.forEach(pin => {
+                    pin.style.display = this.helpersVisible ? 'flex' : 'none';
+                });
+                
+                // Show/hide emergencies
+                const emergencyPins = document.querySelectorAll('.emergency-pin');
+                emergencyPins.forEach(pin => {
+                    pin.style.display = this.emergenciesVisible ? 'flex' : 'none';
+                });
+                
+                // Show toast with applied filters
+                let message = 'Filters applied: ';
+                const activeFilters = [];
+                
+                if (this.helpersVisible) activeFilters.push('Helpers');
+                if (this.emergenciesVisible) activeFilters.push('Emergencies');
+                if (hospitalsToggle.checked) activeFilters.push('Hospitals');
+                if (policeToggle.checked) activeFilters.push('Police Stations');
+                
+                message += activeFilters.length > 0 ? activeFilters.join(', ') : 'None';
+                
+                this.showToast(message, 'success');
+                this.toggleFilter(); // Hide filter after applying
+            }
+            
+            resetFilters() {
+                document.getElementById('helpersToggle').checked = true;
+                document.getElementById('emergenciesToggle').checked = true;
+                document.getElementById('hospitalsToggle').checked = false;
+                document.getElementById('policeToggle').checked = false;
+                
+                this.showToast('Filters reset to default', 'info');
+            }
+            
+            saveSettings() {
+                const emergencyNotifications = document.getElementById('emergencyNotifications').checked;
+                const autoLocate = document.getElementById('autoLocate').checked;
+                const satelliteView = document.getElementById('satelliteView').checked;
+                const trafficData = document.getElementById('trafficData').checked;
+                
+                // Save settings to localStorage
+                const settings = {
+                    emergencyNotifications,
+                    autoLocate,
+                    satelliteView,
+                    trafficData
+                };
+                
+                localStorage.setItem('mapSettings', JSON.stringify(settings));
+                
+                // Apply settings
+                if (satelliteView) {
+                    document.getElementById('mapPlaceholder').style.backgroundColor = '#1a3d5a';
+                    document.getElementById('mapPlaceholder').innerHTML = `
+                        <i class="bi bi-globe fs-1 mb-2" style="color: #adb5bd;"></i>
+                        <h4 style="color: white;">Satellite View</h4>
+                        <p class="text-center" style="color: #adb5bd;">Satellite map with terrain data</p>
+                    `;
+                } else {
+                    document.getElementById('mapPlaceholder').style.backgroundColor = '#e9ecef';
+                    document.getElementById('mapPlaceholder').innerHTML = `
+                        <i class="bi bi-geo-alt-fill fs-1 mb-2" style="color: #adb5bd;"></i>
+                        <h4>Interactive Map</h4>
+                        <p class="text-center">Live map showing your location and nearby helpers</p>
+                    `;
+                }
+                
+                this.showToast('Map settings saved', 'success');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
+                modal.hide();
+            }
+            
+            showPinInfo(title) {
+                this.showToast(`Location: ${title}`, 'info');
+            }
+            
+            setupOverlayDrag() {
+                const overlay = document.getElementById('emergencyOverlay');
+                let startY = 0;
+                let currentY = 0;
+                let isDragging = false;
+                
+                overlay.addEventListener('touchstart', (e) => {
+                    startY = e.touches[0].clientY;
+                    isDragging = true;
+                });
+                
+                overlay.addEventListener('touchmove', (e) => {
+                    if (!isDragging) return;
+                    
+                    currentY = e.touches[0].clientY;
+                    const diff = startY - currentY;
+                    
+                    if (diff > 0) {
+                        // Dragging up - show more content
+                        overlay.style.maxHeight = '70vh';
+                    } else if (diff < -50) {
+                        // Dragging down - hide overlay
+                        overlay.classList.add('overlay-hidden');
+                        setTimeout(() => {
+                            overlay.classList.remove('overlay-hidden');
+                            overlay.classList.remove('overlay-visible');
+                        }, 300);
+                    }
+                });
+                
+                overlay.addEventListener('touchend', () => {
+                    isDragging = false;
+                });
+                
+                // Show overlay when clicking on emergency pins
+                document.querySelectorAll('.emergency-pin').forEach(pin => {
+                    pin.addEventListener('click', () => {
+                        overlay.classList.add('overlay-visible');
+                        overlay.classList.remove('overlay-hidden');
+                        overlay.style.maxHeight = '40vh';
+                    });
+                });
+            }
+            
+            showToast(message, type = 'info') {
+                const toastContainer = document.querySelector('.toast-container');
+                const toastId = 'toast-' + Date.now();
+                
+                const toastHtml = `
+                    <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                ${message}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                `;
+                
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                
+                const toastElement = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+                toast.show();
+                
+                // Remove toast from DOM after it's hidden
+                toastElement.addEventListener('hidden.bs.toast', function() {
+                    toastElement.remove();
+                });
+            }
+        }
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const mapManager = new MapManager();
+            
+            // Load saved settings
+            const savedSettings = localStorage.getItem('mapSettings');
+            if (savedSettings) {
+                const settings = JSON.parse(savedSettings);
+                document.getElementById('emergencyNotifications').checked = settings.emergencyNotifications;
+                document.getElementById('autoLocate').checked = settings.autoLocate;
+                document.getElementById('satelliteView').checked = settings.satelliteView;
+                document.getElementById('trafficData').checked = settings.trafficData;
+                
+                // Apply satellite view if saved
+                if (settings.satelliteView) {
+                    document.getElementById('mapPlaceholder').style.backgroundColor = '#1a3d5a';
+                    document.getElementById('mapPlaceholder').innerHTML = `
+                        <i class="bi bi-globe fs-1 mb-2" style="color: #adb5bd;"></i>
+                        <h4 style="color: white;">Satellite View</h4>
+                        <p class="text-center" style="color: #adb5bd;">Satellite map with terrain data</p>
+                    `;
+                }
+            }
+        });
+    </script>
 </body>
 </html>
