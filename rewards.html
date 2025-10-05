@@ -21,6 +21,37 @@
         .nav-pills .nav-link.active {
             background-color: #2563eb;
         }
+        .badge-earned {
+            background-color: #198754 !important;
+            color: white !important;
+        }
+        .badge-locked {
+            background-color: #6c757d !important;
+            color: white !important;
+        }
+        .toast-container {
+            z-index: 1055;
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .reward-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body class="bg-light" style="padding-bottom: 80px;">
@@ -29,13 +60,13 @@
         <div class="container py-2">
             <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
-                    <a href="home.html" class="btn btn-outline-secondary btn-sm me-2">
+                    <a href="home.html" class="btn btn-outline-secondary btn-sm me-2" id="backBtn">
                         <i class="bi bi-arrow-left"></i>
                     </a>
                     <h5 class="mb-0 fw-bold text-primary">Rewards</h5>
                 </div>
-                <span class="badge bg-warning text-dark">
-                    <i class="bi bi-coin"></i> 1,250 Points
+                <span class="badge bg-warning text-dark" id="pointsBadge">
+                    <i class="bi bi-coin"></i> <span id="pointsCount">1,250</span> Points
                 </span>
             </div>
         </div>
@@ -45,17 +76,17 @@
         <!-- Points Summary -->
         <section class="card mb-4 border-0 shadow-sm">
             <div class="card-body text-center">
-                <h2 class="text-warning mb-1">1,250</h2>
+                <h2 class="text-warning mb-1" id="totalPoints">1,250</h2>
                 <p class="text-muted mb-3">Available HelpPoints</p>
                 <div class="progress mb-2" style="height: 10px;">
-                    <div class="progress-bar progress-bar-gradient" style="width: 65%"></div>
+                    <div class="progress-bar progress-bar-gradient" id="progressBar" style="width: 65%"></div>
                 </div>
-                <small class="text-muted">Next tier at 2,000 points (750 more)</small>
+                <small class="text-muted" id="nextTierText">Next tier at 2,000 points (750 more)</small>
             </div>
         </section>
 
         <!-- Reward Tabs -->
-        <ul class="nav nav-pills mb-4 justify-content-center">
+        <ul class="nav nav-pills mb-4 justify-content-center" id="rewardTabs">
             <li class="nav-item">
                 <a class="nav-link active" data-bs-toggle="pill" href="#vouchers">Vouchers</a>
             </li>
@@ -71,102 +102,8 @@
         <div class="tab-content">
             <!-- Vouchers Tab -->
             <div class="tab-pane fade show active" id="vouchers">
-                <div class="row g-3">
-                    <!-- Reward 1 -->
-                    <div class="col-md-6">
-                        <div class="card reward-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex">
-                                    <img src="https://via.placeholder.com/80" class="rounded-3 me-3" alt="Amazon">
-                                    <div>
-                                        <h5>₹500 Amazon Voucher</h5>
-                                        <p class="text-muted small">Use for any purchase on Amazon</p>
-                                        <div class="d-flex justify-content-between align-items-center mt-3">
-                                            <span class="badge bg-warning text-dark">
-                                                <i class="bi bi-coin"></i> 1,000
-                                            </span>
-                                            <form action="redeem-success.html">
-                                                <input type="hidden" name="reward" value="amazon_500">
-                                                <button type="submit" class="btn btn-sm btn-primary">Redeem</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Reward 2 -->
-                    <div class="col-md-6">
-                        <div class="card reward-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex">
-                                    <img src="https://via.placeholder.com/80" class="rounded-3 me-3" alt="Zomato">
-                                    <div>
-                                        <h5>₹300 Zomato Credit</h5>
-                                        <p class="text-muted small">Food delivery or dining</p>
-                                        <div class="d-flex justify-content-between align-items-center mt-3">
-                                            <span class="badge bg-warning text-dark">
-                                                <i class="bi bi-coin"></i> 600
-                                            </span>
-                                            <form action="redeem-success.html">
-                                                <input type="hidden" name="reward" value="zomato_300">
-                                                <button type="submit" class="btn btn-sm btn-primary">Redeem</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Reward 3 -->
-                    <div class="col-md-6">
-                        <div class="card reward-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex">
-                                    <img src="https://via.placeholder.com/80" class="rounded-3 me-3" alt="Flipkart">
-                                    <div>
-                                        <h5>₹200 Flipkart Voucher</h5>
-                                        <p class="text-muted small">Apply at checkout</p>
-                                        <div class="d-flex justify-content-between align-items-center mt-3">
-                                            <span class="badge bg-warning text-dark">
-                                                <i class="bi bi-coin"></i> 400
-                                            </span>
-                                            <form action="redeem-success.html">
-                                                <input type="hidden" name="reward" value="flipkart_200">
-                                                <button type="submit" class="btn btn-sm btn-primary">Redeem</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Reward 4 -->
-                    <div class="col-md-6">
-                        <div class="card reward-card h-100">
-                            <div class="card-body">
-                                <div class="d-flex">
-                                    <img src="https://via.placeholder.com/80" class="rounded-3 me-3" alt="Paytm">
-                                    <div>
-                                        <h5>₹100 Paytm Cash</h5>
-                                        <p class="text-muted small">Direct wallet transfer</p>
-                                        <div class="d-flex justify-content-between align-items-center mt-3">
-                                            <span class="badge bg-warning text-dark">
-                                                <i class="bi bi-coin"></i> 200
-                                            </span>
-                                            <form action="redeem-success.html">
-                                                <input type="hidden" name="reward" value="paytm_100">
-                                                <button type="submit" class="btn btn-sm btn-primary">Redeem</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                <div class="row g-3" id="vouchersContainer">
+                    <!-- Vouchers will be loaded dynamically -->
                 </div>
             </div>
             
@@ -177,35 +114,8 @@
                         <h5><i class="bi bi-heart-fill text-danger"></i> Donate Your Points</h5>
                         <p class="text-muted">Support NGOs and community initiatives</p>
                         
-                        <div class="list-group">
-                            <div class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">Help Children Foundation</h6>
-                                        <small>Education for underprivileged kids</small>
-                                    </div>
-                                    <form action="donate-success.html">
-                                        <input type="hidden" name="ngo" value="children_foundation">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            Donate <i class="bi bi-coin"></i> 500
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                            <div class="list-group-item">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">Elder Care Initiative</h6>
-                                        <small>Supporting senior citizens</small>
-                                    </div>
-                                    <form action="donate-success.html">
-                                        <input type="hidden" name="ngo" value="elder_care">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            Donate <i class="bi bi-coin"></i> 500
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
+                        <div class="list-group" id="donationsContainer">
+                            <!-- Donations will be loaded dynamically -->
                         </div>
                     </div>
                 </div>
@@ -213,39 +123,77 @@
             
             <!-- Badges Tab -->
             <div class="tab-pane fade" id="badges">
-                <div class="row text-center">
-                    <div class="col-6 col-md-3 mb-3">
-                        <div class="p-3">
-                            <i class="bi bi-trophy-fill fs-1 text-warning"></i>
-                            <h6 class="mt-2">Guardian</h6>
-                            <small class="text-muted">Top 5% helper</small>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3 mb-3">
-                        <div class="p-3">
-                            <i class="bi bi-lightning-charge-fill fs-1 text-secondary"></i>
-                            <h6 class="mt-2">Quick Responder</h6>
-                            <small class="text-muted">Avg. response <2min</small>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3 mb-3">
-                        <div class="p-3">
-                            <i class="bi bi-heart-fill fs-1 text-danger"></i>
-                            <h6 class="mt-2">Life Saver</h6>
-                            <small class="text-muted">10+ health emergencies</small>
-                        </div>
-                    </div>
-                    <div class="col-6 col-md-3 mb-3">
-                        <div class="p-3">
-                            <i class="bi bi-star-fill fs-1 text-primary"></i>
-                            <h6 class="mt-2">5-Star Helper</h6>
-                            <small class="text-muted">Consistent 5★ ratings</small>
-                        </div>
-                    </div>
+                <div class="row text-center" id="badgesContainer">
+                    <!-- Badges will be loaded dynamically -->
                 </div>
             </div>
         </div>
     </main>
+
+    <!-- Redeem Confirmation Modal -->
+    <div class="modal fade" id="redeemModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Redemption</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to redeem <strong id="redeemRewardName"></strong> for <span class="text-warning"><i class="bi bi-coin"></i> <span id="redeemPointsCost"></span> points</span>?</p>
+                    <p class="text-muted small">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmRedeemBtn">Yes, Redeem</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Donation Confirmation Modal -->
+    <div class="modal fade" id="donateModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Donation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to donate <span class="text-warning"><i class="bi bi-coin"></i> <span id="donatePointsAmount"></span> points</span> to <strong id="donateNgoName"></strong>?</p>
+                    <p class="text-muted small">Your contribution will help make a difference.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDonateBtn">Yes, Donate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Points History Modal -->
+    <div class="modal fade" id="pointsHistoryModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Points History</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="list-group" id="pointsHistoryList">
+                        <!-- Points history will be loaded here -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <!-- Toasts will be added here dynamically -->
+    </div>
 
     <!-- Bottom Navigation -->
     <nav class="navbar fixed-bottom bg-white shadow-sm border-top">
@@ -275,7 +223,541 @@
         </div>
     </nav>
 
-    <!-- Bootstrap JS (for tabs) -->
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Rewards Manager Class
+        class RewardsManager {
+            constructor() {
+                this.userPoints = 1250;
+                this.redeemedRewards = JSON.parse(localStorage.getItem('redeemedRewards')) || [];
+                this.donationsMade = JSON.parse(localStorage.getItem('donationsMade')) || [];
+                this.userBadges = JSON.parse(localStorage.getItem('userBadges')) || ['quick_responder', 'five_star_helper'];
+                this.pointsHistory = JSON.parse(localStorage.getItem('pointsHistory')) || this.getDefaultPointsHistory();
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.loadVouchers();
+                this.loadDonations();
+                this.loadBadges();
+                this.updatePointsDisplay();
+                this.showToast('Welcome to Rewards!', 'info');
+            }
+            
+            setupEventListeners() {
+                // Back button
+                document.getElementById('backBtn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.goBack();
+                });
+                
+                // Points summary click to show history
+                document.querySelector('.card-body.text-center').addEventListener('click', () => {
+                    this.showPointsHistory();
+                });
+                
+                // Modal confirmations
+                document.getElementById('confirmRedeemBtn').addEventListener('click', () => {
+                    this.confirmRedeem();
+                });
+                
+                document.getElementById('confirmDonateBtn').addEventListener('click', () => {
+                    this.confirmDonation();
+                });
+            }
+            
+            loadVouchers() {
+                const vouchers = [
+                    {
+                        id: 'amazon_500',
+                        name: '₹500 Amazon Voucher',
+                        description: 'Use for any purchase on Amazon',
+                        points: 1000,
+                        imageText: 'AMZN',
+                        imageColor: 'linear-gradient(135deg, #FF9900 0%, #FFD700 100%)'
+                    },
+                    {
+                        id: 'zomato_300',
+                        name: '₹300 Zomato Credit',
+                        description: 'Food delivery or dining',
+                        points: 600,
+                        imageText: 'ZOM',
+                        imageColor: 'linear-gradient(135deg, #E23744 0%, #FF6B6B 100%)'
+                    },
+                    {
+                        id: 'flipkart_200',
+                        name: '₹200 Flipkart Voucher',
+                        description: 'Apply at checkout',
+                        points: 400,
+                        imageText: 'FLP',
+                        imageColor: 'linear-gradient(135deg, #047BD5 0%, #00A8F0 100%)'
+                    },
+                    {
+                        id: 'paytm_100',
+                        name: '₹100 Paytm Cash',
+                        description: 'Direct wallet transfer',
+                        points: 200,
+                        imageText: 'PTM',
+                        imageColor: 'linear-gradient(135deg, #002E6E 0%, #0047AB 100%)'
+                    }
+                ];
+                
+                const container = document.getElementById('vouchersContainer');
+                container.innerHTML = vouchers.map(voucher => {
+                    const isRedeemed = this.redeemedRewards.includes(voucher.id);
+                    const canAfford = this.userPoints >= voucher.points;
+                    const buttonClass = isRedeemed ? 'btn-success' : (canAfford ? 'btn-primary' : 'btn-secondary');
+                    const buttonText = isRedeemed ? 'Redeemed' : (canAfford ? 'Redeem' : 'Need More Points');
+                    
+                    return `
+                        <div class="col-md-6">
+                            <div class="card reward-card h-100 ${isRedeemed ? 'border-success' : ''}">
+                                <div class="card-body">
+                                    <div class="d-flex">
+                                        <div class="reward-image me-3" style="background: ${voucher.imageColor}">
+                                            ${voucher.imageText}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h5>${voucher.name}</h5>
+                                            <p class="text-muted small">${voucher.description}</p>
+                                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                                <span class="badge ${isRedeemed ? 'badge-earned' : 'bg-warning text-dark'}">
+                                                    <i class="bi bi-coin"></i> ${voucher.points}
+                                                </span>
+                                                <button class="btn btn-sm ${buttonClass} redeem-btn" 
+                                                        data-reward-id="${voucher.id}"
+                                                        data-reward-name="${voucher.name}"
+                                                        data-points-cost="${voucher.points}"
+                                                        ${isRedeemed || !canAfford ? 'disabled' : ''}>
+                                                    ${buttonText}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add event listeners to redeem buttons
+                document.querySelectorAll('.redeem-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const rewardId = e.target.dataset.rewardId;
+                        const rewardName = e.target.dataset.rewardName;
+                        const pointsCost = e.target.dataset.pointsCost;
+                        this.showRedeemConfirmation(rewardId, rewardName, pointsCost);
+                    });
+                });
+            }
+            
+            loadDonations() {
+                const donations = [
+                    {
+                        id: 'children_foundation',
+                        name: 'Help Children Foundation',
+                        description: 'Education for underprivileged kids',
+                        points: 500
+                    },
+                    {
+                        id: 'elder_care',
+                        name: 'Elder Care Initiative',
+                        description: 'Supporting senior citizens',
+                        points: 500
+                    },
+                    {
+                        id: 'disaster_relief',
+                        name: 'Disaster Relief Fund',
+                        description: 'Emergency response and recovery',
+                        points: 750
+                    },
+                    {
+                        id: 'animal_welfare',
+                        name: 'Animal Welfare Society',
+                        description: 'Protecting and caring for animals',
+                        points: 300
+                    }
+                ];
+                
+                const container = document.getElementById('donationsContainer');
+                container.innerHTML = donations.map(donation => {
+                    const hasDonated = this.donationsMade.includes(donation.id);
+                    const canAfford = this.userPoints >= donation.points;
+                    const buttonClass = hasDonated ? 'btn-success' : (canAfford ? 'btn-outline-danger' : 'btn-secondary');
+                    const buttonText = hasDonated ? 'Donated' : (canAfford ? `Donate <i class="bi bi-coin"></i> ${donation.points}` : 'Need More Points');
+                    
+                    return `
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">${donation.name}</h6>
+                                    <small>${donation.description}</small>
+                                </div>
+                                <button class="btn btn-sm ${buttonClass} donate-btn" 
+                                        data-donation-id="${donation.id}"
+                                        data-donation-name="${donation.name}"
+                                        data-points-amount="${donation.points}"
+                                        ${hasDonated || !canAfford ? 'disabled' : ''}>
+                                    ${buttonText}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add event listeners to donate buttons
+                document.querySelectorAll('.donate-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const donationId = e.target.dataset.donationId;
+                        const donationName = e.target.dataset.donationName;
+                        const pointsAmount = e.target.dataset.pointsAmount;
+                        this.showDonationConfirmation(donationId, donationName, pointsAmount);
+                    });
+                });
+            }
+            
+            loadBadges() {
+                const badges = [
+                    {
+                        id: 'guardian',
+                        name: 'Guardian',
+                        description: 'Top 5% helper',
+                        icon: 'bi-trophy-fill',
+                        color: 'text-warning',
+                        earned: this.userBadges.includes('guardian')
+                    },
+                    {
+                        id: 'quick_responder',
+                        name: 'Quick Responder',
+                        description: 'Avg. response <2min',
+                        icon: 'bi-lightning-charge-fill',
+                        color: 'text-secondary',
+                        earned: this.userBadges.includes('quick_responder')
+                    },
+                    {
+                        id: 'life_saver',
+                        name: 'Life Saver',
+                        description: '10+ health emergencies',
+                        icon: 'bi-heart-fill',
+                        color: 'text-danger',
+                        earned: this.userBadges.includes('life_saver')
+                    },
+                    {
+                        id: 'five_star_helper',
+                        name: '5-Star Helper',
+                        description: 'Consistent 5★ ratings',
+                        icon: 'bi-star-fill',
+                        color: 'text-primary',
+                        earned: this.userBadges.includes('five_star_helper')
+                    },
+                    {
+                        id: 'community_champion',
+                        name: 'Community Champion',
+                        description: '50+ helps completed',
+                        icon: 'bi-award-fill',
+                        color: 'text-success',
+                        earned: this.userBadges.includes('community_champion')
+                    },
+                    {
+                        id: 'night_owl',
+                        name: 'Night Owl',
+                        description: '10+ night time helps',
+                        icon: 'bi-moon-fill',
+                        color: 'text-info',
+                        earned: this.userBadges.includes('night_owl')
+                    },
+                    {
+                        id: 'first_responder',
+                        name: 'First Responder',
+                        description: 'First to help 5 times',
+                        icon: 'bi-flag-fill',
+                        color: 'text-warning',
+                        earned: this.userBadges.includes('first_responder')
+                    },
+                    {
+                        id: 'distance_warrior',
+                        name: 'Distance Warrior',
+                        description: 'Helped from 5km+ away',
+                        icon: 'bi-geo-alt-fill',
+                        color: 'text-primary',
+                        earned: this.userBadges.includes('distance_warrior')
+                    }
+                ];
+                
+                const container = document.getElementById('badgesContainer');
+                container.innerHTML = badges.map(badge => {
+                    const badgeClass = badge.earned ? 'pulse-animation' : 'opacity-50';
+                    const badgeColor = badge.earned ? badge.color : 'text-muted';
+                    
+                    return `
+                        <div class="col-6 col-md-3 mb-3">
+                            <div class="p-3 ${badgeClass}" data-badge-id="${badge.id}">
+                                <i class="${badge.icon} fs-1 ${badgeColor}"></i>
+                                <h6 class="mt-2">${badge.name}</h6>
+                                <small class="text-muted">${badge.description}</small>
+                                ${badge.earned ? '<span class="badge bg-success mt-1">Earned</span>' : '<span class="badge bg-secondary mt-1">Locked</span>'}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add click events to show badge details
+                document.querySelectorAll('#badgesContainer > div').forEach(badgeElement => {
+                    badgeElement.addEventListener('click', () => {
+                        const badgeId = badgeElement.dataset.badgeId;
+                        const badge = badges.find(b => b.id === badgeId);
+                        this.showBadgeDetails(badge);
+                    });
+                });
+            }
+            
+            showRedeemConfirmation(rewardId, rewardName, pointsCost) {
+                document.getElementById('redeemRewardName').textContent = rewardName;
+                document.getElementById('redeemPointsCost').textContent = pointsCost;
+                
+                const redeemModal = new bootstrap.Modal(document.getElementById('redeemModal'));
+                redeemModal.show();
+                
+                // Store the current redemption info
+                this.currentRedemption = { rewardId, rewardName, pointsCost };
+            }
+            
+            confirmRedeem() {
+                const { rewardId, rewardName, pointsCost } = this.currentRedemption;
+                
+                if (this.userPoints >= pointsCost) {
+                    // Deduct points
+                    this.userPoints -= parseInt(pointsCost);
+                    
+                    // Add to redeemed rewards
+                    this.redeemedRewards.push(rewardId);
+                    
+                    // Add to points history
+                    this.pointsHistory.unshift({
+                        type: 'redeem',
+                        description: `Redeemed: ${rewardName}`,
+                        points: -parseInt(pointsCost),
+                        date: new Date().toISOString()
+                    });
+                    
+                    // Save to localStorage
+                    this.saveData();
+                    
+                    // Update UI
+                    this.updatePointsDisplay();
+                    this.loadVouchers();
+                    
+                    // Show success message
+                    this.showToast(`Successfully redeemed ${rewardName}!`, 'success');
+                    
+                    // Close modal
+                    const redeemModal = bootstrap.Modal.getInstance(document.getElementById('redeemModal'));
+                    redeemModal.hide();
+                    
+                    // Show voucher code (simulated)
+                    setTimeout(() => {
+                        alert(`Your voucher code: ${rewardId.toUpperCase()}-${Math.random().toString(36).substr(2, 8).toUpperCase()}\n\nThis code has been sent to your email.`);
+                    }, 500);
+                    
+                } else {
+                    this.showToast('Not enough points to redeem this reward', 'error');
+                }
+            }
+            
+            showDonationConfirmation(donationId, donationName, pointsAmount) {
+                document.getElementById('donateNgoName').textContent = donationName;
+                document.getElementById('donatePointsAmount').textContent = pointsAmount;
+                
+                const donateModal = new bootstrap.Modal(document.getElementById('donateModal'));
+                donateModal.show();
+                
+                // Store the current donation info
+                this.currentDonation = { donationId, donationName, pointsAmount };
+            }
+            
+            confirmDonation() {
+                const { donationId, donationName, pointsAmount } = this.currentDonation;
+                
+                if (this.userPoints >= pointsAmount) {
+                    // Deduct points
+                    this.userPoints -= parseInt(pointsAmount);
+                    
+                    // Add to donations made
+                    this.donationsMade.push(donationId);
+                    
+                    // Add to points history
+                    this.pointsHistory.unshift({
+                        type: 'donation',
+                        description: `Donated to: ${donationName}`,
+                        points: -parseInt(pointsAmount),
+                        date: new Date().toISOString()
+                    });
+                    
+                    // Save to localStorage
+                    this.saveData();
+                    
+                    // Update UI
+                    this.updatePointsDisplay();
+                    this.loadDonations();
+                    
+                    // Show success message
+                    this.showToast(`Thank you for donating to ${donationName}!`, 'success');
+                    
+                    // Close modal
+                    const donateModal = bootstrap.Modal.getInstance(document.getElementById('donateModal'));
+                    donateModal.hide();
+                    
+                } else {
+                    this.showToast('Not enough points to make this donation', 'error');
+                }
+            }
+            
+            showBadgeDetails(badge) {
+                const message = badge.earned 
+                    ? `You've earned the "${badge.name}" badge! ${badge.description}`
+                    : `Locked: ${badge.description}. Keep helping to unlock this badge!`;
+                
+                this.showToast(message, badge.earned ? 'success' : 'info');
+            }
+            
+            showPointsHistory() {
+                const container = document.getElementById('pointsHistoryList');
+                container.innerHTML = '';
+                
+                if (this.pointsHistory.length === 0) {
+                    container.innerHTML = '<p class="text-muted text-center">No points history yet</p>';
+                } else {
+                    this.pointsHistory.slice(0, 10).forEach(entry => {
+                        const item = document.createElement('div');
+                        item.className = 'list-group-item';
+                        
+                        const pointsClass = entry.points > 0 ? 'text-success' : 'text-danger';
+                        const pointsSign = entry.points > 0 ? '+' : '';
+                        const date = new Date(entry.date).toLocaleDateString();
+                        
+                        item.innerHTML = `
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">${entry.description}</h6>
+                                    <small class="text-muted">${date}</small>
+                                </div>
+                                <span class="${pointsClass}">${pointsSign}${entry.points}</span>
+                            </div>
+                        `;
+                        
+                        container.appendChild(item);
+                    });
+                }
+                
+                const historyModal = new bootstrap.Modal(document.getElementById('pointsHistoryModal'));
+                historyModal.show();
+            }
+            
+            updatePointsDisplay() {
+                document.getElementById('pointsCount').textContent = this.userPoints.toLocaleString();
+                document.getElementById('totalPoints').textContent = this.userPoints.toLocaleString();
+                
+                // Update progress bar
+                const nextTier = 2000;
+                const progress = (this.userPoints / nextTier) * 100;
+                document.getElementById('progressBar').style.width = `${Math.min(progress, 100)}%`;
+                
+                // Update next tier text
+                const pointsNeeded = nextTier - this.userPoints;
+                document.getElementById('nextTierText').textContent = 
+                    pointsNeeded > 0 
+                    ? `Next tier at ${nextTier.toLocaleString()} points (${pointsNeeded} more)`
+                    : 'You reached the maximum tier!';
+            }
+            
+            goBack() {
+                this.showToast('Returning to home...', 'info');
+                setTimeout(() => {
+                    window.location.href = 'home.html';
+                }, 500);
+            }
+            
+            saveData() {
+                localStorage.setItem('userPoints', this.userPoints);
+                localStorage.setItem('redeemedRewards', JSON.stringify(this.redeemedRewards));
+                localStorage.setItem('donationsMade', JSON.stringify(this.donationsMade));
+                localStorage.setItem('userBadges', JSON.stringify(this.userBadges));
+                localStorage.setItem('pointsHistory', JSON.stringify(this.pointsHistory));
+            }
+            
+            getDefaultPointsHistory() {
+                return [
+                    {
+                        type: 'earned',
+                        description: 'Helped with health emergency',
+                        points: 50,
+                        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+                    },
+                    {
+                        type: 'earned',
+                        description: 'Assisted lost person',
+                        points: 30,
+                        date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+                    },
+                    {
+                        type: 'earned',
+                        description: 'Quick response bonus',
+                        points: 20,
+                        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+                    }
+                ];
+            }
+            
+            showToast(message, type = 'info') {
+                const toastContainer = document.querySelector('.toast-container');
+                const toastId = 'toast-' + Date.now();
+                
+                const icon = {
+                    success: 'bi-check-circle-fill',
+                    error: 'bi-exclamation-triangle-fill',
+                    warning: 'bi-exclamation-circle-fill',
+                    info: 'bi-info-circle-fill'
+                }[type] || 'bi-info-circle-fill';
+                
+                const toastHtml = `
+                    <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <i class="bi ${icon} me-2"></i>${message}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                `;
+                
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                
+                const toastElement = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
+                toast.show();
+                
+                toastElement.addEventListener('hidden.bs.toast', function() {
+                    toastElement.remove();
+                });
+            }
+        }
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const rewardsManager = new RewardsManager();
+            
+            // Load saved points if available
+            const savedPoints = localStorage.getItem('userPoints');
+            if (savedPoints) {
+                rewardsManager.userPoints = parseInt(savedPoints);
+                rewardsManager.updatePointsDisplay();
+            }
+        });
+    </script>
 </body>
 </html>

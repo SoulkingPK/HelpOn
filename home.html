@@ -23,6 +23,96 @@
         .btn-sos {
             box-shadow: 0 4px 20px rgba(220, 53, 69, 0.3);
         }
+        .sos-active {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(220, 53, 69, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+        .map-placeholder {
+            min-height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .toast-container {
+            z-index: 1055;
+        }
+        
+        /* Dark Mode Styles */
+        .dark-mode {
+            background-color: #121212 !important;
+            color: #ffffff !important;
+        }
+        
+        .dark-mode .bg-light {
+            background-color: #1e1e1e !important;
+            color: #ffffff !important;
+        }
+        
+        .dark-mode .bg-white {
+            background-color: #2d2d2d !important;
+            color: #ffffff !important;
+        }
+        
+        .dark-mode .card {
+            background-color: #2d2d2d !important;
+            color: #ffffff !important;
+            border-color: #444 !important;
+        }
+        
+        .dark-mode .text-muted {
+            color: #aaa !important;
+        }
+        
+        .dark-mode .btn-outline-primary {
+            border-color: #0d6efd;
+            color: #0d6efd;
+        }
+        
+        .dark-mode .btn-outline-primary:hover {
+            background-color: #0d6efd;
+            color: #fff;
+        }
+        
+        .dark-mode .form-control, 
+        .dark-mode .form-select {
+            background-color: #2d2d2d;
+            border-color: #444;
+            color: #ffffff;
+        }
+        
+        .dark-mode .modal-content {
+            background-color: #2d2d2d;
+            color: #ffffff;
+        }
+        
+        .dark-mode .list-group-item {
+            background-color: #2d2d2d;
+            color: #ffffff;
+            border-color: #444;
+        }
+        
+        .dark-mode .navbar {
+            background-color: #2d2d2d !important;
+            border-color: #444 !important;
+        }
+        
+        .dark-mode .shadow-sm {
+            box-shadow: 0 0.125rem 0.25rem rgba(255, 255, 255, 0.1) !important;
+        }
+        
+        /* Accepted task styling */
+        .accepted-task-card {
+            border-left: 4px solid #198754 !important;
+        }
+        
+        .completed-task-card {
+            border-left: 4px solid #0d6efd !important;
+        }
     </style>
 </head>
 <body class="bg-light" style="padding-bottom: 72px;">
@@ -31,10 +121,10 @@
         <div class="container py-2">
             <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
-                    <img src="assets/images/logo.png" alt="Logo" height="32" class="me-2">
+                    <div style="width: 32px; height: 32px; background: #0d6efd; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 8px;">H</div>
                     <span class="fw-bold text-primary">HelpOn</span>
                 </div>
-                <a href="index.html" class="btn btn-outline-danger btn-sm">
+                <a href="index.html" class="btn btn-outline-danger btn-sm" id="logoutBtn">
                     <i class="bi bi-box-arrow-right"></i> Logout
                 </a>
             </div>
@@ -54,18 +144,21 @@
 
         <!-- SOS Button -->
         <section class="mb-4 text-center">
-            <button class="btn btn-danger btn-lg rounded-pill py-3 px-4 btn-sos" style="width: min(80%, 300px);">
+            <button class="btn btn-danger btn-lg rounded-pill py-3 px-4 btn-sos" id="sosBtn" style="width: min(80%, 300px);">
                 <i class="bi bi-bell-fill me-2"></i>SOS EMERGENCY
             </button>
             <div class="d-flex justify-content-center mt-3 gap-2">
-                <select class="form-select form-select-sm w-auto" aria-label="Select emergency type">
-                    <option>I'm in danger</option>
-                    <option>Health Emergency</option>
-                    <option>Lost</option>
-                    <option>Custom</option>
+                <select class="form-select form-select-sm w-auto" id="emergencyType" aria-label="Select emergency type">
+                    <option value="danger">I'm in danger</option>
+                    <option value="health">Health Emergency</option>
+                    <option value="lost">Lost</option>
+                    <option value="custom">Custom</option>
                 </select>
-                <button class="btn btn-light border btn-sm" title="Record audio"><i class="bi bi-mic text-dark"></i></button>
-                <button class="btn btn-light border btn-sm" title="Take photo"><i class="bi bi-camera text-dark"></i></button>
+                <button class="btn btn-light border btn-sm" id="recordAudioBtn" title="Record audio"><i class="bi bi-mic text-dark"></i></button>
+                <button class="btn btn-light border btn-sm" id="takePhotoBtn" title="Take photo"><i class="bi bi-camera text-dark"></i></button>
+            </div>
+            <div id="customEmergencyInput" class="mt-2 d-none">
+                <input type="text" class="form-control form-control-sm" placeholder="Describe your emergency">
             </div>
         </section>
 
@@ -74,49 +167,32 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="card-title mb-0 fw-semibold">Live Map</h5>
-                    <a href="#" class="btn btn-outline-primary btn-sm">View Full</a>
+                    <a href="#" class="btn btn-outline-primary btn-sm" id="viewFullMapBtn">View Full</a>
                 </div>
-                <div class="bg-light rounded-3 p-4 text-center text-muted">
+                <div class="bg-light rounded-3 p-4 text-center text-muted map-placeholder" id="mapContainer">
                     <i class="bi bi-map fs-1 text-secondary"></i>
                     <p class="mt-2 mb-0">Map view will appear here</p>
                 </div>
                 <div class="d-flex justify-content-center gap-3 mt-3">
                     <small class="text-nowrap"><i class="bi bi-person-fill text-primary"></i> You</small>
-                    <small class="text-nowrap"><i class="bi bi-people-fill text-success"></i> 3 Helpers Nearby</small>
+                    <small class="text-nowrap"><i class="bi bi-people-fill text-success"></i> <span id="helpersCount">3</span> Helpers Nearby</small>
                 </div>
+            </div>
+        </section>
+
+        <!-- Accepted Tasks Section -->
+        <section class="mb-4" id="acceptedTasksSection" style="display: none;">
+            <h5 class="fw-semibold mb-3">Your Accepted Tasks</h5>
+            <div class="row g-3" id="acceptedTasksContainer">
+                <!-- Accepted tasks will appear here -->
             </div>
         </section>
 
         <!-- Active Requests -->
         <section class="mb-4">
             <h5 class="fw-semibold mb-3">Help Requests Nearby</h5>
-            <div class="row g-3">
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body py-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="badge bg-danger rounded-pill mb-1">Health Emergency</span>
-                                    <p class="mb-0">200m away</p>
-                                </div>
-                                <button class="btn btn-primary btn-sm px-3">Accept</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body py-3">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="badge bg-warning text-dark rounded-pill mb-1">I'm in danger</span>
-                                    <p class="mb-0">450m away</p>
-                                </div>
-                                <button class="btn btn-primary btn-sm px-3">Accept</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="row g-3" id="helpRequestsContainer">
+                <!-- Requests will be dynamically loaded here -->
             </div>
         </section>
 
@@ -125,11 +201,11 @@
             <div class="card-body">
                 <h5 class="card-title fw-semibold mb-3">Your Rewards</h5>
                 <div class="d-flex justify-content-between mb-2">
-                    <span><i class="bi bi-coin text-warning"></i> 120 Points</span>
-                    <span>Rank: 14th</span>
+                    <span><i class="bi bi-coin text-warning"></i> <span id="pointsCount">120</span> Points</span>
+                    <span>Rank: <span id="userRank">14th</span></span>
                 </div>
                 <div class="progress mb-1" style="height: 8px;">
-                    <div class="progress-bar bg-warning" style="width: 24%"></div>
+                    <div class="progress-bar bg-warning" id="progressBar" style="width: 24%"></div>
                 </div>
                 <small class="text-muted">Next reward at 500 points</small>
             </div>
@@ -155,10 +231,10 @@
                     <a href="history.html" class="btn btn-outline-primary btn-sm w-100 py-1 d-flex flex-column">
                          <i class="bi bi-clock-history fs-5 mb-0"></i>
                          <span class="small">History</span>
-            </a>
+                    </a>
                 </div>
                 <div class="col">
-                    <a href="#" class="btn btn-outline-primary btn-sm w-100 py-1 d-flex flex-column">
+                    <a href="#" class="btn btn-outline-primary btn-sm w-100 py-1 d-flex flex-column" id="contactsBtn">
                         <i class="bi bi-people fs-5 mb-0"></i>
                         <span class="small">Contacts</span>
                     </a>
@@ -187,29 +263,29 @@
                 <span>
                   <i class="bi bi-bell me-2"></i> Notifications </span>
                 <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox" checked>
+                  <input class="form-check-input" type="checkbox" id="notificationsToggle" checked>
                 </div>
               </a>
               <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                 <span>
                   <i class="bi bi-moon me-2"></i> Dark Mode </span>
                 <div class="form-check form-switch">
-                  <input class="form-check-input" type="checkbox">
+                  <input class="form-check-input" type="checkbox" id="darkModeToggle">
                 </div>
               </a>
-              <a href="#" class="list-group-item list-group-item-action">
+              <a href="#" class="list-group-item list-group-item-action" id="privacySettingsBtn">
                 <i class="bi bi-shield-lock me-2"></i> Privacy Settings </a>
-              <a href="#" class="list-group-item list-group-item-action">
+              <a href="#" class="list-group-item list-group-item-action" id="paymentMethodsBtn">
                 <i class="bi bi-credit-card me-2"></i> Payment Methods </a>
-              <a href="#" class="list-group-item list-group-item-action">
+              <a href="#" class="list-group-item list-group-item-action" id="helpCenterBtn">
                 <i class="bi bi-question-circle me-2"></i> Help Center </a>
-              <a href="login.html" class="list-group-item list-group-item-action text-danger">
+              <a href="login.html" class="list-group-item list-group-item-action text-danger" id="modalLogoutBtn">
                 <i class="bi bi-box-arrow-right me-2"></i> Logout </a>
             </div>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" class="btn btn-primary">Save Changes</button>
+            <button type="button" class="btn btn-primary" id="saveSettingsBtn">Save Changes</button>
           </div>
         </div>
       </div>
@@ -243,22 +319,754 @@
         </div>
     </nav>
 
+    <!-- Toast Container for Notifications -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <!-- Toasts will be added here dynamically -->
+    </div>
+
     <!-- Bootstrap JS (for components) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Simple wave animation -->
+    
+    <!-- Custom JavaScript -->
     <script>
+        // Dark Mode Manager
+        class DarkModeManager {
+            constructor() {
+                this.isDarkMode = localStorage.getItem('darkMode') === 'true';
+                this.init();
+            }
+            
+            init() {
+                // Apply saved mode on page load
+                this.applyDarkMode(this.isDarkMode);
+                
+                // Set toggle state
+                const darkModeToggle = document.getElementById('darkModeToggle');
+                if (darkModeToggle) {
+                    darkModeToggle.checked = this.isDarkMode;
+                }
+            }
+            
+            applyDarkMode(enable) {
+                const body = document.body;
+                const html = document.documentElement;
+                
+                if (enable) {
+                    body.classList.add('dark-mode');
+                    html.setAttribute('data-bs-theme', 'dark');
+                } else {
+                    body.classList.remove('dark-mode');
+                    html.setAttribute('data-bs-theme', 'light');
+                }
+                
+                this.isDarkMode = enable;
+                localStorage.setItem('darkMode', enable);
+            }
+            
+            toggle() {
+                this.applyDarkMode(!this.isDarkMode);
+                return this.isDarkMode;
+            }
+        }
+
+        // Help Requests Manager with Cancellation
+        class HelpRequestsManager {
+            constructor() {
+                this.acceptedRequests = new Map(); // Track accepted requests
+                this.availableRequests = []; // Track available requests
+                this.init();
+            }
+            
+            init() {
+                this.loadHelpRequests();
+            }
+            
+            // Load initial help requests (simulated data)
+            loadHelpRequests() {
+                this.availableRequests = [
+                    {
+                        id: 'req-001',
+                        type: 'Health Emergency',
+                        distance: '200m away',
+                        badgeClass: 'bg-danger',
+                        status: 'active',
+                        userName: 'John D.',
+                        phone: '+1-234-567-8900',
+                        location: 'Central Park, Near Fountain',
+                        timestamp: new Date().toISOString()
+                    },
+                    {
+                        id: 'req-002',
+                        type: 'I\'m in danger',
+                        distance: '450m away',
+                        badgeClass: 'bg-warning text-dark',
+                        status: 'active',
+                        userName: 'Sarah M.',
+                        phone: '+1-234-567-8901',
+                        location: 'Main Street, Bus Stop',
+                        timestamp: new Date().toISOString()
+                    },
+                    {
+                        id: 'req-003',
+                        type: 'Lost',
+                        distance: '150m away',
+                        badgeClass: 'bg-info',
+                        status: 'active',
+                        userName: 'Mike R.',
+                        phone: '+1-234-567-8902',
+                        location: 'Shopping Mall, Food Court',
+                        timestamp: new Date().toISOString()
+                    }
+                ];
+                
+                this.renderHelpRequests();
+            }
+            
+            renderHelpRequests() {
+                const container = document.getElementById('helpRequestsContainer');
+                
+                if (this.availableRequests.length === 0) {
+                    container.innerHTML = `
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body text-center py-4">
+                                    <i class="bi bi-check-circle text-success fs-1"></i>
+                                    <p class="mt-2 mb-0">No active help requests nearby</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = this.availableRequests.map(request => `
+                    <div class="col-12" id="request-${request.id}">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body py-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="flex-grow-1">
+                                        <span class="badge ${request.badgeClass} rounded-pill mb-1">${request.type}</span>
+                                        <p class="mb-1">${request.distance}</p>
+                                        <small class="text-muted">${request.userName} • ${this.formatTime(request.timestamp)}</small>
+                                    </div>
+                                    <button class="btn btn-primary btn-sm px-3 accept-request-btn" 
+                                            data-request-id="${request.id}">
+                                        Accept
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                this.attachAcceptHandlers();
+            }
+            
+            attachAcceptHandlers() {
+                document.querySelectorAll('.accept-request-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const requestId = e.target.dataset.requestId;
+                        this.acceptHelpRequest(requestId);
+                    });
+                });
+            }
+            
+            async acceptHelpRequest(requestId) {
+                const requestElement = document.getElementById(`request-${requestId}`);
+                const acceptBtn = requestElement.querySelector('.accept-request-btn');
+                
+                // Show loading state
+                acceptBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Accepting';
+                acceptBtn.disabled = true;
+                
+                try {
+                    // Simulate API call
+                    await this.simulateApiCall(1000);
+                    
+                    // Find the request data
+                    const requestIndex = this.availableRequests.findIndex(req => req.id === requestId);
+                    if (requestIndex === -1) return;
+                    
+                    const requestData = this.availableRequests[requestIndex];
+                    
+                    // Remove from available requests
+                    this.availableRequests.splice(requestIndex, 1);
+                    
+                    // Update UI
+                    requestElement.remove();
+                    this.addToAcceptedTasks(requestData);
+                    
+                    // Show success message
+                    showToast('Help request accepted successfully!', 'success');
+                    
+                    // Update helpers count
+                    updateHelpersCount(-1);
+                    
+                } catch (error) {
+                    // Reset button on error
+                    acceptBtn.innerHTML = 'Accept';
+                    acceptBtn.disabled = false;
+                    showToast('Failed to accept request. Please try again.', 'danger');
+                }
+            }
+            
+            addToAcceptedTasks(requestData) {
+                const container = document.getElementById('acceptedTasksContainer');
+                const taskId = `accepted-${requestData.id}`;
+                
+                const taskElement = `
+                    <div class="col-12" id="${taskId}">
+                        <div class="card border-0 shadow-sm accepted-task-card">
+                            <div class="card-body py-3">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div class="flex-grow-1">
+                                        <span class="badge ${requestData.badgeClass} rounded-pill mb-1">${requestData.type}</span>
+                                        <h6 class="mb-1">${requestData.userName}</h6>
+                                        <p class="mb-1 text-muted small">
+                                            <i class="bi bi-telephone"></i> ${requestData.phone}
+                                        </p>
+                                        <p class="mb-1 text-muted small">
+                                            <i class="bi bi-geo-alt"></i> ${requestData.location}
+                                        </p>
+                                        <p class="mb-0">${requestData.distance}</p>
+                                    </div>
+                                    <span class="badge bg-success">Accepted</span>
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="d-flex gap-2 mt-3">
+                                    <button class="btn btn-outline-primary btn-sm flex-fill contact-btn" 
+                                            data-phone="${requestData.phone}">
+                                        <i class="bi bi-telephone"></i> Call
+                                    </button>
+                                    <button class="btn btn-outline-success btn-sm flex-fill navigate-btn">
+                                        <i class="bi bi-geo-alt"></i> Navigate
+                                    </button>
+                                    <button class="btn btn-outline-warning btn-sm flex-fill complete-btn" 
+                                            data-request-id="${requestData.id}">
+                                        <i class="bi bi-check-circle"></i> Complete
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm cancel-btn" 
+                                            data-request-id="${requestData.id}">
+                                        <i class="bi bi-x-circle"></i>
+                                    </button>
+                                </div>
+                                
+                                <!-- Progress Status -->
+                                <div class="mt-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <small class="text-muted">Task Progress</small>
+                                        <small class="text-muted" id="timer-${requestData.id}">0 min</small>
+                                    </div>
+                                    <div class="progress" style="height: 4px;">
+                                        <div class="progress-bar bg-success" id="progress-${requestData.id}" style="width: 10%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.insertAdjacentHTML('afterbegin', taskElement);
+                
+                // Store in accepted requests map
+                this.acceptedRequests.set(requestData.id, {
+                    elementId: taskId,
+                    startTime: new Date(),
+                    timerInterval: null,
+                    data: requestData
+                });
+                
+                // Start progress timer
+                this.startProgressTimer(requestData.id);
+                
+                // Attach event listeners to new buttons
+                this.attachAcceptedTaskHandlers(taskId);
+                
+                // Show accepted tasks section if hidden
+                document.getElementById('acceptedTasksSection').style.display = 'block';
+            }
+            
+            attachAcceptedTaskHandlers(taskId) {
+                const taskElement = document.getElementById(taskId);
+                
+                // Contact button
+                taskElement.querySelector('.contact-btn').addEventListener('click', (e) => {
+                    const phone = e.target.dataset.phone;
+                    this.contactUser(phone);
+                });
+                
+                // Navigate button
+                taskElement.querySelector('.navigate-btn').addEventListener('click', (e) => {
+                    this.navigateToUser();
+                });
+                
+                // Complete button
+                taskElement.querySelector('.complete-btn').addEventListener('click', (e) => {
+                    const requestId = e.target.dataset.requestId;
+                    this.completeTask(requestId);
+                });
+                
+                // Cancel button
+                taskElement.querySelector('.cancel-btn').addEventListener('click', (e) => {
+                    const requestId = e.target.dataset.requestId;
+                    this.cancelTask(requestId);
+                });
+            }
+            
+            startProgressTimer(requestId) {
+                const acceptedRequest = this.acceptedRequests.get(requestId);
+                if (!acceptedRequest) return;
+                
+                acceptedRequest.timerInterval = setInterval(() => {
+                    const now = new Date();
+                    const diff = Math.floor((now - acceptedRequest.startTime) / 1000 / 60); // minutes
+                    const timerElement = document.getElementById(`timer-${requestId}`);
+                    const progressElement = document.getElementById(`progress-${requestId}`);
+                    
+                    if (timerElement) {
+                        timerElement.textContent = `${diff} min`;
+                    }
+                    
+                    if (progressElement) {
+                        // Simulate progress (max 90% until completed)
+                        const progress = Math.min(10 + (diff * 5), 90);
+                        progressElement.style.width = `${progress}%`;
+                    }
+                }, 60000); // Update every minute
+            }
+            
+            async cancelTask(requestId) {
+                if (!confirm('Are you sure you want to cancel this help task? This will make the request available for other helpers.')) {
+                    return;
+                }
+                
+                const acceptedRequest = this.acceptedRequests.get(requestId);
+                if (!acceptedRequest) return;
+                
+                try {
+                    // Show loading state
+                    const cancelBtn = document.querySelector(`#${acceptedRequest.elementId} .cancel-btn`);
+                    const originalText = cancelBtn.innerHTML;
+                    cancelBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                    cancelBtn.disabled = true;
+                    
+                    // Simulate API call to cancel
+                    await this.simulateApiCall(800);
+                    
+                    // Clear timer
+                    if (acceptedRequest.timerInterval) {
+                        clearInterval(acceptedRequest.timerInterval);
+                    }
+                    
+                    // Remove from accepted tasks
+                    document.getElementById(acceptedRequest.elementId).remove();
+                    
+                    // Add back to available requests
+                    this.availableRequests.push(acceptedRequest.data);
+                    this.renderHelpRequests();
+                    
+                    // Remove from tracking
+                    this.acceptedRequests.delete(requestId);
+                    
+                    // Hide accepted tasks section if no tasks left
+                    this.checkAcceptedTasksVisibility();
+                    
+                    // Update helpers count
+                    updateHelpersCount(1);
+                    
+                    showToast('Task cancelled successfully', 'warning');
+                    
+                } catch (error) {
+                    showToast('Failed to cancel task. Please try again.', 'danger');
+                }
+            }
+            
+            async completeTask(requestId) {
+                if (!confirm('Mark this task as completed? This will award you points and notify the user.')) {
+                    return;
+                }
+                
+                const acceptedRequest = this.acceptedRequests.get(requestId);
+                if (!acceptedRequest) return;
+                
+                try {
+                    // Show loading state
+                    const completeBtn = document.querySelector(`#${acceptedRequest.elementId} .complete-btn`);
+                    completeBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                    completeBtn.disabled = true;
+                    
+                    // Simulate API call to complete
+                    await this.simulateApiCall(800);
+                    
+                    // Clear timer
+                    if (acceptedRequest.timerInterval) {
+                        clearInterval(acceptedRequest.timerInterval);
+                    }
+                    
+                    // Update UI to show completion
+                    const taskElement = document.getElementById(acceptedRequest.elementId);
+                    taskElement.querySelector('.card').classList.remove('accepted-task-card');
+                    taskElement.querySelector('.card').classList.add('completed-task-card');
+                    
+                    // Update status badge
+                    const statusBadge = taskElement.querySelector('.badge.bg-success');
+                    statusBadge.className = 'badge bg-primary rounded-pill mb-1';
+                    statusBadge.textContent = 'Completed';
+                    
+                    // Update progress to 100%
+                    const progressElement = document.getElementById(`progress-${requestId}`);
+                    if (progressElement) {
+                        progressElement.style.width = '100%';
+                        progressElement.classList.remove('bg-success');
+                        progressElement.classList.add('bg-primary');
+                    }
+                    
+                    // Disable action buttons
+                    taskElement.querySelectorAll('button').forEach(btn => {
+                        btn.disabled = true;
+                    });
+                    
+                    // Show completion message
+                    taskElement.querySelector('.complete-btn').innerHTML = '<i class="bi bi-check-circle"></i> Completed';
+                    
+                    // Remove from tracking after delay
+                    setTimeout(() => {
+                        taskElement.remove();
+                        this.acceptedRequests.delete(requestId);
+                        this.checkAcceptedTasksVisibility();
+                    }, 3000);
+                    
+                    // Award points
+                    updatePoints(15);
+                    
+                    showToast('Task completed! Points awarded.', 'success');
+                    
+                } catch (error) {
+                    showToast('Failed to complete task. Please try again.', 'danger');
+                }
+            }
+            
+            contactUser(phone) {
+                // Simulate calling functionality
+                if (confirm(`Call ${phone}?`)) {
+                    showToast(`Calling ${phone}...`, 'info');
+                    // In real app: window.location.href = `tel:${phone}`;
+                }
+            }
+            
+            navigateToUser() {
+                showToast('Opening navigation to user location...', 'info');
+                // In real app: Open maps with user location
+            }
+            
+            checkAcceptedTasksVisibility() {
+                const container = document.getElementById('acceptedTasksContainer');
+                const section = document.getElementById('acceptedTasksSection');
+                
+                if (container.children.length === 0) {
+                    section.style.display = 'none';
+                }
+            }
+            
+            formatTime(timestamp) {
+                return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+            
+            simulateApiCall(delay) {
+                return new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Dark Mode Manager
+            const darkModeManager = new DarkModeManager();
+            
+            // Initialize Help Requests Manager
+            const helpRequestsManager = new HelpRequestsManager();
+            
+            // Initialize all components
+            initSOSButton();
+            initEmergencyTypeSelector();
+            initMediaButtons();
+            initSettingsModal(darkModeManager);
+            initRewardsSystem();
+            initMapSimulation();
+            initNavigation();
+            initToastSystem();
+            
+            // Show welcome message
+            showToast('Welcome back, Praveen!', 'success');
+        });
+
+        // SOS Button Functionality
+        function initSOSButton() {
+            const sosBtn = document.getElementById('sosBtn');
+            let sosActive = false;
+            let sosTimer = null;
+            
+            sosBtn.addEventListener('click', function() {
+                if (!sosActive) {
+                    // Activate SOS
+                    sosActive = true;
+                    sosBtn.classList.add('sos-active');
+                    sosBtn.innerHTML = '<i class="bi bi-bell-fill me-2"></i>SOS ACTIVE';
+                    
+                    // Get emergency type
+                    const emergencyType = document.getElementById('emergencyType').value;
+                    let emergencyMessage = '';
+                    
+                    switch(emergencyType) {
+                        case 'danger':
+                            emergencyMessage = 'I am in danger and need immediate assistance.';
+                            break;
+                        case 'health':
+                            emergencyMessage = 'I am having a health emergency and need medical help.';
+                            break;
+                        case 'lost':
+                            emergencyMessage = 'I am lost and need help finding my way.';
+                            break;
+                        case 'custom':
+                            const customInput = document.querySelector('#customEmergencyInput input');
+                            emergencyMessage = customInput ? customInput.value : 'Custom emergency.';
+                            break;
+                    }
+                    
+                    // Send SOS alert (simulated)
+                    sendSOSAlert(emergencyMessage);
+                    
+                    // Show confirmation
+                    showToast('SOS alert sent! Help is on the way.', 'danger');
+                    
+                    // Simulate response after 5 seconds
+                    sosTimer = setTimeout(function() {
+                        showToast('Helpers are responding to your SOS', 'info');
+                    }, 5000);
+                    
+                } else {
+                    // Deactivate SOS
+                    sosActive = false;
+                    sosBtn.classList.remove('sos-active');
+                    sosBtn.innerHTML = '<i class="bi bi-bell-fill me-2"></i>SOS EMERGENCY';
+                    
+                    if (sosTimer) {
+                        clearTimeout(sosTimer);
+                    }
+                    
+                    showToast('SOS deactivated', 'warning');
+                }
+            });
+        }
+
+        // Emergency Type Selector
+        function initEmergencyTypeSelector() {
+            const emergencyType = document.getElementById('emergencyType');
+            const customInput = document.getElementById('customEmergencyInput');
+            
+            emergencyType.addEventListener('change', function() {
+                if (this.value === 'custom') {
+                    customInput.classList.remove('d-none');
+                } else {
+                    customInput.classList.add('d-none');
+                }
+            });
+        }
+
+        // Media Buttons (Audio and Photo)
+        function initMediaButtons() {
+            const recordAudioBtn = document.getElementById('recordAudioBtn');
+            const takePhotoBtn = document.getElementById('takePhotoBtn');
+            
+            recordAudioBtn.addEventListener('click', function() {
+                // Simulate audio recording
+                if (confirm('Allow HelpOn to access your microphone?')) {
+                    showToast('Recording audio... Click again to stop.', 'info');
+                    // In a real app, you would use the MediaRecorder API here
+                }
+            });
+            
+            takePhotoBtn.addEventListener('click', function() {
+                // Simulate photo capture
+                if (confirm('Allow HelpOn to access your camera?')) {
+                    showToast('Camera activated. Take a photo of your situation.', 'info');
+                    // In a real app, you would use the MediaDevices API here
+                }
+            });
+        }
+
+        // Settings Modal
+        function initSettingsModal(darkModeManager) {
+            const saveSettingsBtn = document.getElementById('saveSettingsBtn');
+            const notificationsToggle = document.getElementById('notificationsToggle');
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            
+            // Set initial toggle states
+            darkModeToggle.checked = darkModeManager.isDarkMode;
+            
+            saveSettingsBtn.addEventListener('click', function() {
+                // Save settings (simulated)
+                const settings = {
+                    notifications: notificationsToggle.checked,
+                    darkMode: darkModeToggle.checked
+                };
+                
+                // Apply dark mode if enabled
+                darkModeManager.applyDarkMode(settings.darkMode);
+                
+                // Save to localStorage
+                localStorage.setItem('appSettings', JSON.stringify(settings));
+                
+                showToast('Settings saved successfully', 'success');
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
+                modal.hide();
+            });
+            
+            // Other settings buttons
+            document.getElementById('privacySettingsBtn').addEventListener('click', function() {
+                showToast('Privacy settings would open here', 'info');
+            });
+            
+            document.getElementById('paymentMethodsBtn').addEventListener('click', function() {
+                showToast('Payment methods would open here', 'info');
+            });
+            
+            document.getElementById('helpCenterBtn').addEventListener('click', function() {
+                showToast('Help center would open here', 'info');
+            });
+        }
+
+        // Rewards System
+        function initRewardsSystem() {
+            // This would typically fetch data from an API
+            // For now, we'll just set up the UI elements
+        }
+        
+        function updatePoints(pointsToAdd) {
+            const pointsElement = document.getElementById('pointsCount');
+            let currentPoints = parseInt(pointsElement.textContent);
+            currentPoints += pointsToAdd;
+            pointsElement.textContent = currentPoints;
+            
+            // Update progress bar
+            const progressPercentage = Math.min((currentPoints / 500) * 100, 100);
+            document.getElementById('progressBar').style.width = `${progressPercentage}%`;
+            
+            // Check if user reached a milestone
+            if (currentPoints >= 500) {
+                showToast('Congratulations! You reached 500 points and earned a reward!', 'success');
+            }
+        }
+
+        // Map Simulation
+        function initMapSimulation() {
+            const mapContainer = document.getElementById('mapContainer');
+            const viewFullMapBtn = document.getElementById('viewFullMapBtn');
+            
+            viewFullMapBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                showToast('Opening full map view', 'info');
+                // In a real app, this would navigate to the full map page
+            });
+            
+            // Simulate helpers moving around
+            setInterval(function() {
+                const helpersCount = document.getElementById('helpersCount');
+                let count = parseInt(helpersCount.textContent);
+                
+                // Randomly change helper count to simulate movement
+                const change = Math.random() > 0.5 ? 1 : -1;
+                count = Math.max(1, count + change);
+                helpersCount.textContent = count;
+            }, 10000);
+        }
+
+        // Navigation
+        function initNavigation() {
+            // Logout buttons
+            const logoutButtons = [document.getElementById('logoutBtn'), document.getElementById('modalLogoutBtn')];
+            
+            logoutButtons.forEach(button => {
+                if (button) {
+                    button.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        if (confirm('Are you sure you want to logout?')) {
+                            showToast('Logging out...', 'info');
+                            // In a real app, this would clear session and redirect
+                            setTimeout(() => {
+                                window.location.href = 'login.html';
+                            }, 1000);
+                        }
+                    });
+                }
+            });
+            
+            // Contacts button
+            document.getElementById('contactsBtn').addEventListener('click', function(e) {
+                e.preventDefault();
+                showToast('Contacts would open here', 'info');
+            });
+        }
+
+        // Toast Notification System
+        function initToastSystem() {
+            // Function is defined below
+        }
+        
+        function showToast(message, type = 'info') {
+            const toastContainer = document.querySelector('.toast-container');
+            const toastId = 'toast-' + Date.now();
+            
+            const toastHtml = `
+                <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            `;
+            
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
+            toast.show();
+            
+            // Remove toast from DOM after it's hidden
+            toastElement.addEventListener('hidden.bs.toast', function() {
+                toastElement.remove();
+            });
+        }
+
+        // Helper Functions
+        function updateHelpersCount(change) {
+            const helpersCount = document.getElementById('helpersCount');
+            let count = parseInt(helpersCount.textContent);
+            count = Math.max(0, count + change);
+            helpersCount.textContent = count;
+        }
+        
+        function sendSOSAlert(message) {
+            // Simulate sending SOS alert to server
+            console.log('SOS Alert Sent:', message);
+            // In a real app, this would be an API call to your backend
+            
+            // Simulate helpers being notified
+            setTimeout(() => {
+                updateHelpersCount(2); // More helpers might respond to SOS
+            }, 2000);
+        }
+
+        // Simple wave animation
         document.querySelector('.animate-wave').style.transformOrigin = 'bottom center';
         setInterval(() => {
             const wave = document.querySelector('.animate-wave');
             wave.style.animation = wave.style.animation ? '' : 'wave 1s ease-in-out';
         }, 2000);
     </script>
-    <style>
-        @keyframes wave {
-            0%, 100% { transform: rotate(0deg); }
-            25% { transform: rotate(-15deg); }
-            75% { transform: rotate(15deg); }
-        }
-    </style>
 </body>
 </html>
