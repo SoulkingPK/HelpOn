@@ -17,6 +17,16 @@
             width: 40px;
             height: 40px;
         }
+        .btn-category.active {
+            font-weight: 600;
+        }
+        .message-card {
+            transition: all 0.2s ease;
+        }
+        .message-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+        }
     </style>
 </head>
 <body class="bg-light" style="padding-bottom: 72px;">
@@ -30,7 +40,7 @@
                     </a>
                     <h5 class="mb-0">Inbox</h5>
                 </div>
-                <button class="btn btn-link text-primary" title="Filter messages">
+                <button class="btn btn-link text-primary" title="Filter messages" id="filterToggle">
                     <i class="bi bi-filter"></i>
                 </button>
             </div>
@@ -43,24 +53,24 @@
             <span class="input-group-text bg-transparent border-0">
                 <i class="bi bi-search"></i>
             </span>
-            <input type="text" class="form-control border-0" placeholder="Search messages">
-            <button class="btn btn-link text-primary" title="Filter messages">
+            <input type="text" class="form-control border-0" placeholder="Search messages" id="searchInput">
+            <button class="btn btn-link text-primary" title="Filter messages" id="advancedFilterToggle">
                 <i class="bi bi-sliders"></i>
             </button>
         </div>
 
         <!-- Message Categories -->
-        <div class="d-flex justify-content-between mb-3">
-            <button class="btn btn-primary rounded-pill px-3 py-1">All</button>
-            <button class="btn btn-outline-secondary rounded-pill px-3 py-1">Unread</button>
-            <button class="btn btn-outline-secondary rounded-pill px-3 py-1">Alerts</button>
-            <button class="btn btn-outline-secondary rounded-pill px-3 py-1">Help</button>
+        <div class="d-flex justify-content-between mb-3" id="categoryFilters">
+            <button class="btn btn-primary rounded-pill px-3 py-1 btn-category active" data-category="all">All</button>
+            <button class="btn btn-outline-secondary rounded-pill px-3 py-1 btn-category" data-category="unread">Unread</button>
+            <button class="btn btn-outline-secondary rounded-pill px-3 py-1 btn-category" data-category="alerts">Alerts</button>
+            <button class="btn btn-outline-secondary rounded-pill px-3 py-1 btn-category" data-category="help">Help</button>
         </div>
 
         <!-- Messages List -->
-        <div class="list-group">
+        <div class="list-group" id="messagesList">
             <!-- Unread Message Example -->
-            <a href="#" class="list-group-item list-group-item-action p-3 mb-2 message-card unread bg-white rounded-3 shadow-sm border-0">
+            <a href="#" class="list-group-item list-group-item-action p-3 mb-2 message-card unread bg-white rounded-3 shadow-sm border-0" data-category="alerts" data-read="false">
                 <div class="d-flex">
                     <img src="assets/images/logo.png" class="avatar-sm rounded-circle me-3" alt="User">
                     <div class="flex-grow-1">
@@ -75,7 +85,7 @@
             </a>
 
             <!-- Read Message Example -->
-            <a href="#" class="list-group-item list-group-item-action p-3 mb-2 message-card bg-white rounded-3 shadow-sm border-0">
+            <a href="#" class="list-group-item list-group-item-action p-3 mb-2 message-card bg-white rounded-3 shadow-sm border-0" data-category="rewards" data-read="true">
                 <div class="d-flex">
                     <img src="assets/images/logo.png" class="avatar-sm rounded-circle me-3" alt="User">
                     <div class="flex-grow-1">
@@ -90,7 +100,7 @@
             </a>
 
             <!-- System Notification -->
-            <a href="#" class="list-group-item list-group-item-action p-3 mb-2 message-card bg-white rounded-3 shadow-sm border-0">
+            <a href="#" class="list-group-item list-group-item-action p-3 mb-2 message-card bg-white rounded-3 shadow-sm border-0" data-category="alerts" data-read="true">
                 <div class="d-flex">
                     <div class="avatar-sm bg-light rounded-circle me-3 d-flex align-items-center justify-content-center">
                         <i class="bi bi-shield-check text-primary"></i>
@@ -107,7 +117,7 @@
             </a>
 
             <!-- Older Message -->
-            <a href="#" class="list-group-item list-group-item-action p-3 mb-2 message-card bg-white rounded-3 shadow-sm border-0">
+            <a href="#" class="list-group-item list-group-item-action p-3 mb-2 message-card bg-white rounded-3 shadow-sm border-0" data-category="help" data-read="true">
                 <div class="d-flex">
                     <img src="assets/images/logo.png" class="avatar-sm rounded-circle me-3" alt="User">
                     <div class="flex-grow-1">
@@ -120,6 +130,13 @@
                     </div>
                 </div>
             </a>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-5 d-none">
+            <i class="bi bi-inbox display-1 text-muted"></i>
+            <h4 class="text-muted mt-3">No messages found</h4>
+            <p class="text-muted">Try adjusting your search or filter criteria</p>
         </div>
     </main>
 
@@ -150,5 +167,202 @@
             </div>
         </div>
     </nav>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const searchInput = document.getElementById('searchInput');
+            const categoryButtons = document.querySelectorAll('.btn-category');
+            const messageCards = document.querySelectorAll('.message-card');
+            const messagesList = document.getElementById('messagesList');
+            const emptyState = document.getElementById('emptyState');
+            const filterToggle = document.getElementById('filterToggle');
+            const advancedFilterToggle = document.getElementById('advancedFilterToggle');
+            
+            // Current filter state
+            let currentCategory = 'all';
+            let searchQuery = '';
+            
+            // Initialize
+            updateUnreadCount();
+            
+            // Search functionality
+            searchInput.addEventListener('input', function() {
+                searchQuery = this.value.toLowerCase().trim();
+                filterMessages();
+            });
+            
+            // Category filter functionality
+            categoryButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    // Update active button
+                    categoryButtons.forEach(btn => {
+                        btn.classList.remove('active', 'btn-primary');
+                        btn.classList.add('btn-outline-secondary');
+                    });
+                    
+                    this.classList.add('active', 'btn-primary');
+                    this.classList.remove('btn-outline-secondary');
+                    
+                    // Update current category
+                    currentCategory = this.getAttribute('data-category');
+                    filterMessages();
+                });
+            });
+            
+            // Mark as read functionality
+            messageCards.forEach(card => {
+                card.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Mark as read
+                    if (this.getAttribute('data-read') === 'false') {
+                        this.setAttribute('data-read', 'true');
+                        this.classList.remove('unread');
+                        
+                        // Update unread count in the UI
+                        updateUnreadCount();
+                        
+                        // If we're filtering by unread, hide this message
+                        if (currentCategory === 'unread') {
+                            this.style.display = 'none';
+                            checkEmptyState();
+                        }
+                    }
+                    
+                    // In a real app, you would navigate to the message detail page
+                    // For now, we'll just show an alert
+                    const sender = this.querySelector('h6').textContent;
+                    alert(`Opening message from: ${sender}`);
+                });
+            });
+            
+            // Filter messages based on current criteria
+            function filterMessages() {
+                let visibleCount = 0;
+                
+                messageCards.forEach(card => {
+                    const category = card.getAttribute('data-category');
+                    const isRead = card.getAttribute('data-read') === 'true';
+                    const textContent = card.textContent.toLowerCase();
+                    
+                    // Check category filter
+                    const categoryMatch = currentCategory === 'all' || 
+                                         (currentCategory === 'unread' && !isRead) ||
+                                         category === currentCategory;
+                    
+                    // Check search filter
+                    const searchMatch = !searchQuery || textContent.includes(searchQuery);
+                    
+                    // Show or hide based on filters
+                    if (categoryMatch && searchMatch) {
+                        card.style.display = 'block';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+                
+                // Show/hide empty state
+                checkEmptyState(visibleCount);
+            }
+            
+            // Check if we should show the empty state
+            function checkEmptyState(visibleCount) {
+                const actualVisibleCount = visibleCount !== undefined ? 
+                    visibleCount : document.querySelectorAll('.message-card[style="display: block"]').length;
+                
+                if (actualVisibleCount === 0) {
+                    emptyState.classList.remove('d-none');
+                    messagesList.classList.add('d-none');
+                } else {
+                    emptyState.classList.add('d-none');
+                    messagesList.classList.remove('d-none');
+                }
+            }
+            
+            // Update unread count in the UI
+            function updateUnreadCount() {
+                const unreadCount = document.querySelectorAll('.message-card[data-read="false"]').length;
+                
+                // Update the unread button text if there are unread messages
+                const unreadButton = document.querySelector('.btn-category[data-category="unread"]');
+                if (unreadCount > 0) {
+                    unreadButton.textContent = `Unread (${unreadCount})`;
+                } else {
+                    unreadButton.textContent = 'Unread';
+                }
+                
+                // In a real app, you might also update the badge on the bottom nav
+            }
+            
+            // Filter toggle buttons (for future functionality)
+            filterToggle.addEventListener('click', function() {
+                alert('Advanced filtering options would appear here');
+            });
+            
+            advancedFilterToggle.addEventListener('click', function() {
+                alert('Additional search filters would appear here');
+            });
+            
+            // Simulate receiving a new message (for demo purposes)
+            setTimeout(function() {
+                // Create a new message element
+                const newMessage = document.createElement('a');
+                newMessage.href = '#';
+                newMessage.className = 'list-group-item list-group-item-action p-3 mb-2 message-card unread bg-white rounded-3 shadow-sm border-0';
+                newMessage.setAttribute('data-category', 'alerts');
+                newMessage.setAttribute('data-read', 'false');
+                
+                newMessage.innerHTML = `
+                    <div class="d-flex">
+                        <img src="assets/images/logo.png" class="avatar-sm rounded-circle me-3" alt="User">
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <h6 class="mb-0">System Update</h6>
+                                <small class="text-muted message-time">Just now</small>
+                            </div>
+                            <p class="mb-1">New features available in the latest app update</p>
+                            <small class="text-primary">Tap to learn more</small>
+                        </div>
+                    </div>
+                `;
+                
+                // Add click handler to mark as read
+                newMessage.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    this.setAttribute('data-read', 'true');
+                    this.classList.remove('unread');
+                    updateUnreadCount();
+                    
+                    if (currentCategory === 'unread') {
+                        this.style.display = 'none';
+                        checkEmptyState();
+                    }
+                    
+                    alert('Opening message from: System Update');
+                });
+                
+                // Add to the top of the messages list
+                messagesList.insertBefore(newMessage, messagesList.firstChild);
+                
+                // Update unread count
+                updateUnreadCount();
+                
+                // Show notification
+                if (Notification.permission === 'granted') {
+                    new Notification('HelpOn', {
+                        body: 'New message from System Update',
+                        icon: 'assets/images/logo.png'
+                    });
+                }
+            }, 10000); // Show after 10 seconds
+            
+            // Request notification permission
+            if ('Notification' in window && Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        });
+    </script>
 </body>
 </html>

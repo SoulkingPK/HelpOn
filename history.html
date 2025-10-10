@@ -10,6 +10,7 @@
         .help-card {
             transition: all 0.2s;
             border-left: 4px solid transparent;
+            cursor: pointer;
         }
         .help-card:hover {
             transform: translateY(-2px);
@@ -18,6 +19,53 @@
         .emergency-danger { border-left-color: #dc3545; }
         .emergency-health { border-left-color: #0d6efd; }
         .emergency-other { border-left-color: #ffc107; }
+        .emergency-safety { border-left-color: #6f42c1; }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+        }
+        
+        .filter-btn.active {
+            background-color: #2563eb !important;
+            color: white !important;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6c757d;
+        }
+        
+        .history-detail {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .history-detail.expanded {
+            max-height: 300px;
+        }
+        
+        .rating-stars {
+            color: #ffc107;
+        }
+        
+        .toast-container {
+            z-index: 1055;
+        }
+        
+        .skeleton-loader {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
     </style>
 </head>
 <body class="bg-light" style="padding-bottom: 72px;">
@@ -25,82 +73,120 @@
     <header class="bg-white shadow-sm sticky-top">
         <div class="container py-2">
             <div class="d-flex justify-content-between align-items-center">
-                <a href="home.html" class="btn btn-outline-secondary btn-sm">
+                <a href="home.html" class="btn btn-outline-secondary btn-sm" id="backBtn">
                     <i class="bi bi-arrow-left"></i> Back
                 </a>
                 <h5 class="mb-0 fw-bold">Help History</h5>
-                <div style="width: 40px;"></div> <!-- Spacer -->
+                <button class="btn btn-outline-primary btn-sm" id="exportBtn">
+                    <i class="bi bi-download"></i>
+                </button>
             </div>
         </div>
     </header>
 
     <main class="container py-3">
+        <!-- Statistics Cards -->
+        <div class="row mb-4" id="statsContainer">
+            <!-- Stats will be loaded dynamically -->
+        </div>
+
         <!-- Filter Options -->
         <div class="d-flex mb-3 overflow-auto">
-            <div class="btn-group btn-group-sm flex-nowrap" role="group">
-                <button type="button" class="btn btn-outline-primary active">All</button>
-                <button type="button" class="btn btn-outline-primary">Requests</button>
-                <button type="button" class="btn btn-outline-primary">Responses</button>
-                <button type="button" class="btn btn-outline-primary">This Month</button>
-                <button type="button" class="btn btn-outline-primary">Older</button>
+            <div class="btn-group btn-group-sm flex-nowrap" role="group" id="filterGroup">
+                <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                <button type="button" class="btn btn-outline-primary" data-filter="requested">Requests</button>
+                <button type="button" class="btn btn-outline-primary" data-filter="responded">Responses</button>
+                <button type="button" class="btn btn-outline-primary" data-filter="month">This Month</button>
+                <button type="button" class="btn btn-outline-primary" data-filter="older">Older</button>
             </div>
+        </div>
+
+        <!-- Search Box -->
+        <div class="input-group mb-3">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" placeholder="Search help history..." id="searchInput">
+            <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                <i class="bi bi-x"></i>
+            </button>
         </div>
 
         <!-- History List -->
-        <div class="list-group">
-            <!-- Example Entry 1 -->
-            <div class="list-group-item help-card emergency-danger mb-2">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <span class="badge bg-danger">Emergency</span>
-                        <h6 class="mt-2">Medical Assistance</h6>
-                        <small class="text-muted">Responded to Jessica M. • 2 days ago</small>
-                    </div>
-                    <div class="text-end">
-                        <span class="d-block text-success">+50 pts</span>
-                        <span class="text-muted small">4.9 ★</span>
-                    </div>
+        <div id="historyContainer">
+            <!-- History items will be loaded dynamically -->
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-state d-none" id="emptyState">
+            <i class="bi bi-clock-history fs-1 text-muted mb-3"></i>
+            <h5>No Help History Yet</h5>
+            <p class="text-muted">Your help requests and responses will appear here.</p>
+            <a href="map.html" class="btn btn-primary mt-2">Start Helping</a>
+        </div>
+
+        <!-- Loading Skeleton -->
+        <div id="loadingSkeleton">
+            <!-- Skeleton loaders will be shown while loading -->
+        </div>
+    </main>
+
+    <!-- History Detail Modal -->
+    <div class="modal fade" id="historyDetailModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailModalTitle">Help Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="detailModalBody">
+                    <!-- Details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="shareHelpStory">Share Story</button>
                 </div>
             </div>
+        </div>
+    </div>
 
-            <!-- Example Entry 2 -->
-            <div class="list-group-item help-card emergency-health mb-2">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <span class="badge bg-primary">Health</span>
-                        <h6 class="mt-2">Panic Attack Support</h6>
-                        <small class="text-muted">Requested help • 1 week ago</small>
-                    </div>
-                    <div class="text-end">
-                        <span class="d-block text-success">Helper: Michael T.</span>
-                        <span class="text-muted small">5.0 ★</span>
-                    </div>
+    <!-- Export Options Modal -->
+    <div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Export History</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-            </div>
-
-            <!-- Example Entry 3 -->
-            <div class="list-group-item help-card emergency-other mb-2">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <span class="badge bg-warning text-dark">Lost</span>
-                        <h6 class="mt-2">Directions Needed</h6>
-                        <small class="text-muted">Helped tourist • 2 weeks ago</small>
-                    </div>
-                    <div class="text-end">
-                        <span class="d-block text-success">+20 pts</span>
-                        <span class="text-muted small">4.7 ★</span>
+                <div class="modal-body">
+                    <div class="list-group">
+                        <button class="list-group-item list-group-item-action" id="exportPDF">
+                            <i class="bi bi-file-pdf text-danger me-2"></i>
+                            Export as PDF
+                        </button>
+                        <button class="list-group-item list-group-item-action" id="exportCSV">
+                            <i class="bi bi-file-spreadsheet text-success me-2"></i>
+                            Export as CSV
+                        </button>
+                        <button class="list-group-item list-group-item-action" id="exportJSON">
+                            <i class="bi bi-code-slash text-primary me-2"></i>
+                            Export as JSON
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-    </main>
+    </div>
 
-    <!-- Bottom Navigation (same as index.html) -->
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <!-- Toasts will be added here dynamically -->
+    </div>
+
+    <!-- Bottom Navigation -->
     <nav class="navbar fixed-bottom bg-white shadow-sm border-top py-1">
         <div class="container">
             <div class="d-flex justify-content-around w-100">
-                <a href="home.html" class="text-center text-primary d-flex flex-column align-items-center">
-                    <i class="bi bi-house-door-fill fs-5"></i>
+                <a href="home.html" class="text-center text-muted d-flex flex-column align-items-center">
+                    <i class="bi bi-house-door fs-5"></i>
                     <span class="small">Home</span>
                 </a>
                 <a href="map.html" class="text-center text-muted d-flex flex-column align-items-center">
@@ -115,12 +201,573 @@
                     <i class="bi bi-inbox fs-5"></i>
                     <span class="small">Inbox</span>
                 </a>
-                <a href="profile.html" class="text-center text-muted d-flex flex-column align-items-center">
-                    <i class="bi bi-person fs-5"></i>
+                <a href="profile.html" class="text-center text-primary d-flex flex-column align-items-center">
+                    <i class="bi bi-person-fill fs-5"></i>
                     <span class="small">Profile</span>
                 </a>
             </div>
         </div>
     </nav>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // History Manager Class
+        class HistoryManager {
+            constructor() {
+                this.historyData = [];
+                this.filteredData = [];
+                this.currentFilter = 'all';
+                this.searchTerm = '';
+                this.stats = {};
+                this.init();
+            }
+            
+            init() {
+                this.loadHistoryData();
+                this.setupEventListeners();
+                this.showLoadingSkeleton();
+                setTimeout(() => {
+                    this.renderStats();
+                    this.renderHistory();
+                    this.hideLoadingSkeleton();
+                }, 1000);
+            }
+            
+            loadHistoryData() {
+                // Simulated history data - in real app, this would come from an API
+                this.historyData = [
+                    {
+                        id: 1,
+                        type: 'responded',
+                        emergencyType: 'danger',
+                        title: 'Medical Assistance',
+                        description: 'Provided first aid and called ambulance for Jessica who fainted at the park',
+                        person: 'Jessica M.',
+                        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+                        points: 50,
+                        rating: 4.9,
+                        duration: '15 minutes',
+                        location: 'Central Park',
+                        status: 'completed',
+                        helper: null
+                    },
+                    {
+                        id: 2,
+                        type: 'requested',
+                        emergencyType: 'health',
+                        title: 'Panic Attack Support',
+                        description: 'Experienced severe panic attack and needed immediate calming assistance',
+                        person: 'You',
+                        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
+                        points: 0,
+                        rating: 5.0,
+                        duration: '25 minutes',
+                        location: 'Home',
+                        status: 'completed',
+                        helper: 'Michael T.'
+                    },
+                    {
+                        id: 3,
+                        type: 'responded',
+                        emergencyType: 'other',
+                        title: 'Directions Needed',
+                        description: 'Helped lost tourist find their way back to hotel and recommended local attractions',
+                        person: 'Tourist from Japan',
+                        date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 2 weeks ago
+                        points: 20,
+                        rating: 4.7,
+                        duration: '8 minutes',
+                        location: 'City Center',
+                        status: 'completed',
+                        helper: null
+                    },
+                    {
+                        id: 4,
+                        type: 'responded',
+                        emergencyType: 'safety',
+                        title: 'Roadside Assistance',
+                        description: 'Helped change flat tire for elderly couple stranded on highway',
+                        person: 'Robert & Mary',
+                        date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000), // 3 weeks ago
+                        points: 30,
+                        rating: 5.0,
+                        duration: '20 minutes',
+                        location: 'Highway Exit 14',
+                        status: 'completed',
+                        helper: null
+                    },
+                    {
+                        id: 5,
+                        type: 'requested',
+                        emergencyType: 'danger',
+                        title: 'Harassment Situation',
+                        description: 'Felt unsafe walking home late at night, requested escort',
+                        person: 'You',
+                        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 1 month ago
+                        points: 0,
+                        rating: 4.8,
+                        duration: '12 minutes',
+                        location: 'Main Street',
+                        status: 'completed',
+                        helper: 'Sarah K.'
+                    }
+                ];
+                
+                this.calculateStats();
+            }
+            
+            calculateStats() {
+                const now = new Date();
+                const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                
+                this.stats = {
+                    totalHelps: this.historyData.length,
+                    totalPoints: this.historyData.reduce((sum, item) => sum + item.points, 0),
+                    avgRating: (this.historyData.reduce((sum, item) => sum + item.rating, 0) / this.historyData.length).toFixed(1),
+                    thisMonth: this.historyData.filter(item => item.date >= thisMonth).length,
+                    responses: this.historyData.filter(item => item.type === 'responded').length,
+                    requests: this.historyData.filter(item => item.type === 'requested').length
+                };
+            }
+            
+            setupEventListeners() {
+                // Back button
+                document.getElementById('backBtn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.goBack();
+                });
+                
+                // Export button
+                document.getElementById('exportBtn').addEventListener('click', () => {
+                    this.showExportModal();
+                });
+                
+                // Filter buttons
+                document.querySelectorAll('#filterGroup .btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.setFilter(e.target.dataset.filter);
+                    });
+                });
+                
+                // Search functionality
+                document.getElementById('searchInput').addEventListener('input', (e) => {
+                    this.searchHistory(e.target.value);
+                });
+                
+                document.getElementById('clearSearch').addEventListener('click', () => {
+                    document.getElementById('searchInput').value = '';
+                    this.searchHistory('');
+                });
+                
+                // Export options
+                document.getElementById('exportPDF').addEventListener('click', () => {
+                    this.exportAsPDF();
+                });
+                
+                document.getElementById('exportCSV').addEventListener('click', () => {
+                    this.exportAsCSV();
+                });
+                
+                document.getElementById('exportJSON').addEventListener('click', () => {
+                    this.exportAsJSON();
+                });
+                
+                // Share story button
+                document.getElementById('shareHelpStory').addEventListener('click', () => {
+                    this.shareHelpStory();
+                });
+            }
+            
+            setFilter(filter) {
+                this.currentFilter = filter;
+                
+                // Update active button
+                document.querySelectorAll('#filterGroup .btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.filter === filter) {
+                        btn.classList.add('active');
+                    }
+                });
+                
+                this.applyFilters();
+            }
+            
+            searchHistory(term) {
+                this.searchTerm = term.toLowerCase();
+                this.applyFilters();
+            }
+            
+            applyFilters() {
+                this.filteredData = this.historyData.filter(item => {
+                    // Apply search filter
+                    if (this.searchTerm) {
+                        const searchableText = `${item.title} ${item.description} ${item.person} ${item.location}`.toLowerCase();
+                        if (!searchableText.includes(this.searchTerm)) {
+                            return false;
+                        }
+                    }
+                    
+                    // Apply type filter
+                    switch (this.currentFilter) {
+                        case 'requested':
+                            return item.type === 'requested';
+                        case 'responded':
+                            return item.type === 'responded';
+                        case 'month':
+                            const thisMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+                            return item.date >= thisMonth;
+                        case 'older':
+                            const lastMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+                            return item.date < lastMonth;
+                        default:
+                            return true; // 'all'
+                    }
+                });
+                
+                this.renderHistory();
+            }
+            
+            renderStats() {
+                const statsContainer = document.getElementById('statsContainer');
+                statsContainer.innerHTML = `
+                    <div class="col-6 col-md-3 mb-3">
+                        <div class="card stats-card text-center py-3">
+                            <h4 class="mb-1">${this.stats.totalHelps}</h4>
+                            <small>Total Helps</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <div class="card stats-card text-center py-3">
+                            <h4 class="mb-1">${this.stats.totalPoints}</h4>
+                            <small>Points Earned</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <div class="card stats-card text-center py-3">
+                            <h4 class="mb-1">${this.stats.avgRating}</h4>
+                            <small>Avg Rating</small>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3 mb-3">
+                        <div class="card stats-card text-center py-3">
+                            <h4 class="mb-1">${this.stats.thisMonth}</h4>
+                            <small>This Month</small>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            renderHistory() {
+                const container = document.getElementById('historyContainer');
+                const emptyState = document.getElementById('emptyState');
+                
+                if (this.filteredData.length === 0) {
+                    container.innerHTML = '';
+                    emptyState.classList.remove('d-none');
+                    return;
+                }
+                
+                emptyState.classList.add('d-none');
+                
+                container.innerHTML = this.filteredData.map(item => {
+                    const emergencyClass = `emergency-${item.emergencyType}`;
+                    const timeAgo = this.getTimeAgo(item.date);
+                    const badgeColor = this.getBadgeColor(item.emergencyType);
+                    const badgeText = this.getBadgeText(item.emergencyType);
+                    
+                    return `
+                        <div class="list-group-item help-card ${emergencyClass} mb-2" data-history-id="${item.id}">
+                            <div class="d-flex justify-content-between">
+                                <div class="flex-grow-1">
+                                    <span class="badge ${badgeColor}">${badgeText}</span>
+                                    <h6 class="mt-2 mb-1">${item.title}</h6>
+                                    <small class="text-muted">${item.type === 'requested' ? 'Requested help' : 'Responded to'} ${item.person} • ${timeAgo}</small>
+                                </div>
+                                <div class="text-end">
+                                    ${item.points > 0 ? `<span class="d-block text-success">+${item.points} pts</span>` : ''}
+                                    <span class="text-muted small">
+                                        <span class="rating-stars">${this.renderStars(item.rating)}</span> ${item.rating}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                // Add click event listeners to history items
+                document.querySelectorAll('.help-card').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        const historyId = parseInt(card.dataset.historyId);
+                        this.showHistoryDetails(historyId);
+                    });
+                });
+            }
+            
+            showHistoryDetails(historyId) {
+                const item = this.historyData.find(h => h.id === historyId);
+                if (!item) return;
+                
+                const modalTitle = document.getElementById('detailModalTitle');
+                const modalBody = document.getElementById('detailModalBody');
+                
+                modalTitle.textContent = item.title;
+                
+                modalBody.innerHTML = `
+                    <div class="mb-3">
+                        <span class="badge ${this.getBadgeColor(item.emergencyType)}">${this.getBadgeText(item.emergencyType)}</span>
+                        <span class="badge ${item.type === 'requested' ? 'bg-info' : 'bg-success'} ms-1">
+                            ${item.type === 'requested' ? 'You Requested Help' : 'You Helped Someone'}
+                        </span>
+                    </div>
+                    
+                    <p><strong>Description:</strong><br>${item.description}</p>
+                    
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-muted"><strong>Location:</strong><br>${item.location}</small>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted"><strong>Duration:</strong><br>${item.duration}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-2">
+                        <div class="col-6">
+                            <small class="text-muted"><strong>Date:</strong><br>${item.date.toLocaleDateString()}</small>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted"><strong>Time:</strong><br>${item.date.toLocaleTimeString()}</small>
+                        </div>
+                    </div>
+                    
+                    ${item.helper ? `
+                        <div class="mt-3">
+                            <small class="text-muted"><strong>Helper:</strong><br>${item.helper}</small>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="mt-3">
+                        <small class="text-muted"><strong>Rating:</strong></small>
+                        <div class="rating-stars">${this.renderStars(item.rating, true)} ${item.rating}/5</div>
+                    </div>
+                    
+                    ${item.points > 0 ? `
+                        <div class="mt-2">
+                            <small class="text-muted"><strong>Points Earned:</strong></small>
+                            <div class="text-success">+${item.points} HelpPoints</div>
+                        </div>
+                    ` : ''}
+                `;
+                
+                // Store current item for sharing
+                this.currentDetailItem = item;
+                
+                const modal = new bootstrap.Modal(document.getElementById('historyDetailModal'));
+                modal.show();
+            }
+            
+            renderStars(rating, large = false) {
+                const fullStars = Math.floor(rating);
+                const halfStar = rating % 1 >= 0.5;
+                const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+                
+                const starSize = large ? 'fs-5' : '';
+                
+                let stars = '';
+                for (let i = 0; i < fullStars; i++) {
+                    stars += `<i class="bi bi-star-fill ${starSize}"></i>`;
+                }
+                if (halfStar) {
+                    stars += `<i class="bi bi-star-half ${starSize}"></i>`;
+                }
+                for (let i = 0; i < emptyStars; i++) {
+                    stars += `<i class="bi bi-star ${starSize}"></i>`;
+                }
+                
+                return stars;
+            }
+            
+            getBadgeColor(emergencyType) {
+                const colors = {
+                    danger: 'bg-danger',
+                    health: 'bg-primary',
+                    other: 'bg-warning text-dark',
+                    safety: 'bg-purple'
+                };
+                return colors[emergencyType] || 'bg-secondary';
+            }
+            
+            getBadgeText(emergencyType) {
+                const texts = {
+                    danger: 'Emergency',
+                    health: 'Health',
+                    other: 'Lost',
+                    safety: 'Safety'
+                };
+                return texts[emergencyType] || 'Other';
+            }
+            
+            getTimeAgo(date) {
+                const now = new Date();
+                const diffMs = now - date;
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 0) return 'Today';
+                if (diffDays === 1) return 'Yesterday';
+                if (diffDays < 7) return `${diffDays} days ago`;
+                if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+                return `${Math.floor(diffDays / 30)} months ago`;
+            }
+            
+            showExportModal() {
+                const modal = new bootstrap.Modal(document.getElementById('exportModal'));
+                modal.show();
+            }
+            
+            exportAsPDF() {
+                this.showToast('Preparing PDF export...', 'info');
+                // In real app, this would generate and download a PDF
+                setTimeout(() => {
+                    this.showToast('PDF exported successfully!', 'success');
+                    const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+                    exportModal.hide();
+                }, 2000);
+            }
+            
+            exportAsCSV() {
+                const csvContent = this.generateCSV();
+                this.downloadFile(csvContent, 'helpon-history.csv', 'text/csv');
+                this.showToast('CSV exported successfully!', 'success');
+                const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+                exportModal.hide();
+            }
+            
+            exportAsJSON() {
+                const jsonContent = JSON.stringify(this.historyData, null, 2);
+                this.downloadFile(jsonContent, 'helpon-history.json', 'application/json');
+                this.showToast('JSON exported successfully!', 'success');
+                const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+                exportModal.hide();
+            }
+            
+            generateCSV() {
+                const headers = ['Date', 'Type', 'Title', 'Person', 'Points', 'Rating', 'Location'];
+                const rows = this.historyData.map(item => [
+                    item.date.toLocaleDateString(),
+                    item.type === 'requested' ? 'Requested' : 'Responded',
+                    `"${item.title}"`,
+                    `"${item.person}"`,
+                    item.points,
+                    item.rating,
+                    `"${item.location}"`
+                ]);
+                
+                return [headers, ...rows].map(row => row.join(',')).join('\n');
+            }
+            
+            downloadFile(content, filename, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+            
+            shareHelpStory() {
+                if (!this.currentDetailItem) return;
+                
+                const item = this.currentDetailItem;
+                const text = `I ${item.type === 'requested' ? 'received help' : 'helped someone'} through HelpOn: "${item.title}" - ${item.description.substring(0, 100)}...`;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'My HelpOn Story',
+                        text: text,
+                        url: window.location.href
+                    }).then(() => {
+                        this.showToast('Story shared successfully!', 'success');
+                    }).catch(() => {
+                        this.showToast('Share cancelled', 'info');
+                    });
+                } else {
+                    // Fallback for browsers that don't support Web Share API
+                    navigator.clipboard.writeText(text).then(() => {
+                        this.showToast('Story copied to clipboard!', 'success');
+                    });
+                }
+            }
+            
+            goBack() {
+                this.showToast('Returning to home...', 'info');
+                setTimeout(() => {
+                    window.location.href = 'home.html';
+                }, 500);
+            }
+            
+            showLoadingSkeleton() {
+                const skeleton = document.getElementById('loadingSkeleton');
+                skeleton.innerHTML = `
+                    <div class="list-group">
+                        ${Array(3).fill().map(() => `
+                            <div class="list-group-item mb-2">
+                                <div class="skeleton-loader rounded mb-2" style="height: 20px; width: 80px;"></div>
+                                <div class="skeleton-loader rounded mb-1" style="height: 16px; width: 60%;"></div>
+                                <div class="skeleton-loader rounded" style="height: 14px; width: 40%;"></div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            hideLoadingSkeleton() {
+                document.getElementById('loadingSkeleton').innerHTML = '';
+            }
+            
+            showToast(message, type = 'info') {
+                const toastContainer = document.querySelector('.toast-container');
+                const toastId = 'toast-' + Date.now();
+                
+                const icons = {
+                    success: 'bi-check-circle-fill',
+                    error: 'bi-exclamation-triangle-fill',
+                    warning: 'bi-exclamation-circle-fill',
+                    info: 'bi-info-circle-fill'
+                };
+                
+                const toastHtml = `
+                    <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <i class="bi ${icons[type]} me-2"></i>${message}
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                `;
+                
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                
+                const toastElement = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+                toast.show();
+                
+                toastElement.addEventListener('hidden.bs.toast', function() {
+                    toastElement.remove();
+                });
+            }
+        }
+        
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            const historyManager = new HistoryManager();
+        });
+    </script>
 </body>
 </html>
