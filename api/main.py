@@ -14,7 +14,17 @@ except ImportError:
     from database import users_collection
     from auth import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 
+import traceback
+from fastapi.responses import JSONResponse
+
 app = FastAPI(title="HelpOn API")
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "traceback": traceback.format_exc()}
+    )
 
 # Setup CORS
 app.add_middleware(
