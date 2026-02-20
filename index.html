@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,18 +14,22 @@
             display: flex;
             align-items: center;
         }
+
         .card {
             border: none;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
+
         .form-control {
             border-radius: 10px;
             padding: 12px 20px;
         }
+
         .form-control:focus {
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
         }
+
         .btn-primary {
             background-color: #2563eb;
             border: none;
@@ -32,35 +37,42 @@
             padding: 12px;
             font-weight: 600;
         }
+
         .btn-primary:hover {
             background-color: #1e40af;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
+
         .password-toggle {
             cursor: pointer;
             transition: all 0.3s;
         }
+
         .password-toggle:hover {
             color: #2563eb !important;
         }
+
         .social-btn {
             border-radius: 10px;
             padding: 10px;
             font-weight: 500;
         }
+
         .logo-text {
             font-weight: 700;
             background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
         .alert {
             border-radius: 10px;
             border: none;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="row justify-content-center">
@@ -72,32 +84,33 @@
                             <h2 class="logo-text">HelpOn</h2>
                             <p class="text-muted">Login to access emergency support</p>
                         </div>
-                        
+
                         <div id="loginAlert" class="alert alert-danger d-none" role="alert">
                             <i class="bi bi-exclamation-triangle-fill me-2"></i>
                             <span id="alertMessage"></span>
                         </div>
-                        
+
                         <form id="loginForm">
                             <div class="mb-3">
                                 <label class="form-label">Phone or Email</label>
-                                <input type="text" class="form-control form-control-lg" id="username" 
-                                    name="username" required placeholder="Enter your phone number or email">
+                                <input type="text" class="form-control form-control-lg" id="username" name="username"
+                                    required placeholder="Enter your phone number or email">
                                 <div class="invalid-feedback" id="usernameFeedback"></div>
                             </div>
-                            
+
                             <div class="mb-3">
                                 <label class="form-label">Password</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control form-control-lg" id="password" 
+                                    <input type="password" class="form-control form-control-lg" id="password"
                                         name="password" required placeholder="Enter your password">
-                                    <button type="button" class="btn btn-outline-secondary password-toggle" id="togglePassword">
+                                    <button type="button" class="btn btn-outline-secondary password-toggle"
+                                        id="togglePassword">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
                                 <div class="invalid-feedback" id="passwordFeedback"></div>
                             </div>
-                            
+
                             <div class="d-flex justify-content-between align-items-center mb-4">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="rememberMe">
@@ -105,28 +118,29 @@
                                 </div>
                                 <a href="#" class="text-decoration-none" id="forgotPassword">Forgot password?</a>
                             </div>
-                            
+
                             <div class="d-grid mb-3">
                                 <button type="submit" class="btn btn-primary btn-lg" id="loginBtn">
                                     <span class="spinner-border spinner-border-sm d-none" id="loginSpinner"></span>
                                     <span id="loginText">Login</span>
                                 </button>
                             </div>
-                            
+
                             <div class="d-flex align-items-center my-4">
                                 <hr class="flex-grow-1">
                                 <span class="px-2 text-muted">OR</span>
                                 <hr class="flex-grow-1">
                             </div>
-                            
+
                             <div class="d-grid gap-2">
                                 <button type="button" class="btn btn-outline-danger social-btn">
                                     <i class="bi bi-google me-2"></i> Continue with Google
                                 </button>
                             </div>
-                            
+
                             <div class="text-center mt-4">
-                                <p class="text-muted">New to HelpOn? <a href="register.html" class="text-decoration-none">Create account</a></p>
+                                <p class="text-muted">New to HelpOn? <a href="register.html"
+                                        class="text-decoration-none">Create account</a></p>
                             </div>
                         </form>
                     </div>
@@ -136,7 +150,7 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Elements
             const loginForm = document.getElementById('loginForm');
             const usernameInput = document.getElementById('username');
@@ -148,12 +162,12 @@
             const loginAlert = document.getElementById('loginAlert');
             const alertMessage = document.getElementById('alertMessage');
             const forgotPassword = document.getElementById('forgotPassword');
-            
+
             // Toggle password visibility
-            togglePassword.addEventListener('click', function() {
+            togglePassword.addEventListener('click', function () {
                 const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                 passwordInput.setAttribute('type', type);
-                
+
                 // Toggle eye icon
                 const eyeIcon = this.querySelector('i');
                 if (type === 'password') {
@@ -164,25 +178,25 @@
                     eyeIcon.classList.add('bi-eye-slash');
                 }
             });
-            
+
             // Form validation
-            loginForm.addEventListener('submit', function(e) {
+            loginForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-                
+
                 // Reset validation
                 usernameInput.classList.remove('is-invalid');
                 passwordInput.classList.remove('is-invalid');
                 loginAlert.classList.add('d-none');
-                
+
                 let isValid = true;
-                
+
                 // Validate username
                 if (!usernameInput.value.trim()) {
                     usernameInput.classList.add('is-invalid');
                     document.getElementById('usernameFeedback').textContent = 'Please enter your phone number or email';
                     isValid = false;
                 }
-                
+
                 // Validate password
                 if (!passwordInput.value) {
                     passwordInput.classList.add('is-invalid');
@@ -193,46 +207,60 @@
                     document.getElementById('passwordFeedback').textContent = 'Password must be at least 6 characters';
                     isValid = false;
                 }
-                
+
                 if (!isValid) return;
-                
+
                 // Simulate login process
                 loginBtn.disabled = true;
                 loginSpinner.classList.remove('d-none');
                 loginText.textContent = 'Logging in...';
-                
-                // Simulate API call
-                setTimeout(() => {
-                    // For demo purposes, always succeed
-                    window.location.href = 'home.html';
-                    
-                    // In a real app, you would handle the response:
-                    if (response.success) {
+
+                // Real API call
+                const loginData = {
+                    username: usernameInput.value.trim(),
+                    password: passwordInput.value
+                };
+
+                fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(loginData)
+                })
+                    .then(async response => {
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw new Error(data.detail || 'Login failed');
+                        }
+                        // Save token
+                        localStorage.setItem('helpon_token', data.access_token);
                         window.location.href = 'home.html';
-                    } else {
+                    })
+                    .catch(error => {
                         loginAlert.classList.remove('d-none');
-                        alertMessage.textContent = response.message;
+                        alertMessage.textContent = error.message;
                         loginBtn.disabled = false;
                         loginSpinner.classList.add('d-none');
                         loginText.textContent = 'Login';
-                    }
-                }, 1500);
+                    });
             });
-            
+
             // Forgot password handler
-            forgotPassword.addEventListener('click', function(e) {
+            forgotPassword.addEventListener('click', function (e) {
                 e.preventDefault();
-                
+
                 if (!usernameInput.value.trim()) {
                     loginAlert.classList.remove('d-none');
                     alertMessage.textContent = 'Please enter your phone number or email first';
                     return;
                 }
-                
+
                 loginAlert.classList.remove('d-none');
                 alertMessage.textContent = `Password reset instructions will be sent to ${usernameInput.value}`;
             });
         });
     </script>
 </body>
+
 </html>
