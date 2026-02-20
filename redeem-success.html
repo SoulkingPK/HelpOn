@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +13,7 @@
             --success: #10b981;
             --warning: #f59e0b;
         }
-        
+
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
@@ -21,15 +22,15 @@
             justify-content: center;
             font-family: 'Segoe UI', system-ui, sans-serif;
         }
-        
+
         .success-card {
             border: none;
             border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
             animation: cardEntrance 0.8s ease-out;
         }
-        
+
         .confetti {
             position: fixed;
             width: 10px;
@@ -38,11 +39,11 @@
             opacity: 0;
             z-index: -1;
         }
-        
+
         .success-icon {
             animation: bounce 1s ease-in-out;
         }
-        
+
         .voucher-code {
             background: linear-gradient(135deg, var(--warning) 0%, #f97316 100%);
             color: white;
@@ -55,7 +56,7 @@
             position: relative;
             overflow: hidden;
         }
-        
+
         .voucher-code::before {
             content: '';
             position: absolute;
@@ -63,27 +64,25 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 10px,
-                rgba(255,255,255,0.3) 10px,
-                rgba(255,255,255,0.3) 20px
-            );
+            background: repeating-linear-gradient(45deg,
+                    transparent,
+                    transparent 10px,
+                    rgba(255, 255, 255, 0.3) 10px,
+                    rgba(255, 255, 255, 0.3) 20px);
         }
-        
+
         .countdown {
             font-size: 0.9rem;
             color: #6c757d;
         }
-        
+
         .share-buttons {
             display: flex;
             gap: 10px;
             justify-content: center;
             margin: 20px 0;
         }
-        
+
         .share-btn {
             width: 40px;
             height: 40px;
@@ -94,11 +93,11 @@
             border: none;
             transition: all 0.3s ease;
         }
-        
+
         .share-btn:hover {
             transform: translateY(-2px);
         }
-        
+
         .btn-primary {
             background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%);
             border: none;
@@ -107,12 +106,12 @@
             font-weight: 600;
             transition: all 0.3s ease;
         }
-        
+
         .btn-primary:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
         }
-        
+
         .progress-bar {
             height: 4px;
             background: #e9ecef;
@@ -120,83 +119,101 @@
             overflow: hidden;
             margin: 20px 0;
         }
-        
+
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, var(--success) 0%, #34d399 100%);
             width: 100%;
             animation: progressFill 3s ease-in-out;
         }
-        
+
         @keyframes cardEntrance {
             0% {
                 opacity: 0;
                 transform: translateY(50px) scale(0.9);
             }
+
             100% {
                 opacity: 1;
                 transform: translateY(0) scale(1);
             }
         }
-        
+
         @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {
+
+            0%,
+            20%,
+            50%,
+            80%,
+            100% {
                 transform: translateY(0);
             }
+
             40% {
                 transform: translateY(-20px);
             }
+
             60% {
                 transform: translateY(-10px);
             }
         }
-        
+
         @keyframes progressFill {
             0% {
                 width: 0%;
             }
+
             100% {
                 width: 100%;
             }
         }
-        
+
         .pulse {
             animation: pulse 2s infinite;
         }
-        
+
         @keyframes pulse {
             0% {
                 box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
             }
+
             70% {
                 box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
             }
+
             100% {
                 box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
             }
         }
-        
+
         .toast-container {
             z-index: 1055;
         }
-        
+
         .feature-list {
             text-align: left;
             margin: 20px 0;
         }
-        
+
         .feature-list li {
             margin-bottom: 8px;
             display: flex;
             align-items: center;
         }
-        
+
         .feature-list li i {
             color: var(--success);
             margin-right: 10px;
         }
     </style>
+    <script>
+        // Authentication check
+        if (!localStorage.getItem('helpon_token')) {
+            window.location.href = 'index.html';
+        }
+    </script>
 </head>
+
 <body>
     <!-- Success Card -->
     <div class="container py-5">
@@ -208,15 +225,15 @@
                         <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
                     </div>
                 </div>
-                
+
                 <!-- Success Title -->
                 <h3 class="mb-3 fw-bold">Redemption Successful!</h3>
-                
+
                 <!-- Progress Bar -->
                 <div class="progress-bar">
                     <div class="progress-fill"></div>
                 </div>
-                
+
                 <!-- Voucher Details -->
                 <div id="voucherDetails">
                     <h5 class="mb-3" id="rewardName">Amazon Voucher</h5>
@@ -227,7 +244,7 @@
                         Code will be generated in <span id="countdown">3</span> seconds
                     </p>
                 </div>
-                
+
                 <!-- Features List -->
                 <div class="feature-list">
                     <ul class="list-unstyled">
@@ -245,23 +262,25 @@
                         </li>
                     </ul>
                 </div>
-                
+
                 <!-- Share Buttons -->
                 <div class="share-buttons">
                     <button class="share-btn btn-primary" id="shareWhatsApp" title="Share on WhatsApp">
                         <i class="bi bi-whatsapp"></i>
                     </button>
-                    <button class="share-btn" style="background: #1877F2; color: white;" id="shareFacebook" title="Share on Facebook">
+                    <button class="share-btn" style="background: #1877F2; color: white;" id="shareFacebook"
+                        title="Share on Facebook">
                         <i class="bi bi-facebook"></i>
                     </button>
-                    <button class="share-btn" style="background: #1DA1F2; color: white;" id="shareTwitter" title="Share on Twitter">
+                    <button class="share-btn" style="background: #1DA1F2; color: white;" id="shareTwitter"
+                        title="Share on Twitter">
                         <i class="bi bi-twitter"></i>
                     </button>
                     <button class="share-btn btn-outline-secondary" id="copyLink" title="Copy Link">
                         <i class="bi bi-link-45deg"></i>
                     </button>
                 </div>
-                
+
                 <!-- Action Buttons -->
                 <div class="d-grid gap-2 mt-4">
                     <a href="rewards.html" class="btn btn-primary" id="backToRewards">
@@ -282,7 +301,7 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Custom JavaScript -->
     <script>
         // Redemption Success Manager Class
@@ -294,7 +313,7 @@
                 this.countdownInterval = null;
                 this.init();
             }
-            
+
             init() {
                 this.getRedemptionData();
                 this.setupEventListeners();
@@ -302,12 +321,12 @@
                 this.createConfetti();
                 this.showToast('Redemption successful!', 'success');
             }
-            
+
             getRedemptionData() {
                 // Get redemption data from URL parameters or localStorage
                 const urlParams = new URLSearchParams(window.location.search);
                 const reward = urlParams.get('reward') || localStorage.getItem('lastRedeemedReward');
-                
+
                 if (reward) {
                     this.setRewardDetails(reward);
                 } else {
@@ -315,7 +334,7 @@
                     this.setRewardDetails('amazon_500');
                 }
             }
-            
+
             setRewardDetails(rewardId) {
                 const rewards = {
                     'amazon_500': {
@@ -339,15 +358,15 @@
                         instructions: 'Direct wallet credit'
                     }
                 };
-                
+
                 const reward = rewards[rewardId] || rewards['amazon_500'];
                 this.rewardType = rewardId;
-                
+
                 document.getElementById('rewardName').textContent = reward.name;
-                document.getElementById('voucherInstructions').innerHTML = 
+                document.getElementById('voucherInstructions').innerHTML =
                     `${reward.instructions} • <span class="countdown" id="countdown">${this.countdownTime}</span> seconds`;
             }
-            
+
             generateVoucherCode() {
                 const prefixes = {
                     'amazon_500': 'AMZN',
@@ -355,63 +374,63 @@
                     'flipkart_200': 'FLP',
                     'paytm_100': 'PTM'
                 };
-                
+
                 const prefix = prefixes[this.rewardType] || 'HLP';
                 const randomChars = Math.random().toString(36).substr(2, 8).toUpperCase();
                 this.voucherCode = `${prefix}-${randomChars}`;
-                
+
                 document.getElementById('voucherCode').textContent = this.voucherCode;
-                document.getElementById('voucherInstructions').innerHTML = 
+                document.getElementById('voucherInstructions').innerHTML =
                     'Code generated! Save this code or check your email';
-                
+
                 // Simulate sending email
                 this.simulateEmailSending();
             }
-            
+
             startCountdown() {
                 const countdownElement = document.getElementById('countdown');
                 countdownElement.textContent = this.countdownTime;
-                
+
                 this.countdownInterval = setInterval(() => {
                     this.countdownTime--;
                     countdownElement.textContent = this.countdownTime;
-                    
+
                     if (this.countdownTime <= 0) {
                         clearInterval(this.countdownInterval);
                         this.generateVoucherCode();
                     }
                 }, 1000);
             }
-            
+
             simulateEmailSending() {
                 setTimeout(() => {
                     this.showToast('Voucher sent to your email!', 'info');
                 }, 2000);
             }
-            
+
             setupEventListeners() {
                 // Share buttons
                 document.getElementById('shareWhatsApp').addEventListener('click', () => {
                     this.shareOnWhatsApp();
                 });
-                
+
                 document.getElementById('shareFacebook').addEventListener('click', () => {
                     this.shareOnFacebook();
                 });
-                
+
                 document.getElementById('shareTwitter').addEventListener('click', () => {
                     this.shareOnTwitter();
                 });
-                
+
                 document.getElementById('copyLink').addEventListener('click', () => {
                     this.copyToClipboard();
                 });
-                
+
                 // Action buttons
                 document.getElementById('viewMoreRewards').addEventListener('click', () => {
                     this.viewMoreRewards();
                 });
-                
+
                 // Voucher code click to copy
                 document.getElementById('voucherCode').addEventListener('click', () => {
                     if (this.voucherCode) {
@@ -419,28 +438,28 @@
                     }
                 });
             }
-            
+
             shareOnWhatsApp() {
                 const text = `I just redeemed a ${document.getElementById('rewardName').textContent} on HelpOn! 🎉 Use code: ${this.voucherCode || 'Coming soon'}`;
                 const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
                 window.open(url, '_blank');
                 this.showToast('Opened WhatsApp sharing', 'info');
             }
-            
+
             shareOnFacebook() {
                 const text = `Check out my HelpOn reward redemption!`;
                 const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(text)}`;
                 window.open(url, '_blank');
                 this.showToast('Opened Facebook sharing', 'info');
             }
-            
+
             shareOnTwitter() {
                 const text = `Just redeemed a reward on @HelpOnApp! 🎉 #HelpOnRewards`;
                 const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`;
                 window.open(url, '_blank');
                 this.showToast('Opened Twitter sharing', 'info');
             }
-            
+
             copyToClipboard() {
                 const shareUrl = window.location.href;
                 navigator.clipboard.writeText(shareUrl).then(() => {
@@ -449,11 +468,11 @@
                     this.showToast('Failed to copy link', 'error');
                 });
             }
-            
+
             copyVoucherCode() {
                 navigator.clipboard.writeText(this.voucherCode).then(() => {
                     this.showToast('Voucher code copied!', 'success');
-                    
+
                     // Visual feedback
                     const voucherElement = document.getElementById('voucherCode');
                     voucherElement.style.background = 'linear-gradient(135deg, #10b981 0%, #34d399 100%)';
@@ -464,18 +483,18 @@
                     this.showToast('Failed to copy code', 'error');
                 });
             }
-            
+
             viewMoreRewards() {
                 this.showToast('Loading more rewards...', 'info');
                 setTimeout(() => {
                     window.location.href = 'rewards.html';
                 }, 1000);
             }
-            
+
             createConfetti() {
                 const colors = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
                 const confettiCount = 50;
-                
+
                 for (let i = 0; i < confettiCount; i++) {
                     const confetti = document.createElement('div');
                     confetti.className = 'confetti';
@@ -483,7 +502,7 @@
                     confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
                     confetti.style.animation = `confettiFall ${Math.random() * 3 + 2}s linear forwards`;
                     document.body.appendChild(confetti);
-                    
+
                     // Add confetti animation
                     const style = document.createElement('style');
                     style.textContent = `
@@ -499,25 +518,25 @@
                         }
                     `;
                     document.head.appendChild(style);
-                    
+
                     // Remove confetti after animation
                     setTimeout(() => {
                         confetti.remove();
                     }, 5000);
                 }
             }
-            
+
             showToast(message, type = 'info') {
                 const toastContainer = document.querySelector('.toast-container');
                 const toastId = 'toast-' + Date.now();
-                
+
                 const icons = {
                     success: 'bi-check-circle-fill',
                     error: 'bi-exclamation-triangle-fill',
                     warning: 'bi-exclamation-circle-fill',
                     info: 'bi-info-circle-fill'
                 };
-                
+
                 const toastHtml = `
                     <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
                         <div class="d-flex">
@@ -528,18 +547,18 @@
                         </div>
                     </div>
                 `;
-                
+
                 toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-                
+
                 const toastElement = document.getElementById(toastId);
                 const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
                 toast.show();
-                
-                toastElement.addEventListener('hidden.bs.toast', function() {
+
+                toastElement.addEventListener('hidden.bs.toast', function () {
                     toastElement.remove();
                 });
             }
-            
+
             // Analytics and tracking
             trackRedemption() {
                 // Simulate analytics tracking
@@ -549,11 +568,11 @@
                     timestamp: new Date().toISOString(),
                     pointsUsed: this.getPointsUsed()
                 };
-                
+
                 console.log('Redemption tracked:', redemptionData);
                 localStorage.setItem('lastRedemption', JSON.stringify(redemptionData));
             }
-            
+
             getPointsUsed() {
                 const pointsMap = {
                     'amazon_500': 1000,
@@ -561,53 +580,54 @@
                     'flipkart_200': 400,
                     'paytm_100': 200
                 };
-                
+
                 return pointsMap[this.rewardType] || 0;
             }
         }
-        
+
         // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const redemptionManager = new RedemptionSuccessManager();
-            
+
             // Add some interactive effects
             const successIcon = document.querySelector('.success-icon');
-            successIcon.addEventListener('mouseenter', function() {
+            successIcon.addEventListener('mouseenter', function () {
                 this.style.transform = 'scale(1.1)';
             });
-            
-            successIcon.addEventListener('mouseleave', function() {
+
+            successIcon.addEventListener('mouseleave', function () {
                 this.style.transform = 'scale(1)';
             });
-            
+
             // Add page load animation
             document.body.style.opacity = '0';
             document.body.style.transition = 'opacity 0.5s ease';
-            
+
             setTimeout(() => {
                 document.body.style.opacity = '1';
             }, 100);
         });
-        
+
         // Add service worker registration for PWA capabilities
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js').then(function(registration) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').then(function (registration) {
                     console.log('SW registered: ', registration);
-                }).catch(function(registrationError) {
+                }).catch(function (registrationError) {
                     console.log('SW registration failed: ', registrationError);
                 });
             });
         }
-        
+
         // Add offline capability detection
-        window.addEventListener('online', function() {
+        window.addEventListener('online', function () {
             document.querySelector('.success-card').style.boxShadow = '0 20px 40px rgba(16, 185, 129, 0.3)';
         });
-        
-        window.addEventListener('offline', function() {
+
+        window.addEventListener('offline', function () {
             document.querySelector('.success-card').style.boxShadow = '0 20px 40px rgba(239, 68, 68, 0.3)';
         });
     </script>
 </body>
+
 </html>

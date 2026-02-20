@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,35 +12,52 @@
             transition: all 0.3s;
             border-radius: 12px;
         }
+
         .reward-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
         }
+
         .progress-bar-gradient {
             background: linear-gradient(90deg, #ffc107 0%, #ff9800 100%);
         }
+
         .nav-pills .nav-link.active {
             background-color: #2563eb;
         }
+
         .badge-earned {
             background-color: #198754 !important;
             color: white !important;
         }
+
         .badge-locked {
             background-color: #6c757d !important;
             color: white !important;
         }
+
         .toast-container {
             z-index: 1055;
         }
+
         .pulse-animation {
             animation: pulse 2s infinite;
         }
+
         @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
         }
+
         .reward-image {
             width: 80px;
             height: 80px;
@@ -53,7 +71,14 @@
             font-weight: bold;
         }
     </style>
+    <script>
+        // Authentication check
+        if (!localStorage.getItem('helpon_token')) {
+            window.location.href = 'index.html';
+        }
+    </script>
 </head>
+
 <body class="bg-light" style="padding-bottom: 80px;">
     <!-- Top Header -->
     <header class="bg-white shadow-sm sticky-top">
@@ -106,21 +131,21 @@
                     <!-- Vouchers will be loaded dynamically -->
                 </div>
             </div>
-            
+
             <!-- Donations Tab -->
             <div class="tab-pane fade" id="donations">
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body">
                         <h5><i class="bi bi-heart-fill text-danger"></i> Donate Your Points</h5>
                         <p class="text-muted">Support NGOs and community initiatives</p>
-                        
+
                         <div class="list-group" id="donationsContainer">
                             <!-- Donations will be loaded dynamically -->
                         </div>
                     </div>
                 </div>
             </div>
-            
+
             <!-- Badges Tab -->
             <div class="tab-pane fade" id="badges">
                 <div class="row text-center" id="badgesContainer">
@@ -139,7 +164,9 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to redeem <strong id="redeemRewardName"></strong> for <span class="text-warning"><i class="bi bi-coin"></i> <span id="redeemPointsCost"></span> points</span>?</p>
+                    <p>Are you sure you want to redeem <strong id="redeemRewardName"></strong> for <span
+                            class="text-warning"><i class="bi bi-coin"></i> <span id="redeemPointsCost"></span>
+                            points</span>?</p>
                     <p class="text-muted small">This action cannot be undone.</p>
                 </div>
                 <div class="modal-footer">
@@ -159,7 +186,9 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to donate <span class="text-warning"><i class="bi bi-coin"></i> <span id="donatePointsAmount"></span> points</span> to <strong id="donateNgoName"></strong>?</p>
+                    <p>Are you sure you want to donate <span class="text-warning"><i class="bi bi-coin"></i> <span
+                                id="donatePointsAmount"></span> points</span> to <strong id="donateNgoName"></strong>?
+                    </p>
                     <p class="text-muted small">Your contribution will help make a difference.</p>
                 </div>
                 <div class="modal-footer">
@@ -225,7 +254,7 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Custom JavaScript -->
     <script>
         // Rewards Manager Class
@@ -236,10 +265,10 @@
                 this.donationsMade = JSON.parse(localStorage.getItem('donationsMade')) || [];
                 this.userBadges = JSON.parse(localStorage.getItem('userBadges')) || ['quick_responder', 'five_star_helper'];
                 this.pointsHistory = JSON.parse(localStorage.getItem('pointsHistory')) || this.getDefaultPointsHistory();
-                
+
                 this.init();
             }
-            
+
             init() {
                 this.setupEventListeners();
                 this.loadVouchers();
@@ -248,29 +277,29 @@
                 this.updatePointsDisplay();
                 this.showToast('Welcome to Rewards!', 'info');
             }
-            
+
             setupEventListeners() {
                 // Back button
                 document.getElementById('backBtn').addEventListener('click', (e) => {
                     e.preventDefault();
                     this.goBack();
                 });
-                
+
                 // Points summary click to show history
                 document.querySelector('.card-body.text-center').addEventListener('click', () => {
                     this.showPointsHistory();
                 });
-                
+
                 // Modal confirmations
                 document.getElementById('confirmRedeemBtn').addEventListener('click', () => {
                     this.confirmRedeem();
                 });
-                
+
                 document.getElementById('confirmDonateBtn').addEventListener('click', () => {
                     this.confirmDonation();
                 });
             }
-            
+
             loadVouchers() {
                 const vouchers = [
                     {
@@ -306,14 +335,14 @@
                         imageColor: 'linear-gradient(135deg, #002E6E 0%, #0047AB 100%)'
                     }
                 ];
-                
+
                 const container = document.getElementById('vouchersContainer');
                 container.innerHTML = vouchers.map(voucher => {
                     const isRedeemed = this.redeemedRewards.includes(voucher.id);
                     const canAfford = this.userPoints >= voucher.points;
                     const buttonClass = isRedeemed ? 'btn-success' : (canAfford ? 'btn-primary' : 'btn-secondary');
                     const buttonText = isRedeemed ? 'Redeemed' : (canAfford ? 'Redeem' : 'Need More Points');
-                    
+
                     return `
                         <div class="col-md-6">
                             <div class="card reward-card h-100 ${isRedeemed ? 'border-success' : ''}">
@@ -344,7 +373,7 @@
                         </div>
                     `;
                 }).join('');
-                
+
                 // Add event listeners to redeem buttons
                 document.querySelectorAll('.redeem-btn').forEach(button => {
                     button.addEventListener('click', (e) => {
@@ -355,7 +384,7 @@
                     });
                 });
             }
-            
+
             loadDonations() {
                 const donations = [
                     {
@@ -383,14 +412,14 @@
                         points: 300
                     }
                 ];
-                
+
                 const container = document.getElementById('donationsContainer');
                 container.innerHTML = donations.map(donation => {
                     const hasDonated = this.donationsMade.includes(donation.id);
                     const canAfford = this.userPoints >= donation.points;
                     const buttonClass = hasDonated ? 'btn-success' : (canAfford ? 'btn-outline-danger' : 'btn-secondary');
                     const buttonText = hasDonated ? 'Donated' : (canAfford ? `Donate <i class="bi bi-coin"></i> ${donation.points}` : 'Need More Points');
-                    
+
                     return `
                         <div class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center">
@@ -409,7 +438,7 @@
                         </div>
                     `;
                 }).join('');
-                
+
                 // Add event listeners to donate buttons
                 document.querySelectorAll('.donate-btn').forEach(button => {
                     button.addEventListener('click', (e) => {
@@ -420,7 +449,7 @@
                     });
                 });
             }
-            
+
             loadBadges() {
                 const badges = [
                     {
@@ -488,12 +517,12 @@
                         earned: this.userBadges.includes('distance_warrior')
                     }
                 ];
-                
+
                 const container = document.getElementById('badgesContainer');
                 container.innerHTML = badges.map(badge => {
                     const badgeClass = badge.earned ? 'pulse-animation' : 'opacity-50';
                     const badgeColor = badge.earned ? badge.color : 'text-muted';
-                    
+
                     return `
                         <div class="col-6 col-md-3 mb-3">
                             <div class="p-3 ${badgeClass}" data-badge-id="${badge.id}">
@@ -505,7 +534,7 @@
                         </div>
                     `;
                 }).join('');
-                
+
                 // Add click events to show badge details
                 document.querySelectorAll('#badgesContainer > div').forEach(badgeElement => {
                     badgeElement.addEventListener('click', () => {
@@ -515,28 +544,28 @@
                     });
                 });
             }
-            
+
             showRedeemConfirmation(rewardId, rewardName, pointsCost) {
                 document.getElementById('redeemRewardName').textContent = rewardName;
                 document.getElementById('redeemPointsCost').textContent = pointsCost;
-                
+
                 const redeemModal = new bootstrap.Modal(document.getElementById('redeemModal'));
                 redeemModal.show();
-                
+
                 // Store the current redemption info
                 this.currentRedemption = { rewardId, rewardName, pointsCost };
             }
-            
+
             confirmRedeem() {
                 const { rewardId, rewardName, pointsCost } = this.currentRedemption;
-                
+
                 if (this.userPoints >= pointsCost) {
                     // Deduct points
                     this.userPoints -= parseInt(pointsCost);
-                    
+
                     // Add to redeemed rewards
                     this.redeemedRewards.push(rewardId);
-                    
+
                     // Add to points history
                     this.pointsHistory.unshift({
                         type: 'redeem',
@@ -544,52 +573,52 @@
                         points: -parseInt(pointsCost),
                         date: new Date().toISOString()
                     });
-                    
+
                     // Save to localStorage
                     this.saveData();
-                    
+
                     // Update UI
                     this.updatePointsDisplay();
                     this.loadVouchers();
-                    
+
                     // Show success message
                     this.showToast(`Successfully redeemed ${rewardName}!`, 'success');
-                    
+
                     // Close modal
                     const redeemModal = bootstrap.Modal.getInstance(document.getElementById('redeemModal'));
                     redeemModal.hide();
-                    
+
                     // Show voucher code (simulated)
                     setTimeout(() => {
                         alert(`Your voucher code: ${rewardId.toUpperCase()}-${Math.random().toString(36).substr(2, 8).toUpperCase()}\n\nThis code has been sent to your email.`);
                     }, 500);
-                    
+
                 } else {
                     this.showToast('Not enough points to redeem this reward', 'error');
                 }
             }
-            
+
             showDonationConfirmation(donationId, donationName, pointsAmount) {
                 document.getElementById('donateNgoName').textContent = donationName;
                 document.getElementById('donatePointsAmount').textContent = pointsAmount;
-                
+
                 const donateModal = new bootstrap.Modal(document.getElementById('donateModal'));
                 donateModal.show();
-                
+
                 // Store the current donation info
                 this.currentDonation = { donationId, donationName, pointsAmount };
             }
-            
+
             confirmDonation() {
                 const { donationId, donationName, pointsAmount } = this.currentDonation;
-                
+
                 if (this.userPoints >= pointsAmount) {
                     // Deduct points
                     this.userPoints -= parseInt(pointsAmount);
-                    
+
                     // Add to donations made
                     this.donationsMade.push(donationId);
-                    
+
                     // Add to points history
                     this.pointsHistory.unshift({
                         type: 'donation',
@@ -597,49 +626,49 @@
                         points: -parseInt(pointsAmount),
                         date: new Date().toISOString()
                     });
-                    
+
                     // Save to localStorage
                     this.saveData();
-                    
+
                     // Update UI
                     this.updatePointsDisplay();
                     this.loadDonations();
-                    
+
                     // Show success message
                     this.showToast(`Thank you for donating to ${donationName}!`, 'success');
-                    
+
                     // Close modal
                     const donateModal = bootstrap.Modal.getInstance(document.getElementById('donateModal'));
                     donateModal.hide();
-                    
+
                 } else {
                     this.showToast('Not enough points to make this donation', 'error');
                 }
             }
-            
+
             showBadgeDetails(badge) {
-                const message = badge.earned 
+                const message = badge.earned
                     ? `You've earned the "${badge.name}" badge! ${badge.description}`
                     : `Locked: ${badge.description}. Keep helping to unlock this badge!`;
-                
+
                 this.showToast(message, badge.earned ? 'success' : 'info');
             }
-            
+
             showPointsHistory() {
                 const container = document.getElementById('pointsHistoryList');
                 container.innerHTML = '';
-                
+
                 if (this.pointsHistory.length === 0) {
                     container.innerHTML = '<p class="text-muted text-center">No points history yet</p>';
                 } else {
                     this.pointsHistory.slice(0, 10).forEach(entry => {
                         const item = document.createElement('div');
                         item.className = 'list-group-item';
-                        
+
                         const pointsClass = entry.points > 0 ? 'text-success' : 'text-danger';
                         const pointsSign = entry.points > 0 ? '+' : '';
                         const date = new Date(entry.date).toLocaleDateString();
-                        
+
                         item.innerHTML = `
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
@@ -649,39 +678,39 @@
                                 <span class="${pointsClass}">${pointsSign}${entry.points}</span>
                             </div>
                         `;
-                        
+
                         container.appendChild(item);
                     });
                 }
-                
+
                 const historyModal = new bootstrap.Modal(document.getElementById('pointsHistoryModal'));
                 historyModal.show();
             }
-            
+
             updatePointsDisplay() {
                 document.getElementById('pointsCount').textContent = this.userPoints.toLocaleString();
                 document.getElementById('totalPoints').textContent = this.userPoints.toLocaleString();
-                
+
                 // Update progress bar
                 const nextTier = 2000;
                 const progress = (this.userPoints / nextTier) * 100;
                 document.getElementById('progressBar').style.width = `${Math.min(progress, 100)}%`;
-                
+
                 // Update next tier text
                 const pointsNeeded = nextTier - this.userPoints;
-                document.getElementById('nextTierText').textContent = 
-                    pointsNeeded > 0 
-                    ? `Next tier at ${nextTier.toLocaleString()} points (${pointsNeeded} more)`
-                    : 'You reached the maximum tier!';
+                document.getElementById('nextTierText').textContent =
+                    pointsNeeded > 0
+                        ? `Next tier at ${nextTier.toLocaleString()} points (${pointsNeeded} more)`
+                        : 'You reached the maximum tier!';
             }
-            
+
             goBack() {
                 this.showToast('Returning to home...', 'info');
                 setTimeout(() => {
                     window.location.href = 'home.html';
                 }, 500);
             }
-            
+
             saveData() {
                 localStorage.setItem('userPoints', this.userPoints);
                 localStorage.setItem('redeemedRewards', JSON.stringify(this.redeemedRewards));
@@ -689,7 +718,7 @@
                 localStorage.setItem('userBadges', JSON.stringify(this.userBadges));
                 localStorage.setItem('pointsHistory', JSON.stringify(this.pointsHistory));
             }
-            
+
             getDefaultPointsHistory() {
                 return [
                     {
@@ -712,18 +741,18 @@
                     }
                 ];
             }
-            
+
             showToast(message, type = 'info') {
                 const toastContainer = document.querySelector('.toast-container');
                 const toastId = 'toast-' + Date.now();
-                
+
                 const icon = {
                     success: 'bi-check-circle-fill',
                     error: 'bi-exclamation-triangle-fill',
                     warning: 'bi-exclamation-circle-fill',
                     info: 'bi-info-circle-fill'
                 }[type] || 'bi-info-circle-fill';
-                
+
                 const toastHtml = `
                     <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
                         <div class="d-flex">
@@ -734,23 +763,23 @@
                         </div>
                     </div>
                 `;
-                
+
                 toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-                
+
                 const toastElement = document.getElementById(toastId);
                 const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
                 toast.show();
-                
-                toastElement.addEventListener('hidden.bs.toast', function() {
+
+                toastElement.addEventListener('hidden.bs.toast', function () {
                     toastElement.remove();
                 });
             }
         }
-        
+
         // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const rewardsManager = new RewardsManager();
-            
+
             // Load saved points if available
             const savedPoints = localStorage.getItem('userPoints');
             if (savedPoints) {
@@ -760,4 +789,5 @@
         });
     </script>
 </body>
+
 </html>

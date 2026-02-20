@@ -85,6 +85,31 @@
             font-size: 12px;
         }
     </style>
+    <script>
+        // Authentication check
+        if (!localStorage.getItem('helpon_token')) {
+            window.location.href = 'index.html';
+        }
+
+        // Set username dynamically
+        document.addEventListener('DOMContentLoaded', () => {
+            const userName = localStorage.getItem('helpon_user_name');
+            if (userName) {
+                const userNameElem = document.getElementById('userName');
+                if (userNameElem) {
+                    userNameElem.textContent = userName;
+                }
+
+                const firstNameElem = document.getElementById('firstName');
+                const lastNameElem = document.getElementById('lastName');
+                if (firstNameElem && lastNameElem) {
+                    const names = userName.split(' ');
+                    firstNameElem.value = names[0] || '';
+                    lastNameElem.value = names.slice(1).join(' ') || '';
+                }
+            }
+        });
+    </script>
 </head>
 
 <body class="bg-light">
