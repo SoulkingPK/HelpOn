@@ -31,6 +31,12 @@ async def root():
 
 @app.post("/api/register", response_model=Token)
 async def register_user(user: UserCreate):
+    if users_collection is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Database connection failed. Please check MONGODB_URL environment variable."
+        )
+
     # Check if user exists by phone or email
     query = {"$or": [{"phone_number": user.phone_number}]}
     if user.email:
@@ -59,6 +65,12 @@ async def register_user(user: UserCreate):
 
 @app.post("/api/login", response_model=Token)
 async def login_user(login_data: UserLogin):
+    if users_collection is None:
+        raise HTTPException(
+            status_code=500,
+            detail="Database connection failed. Please check MONGODB_URL environment variable."
+        )
+
     # Search by email or phone
     user = await users_collection.find_one({
         "$or": [
