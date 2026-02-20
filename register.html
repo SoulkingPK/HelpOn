@@ -371,22 +371,42 @@
                 registerSpinner.classList.remove('d-none');
                 registerText.textContent = 'Creating account...';
                 
-                // Simulate API call
-                setTimeout(() => {
-                    // For demo purposes, always succeed
-                    window.location.href = 'home.html';
-                    
-                    // In a real app, you would handle the response accordingly
-                    if (response.success) {
-                        window.location.href = 'home.html';
-                    } else {
-                        registerAlert.classList.remove('d-none');
-                        alertMessage.textContent = response.message;
-                        registerBtn.disabled = false;
-                        registerSpinner.classList.add('d-none');
-                        registerText.textContent = 'Create Account';
+                // Real API call
+                const getHelp = document.getElementById('getHelp').checked;
+                const offerHelp = document.getElementById('offerHelp').checked;
+                
+                const userData = {
+                    full_name: fullNameInput.value.trim(),
+                    phone_number: phoneInput.value.trim(),
+                    email: emailInput.value.trim() || null,
+                    password: passwordInput.value,
+                    get_help: getHelp,
+                    offer_help: offerHelp
+                };
+
+                fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                })
+                .then(async response => {
+                    const data = await response.json();
+                    if (!response.ok) {
+                        throw new Error(data.detail || 'Registration failed');
                     }
-                }, 2000);
+                    // Save token
+                    localStorage.setItem('helpon_token', data.access_token);
+                    window.location.href = 'home.html';
+                })
+                .catch(error => {
+                    registerAlert.classList.remove('d-none');
+                    alertMessage.textContent = error.message;
+                    registerBtn.disabled = false;
+                    registerSpinner.classList.add('d-none');
+                    registerText.textContent = 'Create Account';
+                });
             });
         });
     </script>

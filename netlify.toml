@@ -1,0 +1,16 @@
+[build]
+  publish = "."
+
+# When testing locally, you can use Netlify Dev, which reads this.
+# For production, replace `to` with your Vercel URL, e.g., "https://your-project.vercel.app/api/:splat"
+[[redirects]]
+  from = "/api/*"
+  to = "https://help-on.vercel.app/api/:splat"
+  status = 200
+  force = true
+
+# Fallback for SPA routing if needed
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
