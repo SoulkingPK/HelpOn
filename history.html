@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,62 +13,86 @@
             border-left: 4px solid transparent;
             cursor: pointer;
         }
+
         .help-card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
         }
-        .emergency-danger { border-left-color: #dc3545; }
-        .emergency-health { border-left-color: #0d6efd; }
-        .emergency-other { border-left-color: #ffc107; }
-        .emergency-safety { border-left-color: #6f42c1; }
-        
+
+        .emergency-danger {
+            border-left-color: #dc3545;
+        }
+
+        .emergency-health {
+            border-left-color: #0d6efd;
+        }
+
+        .emergency-other {
+            border-left-color: #ffc107;
+        }
+
+        .emergency-safety {
+            border-left-color: #6f42c1;
+        }
+
         .stats-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 12px;
         }
-        
+
         .filter-btn.active {
             background-color: #2563eb !important;
             color: white !important;
         }
-        
+
         .empty-state {
             text-align: center;
             padding: 3rem 1rem;
             color: #6c757d;
         }
-        
+
         .history-detail {
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease;
         }
-        
+
         .history-detail.expanded {
             max-height: 300px;
         }
-        
+
         .rating-stars {
             color: #ffc107;
         }
-        
+
         .toast-container {
             z-index: 1055;
         }
-        
+
         .skeleton-loader {
             background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
             background-size: 200% 100%;
             animation: loading 1.5s infinite;
         }
-        
+
         @keyframes loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
         }
     </style>
+    <script>
+        if (!localStorage.getItem('helpon_token')) {
+            window.location.href = 'index.html';
+        }
+    </script>
 </head>
+
 <body class="bg-light" style="padding-bottom: 72px;">
     <!-- Header -->
     <header class="bg-white shadow-sm sticky-top">
@@ -211,7 +236,7 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Custom JavaScript -->
     <script>
         // History Manager Class
@@ -224,7 +249,7 @@
                 this.stats = {};
                 this.init();
             }
-            
+
             init() {
                 this.loadHistoryData();
                 this.setupEventListeners();
@@ -235,7 +260,7 @@
                     this.hideLoadingSkeleton();
                 }, 1000);
             }
-            
+
             loadHistoryData() {
                 // Simulated history data - in real app, this would come from an API
                 this.historyData = [
@@ -315,14 +340,14 @@
                         helper: 'Sarah K.'
                     }
                 ];
-                
+
                 this.calculateStats();
             }
-            
+
             calculateStats() {
                 const now = new Date();
                 const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-                
+
                 this.stats = {
                     totalHelps: this.historyData.length,
                     totalPoints: this.historyData.reduce((sum, item) => sum + item.points, 0),
@@ -332,58 +357,58 @@
                     requests: this.historyData.filter(item => item.type === 'requested').length
                 };
             }
-            
+
             setupEventListeners() {
                 // Back button
                 document.getElementById('backBtn').addEventListener('click', (e) => {
                     e.preventDefault();
                     this.goBack();
                 });
-                
+
                 // Export button
                 document.getElementById('exportBtn').addEventListener('click', () => {
                     this.showExportModal();
                 });
-                
+
                 // Filter buttons
                 document.querySelectorAll('#filterGroup .btn').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         this.setFilter(e.target.dataset.filter);
                     });
                 });
-                
+
                 // Search functionality
                 document.getElementById('searchInput').addEventListener('input', (e) => {
                     this.searchHistory(e.target.value);
                 });
-                
+
                 document.getElementById('clearSearch').addEventListener('click', () => {
                     document.getElementById('searchInput').value = '';
                     this.searchHistory('');
                 });
-                
+
                 // Export options
                 document.getElementById('exportPDF').addEventListener('click', () => {
                     this.exportAsPDF();
                 });
-                
+
                 document.getElementById('exportCSV').addEventListener('click', () => {
                     this.exportAsCSV();
                 });
-                
+
                 document.getElementById('exportJSON').addEventListener('click', () => {
                     this.exportAsJSON();
                 });
-                
+
                 // Share story button
                 document.getElementById('shareHelpStory').addEventListener('click', () => {
                     this.shareHelpStory();
                 });
             }
-            
+
             setFilter(filter) {
                 this.currentFilter = filter;
-                
+
                 // Update active button
                 document.querySelectorAll('#filterGroup .btn').forEach(btn => {
                     btn.classList.remove('active');
@@ -391,15 +416,15 @@
                         btn.classList.add('active');
                     }
                 });
-                
+
                 this.applyFilters();
             }
-            
+
             searchHistory(term) {
                 this.searchTerm = term.toLowerCase();
                 this.applyFilters();
             }
-            
+
             applyFilters() {
                 this.filteredData = this.historyData.filter(item => {
                     // Apply search filter
@@ -409,7 +434,7 @@
                             return false;
                         }
                     }
-                    
+
                     // Apply type filter
                     switch (this.currentFilter) {
                         case 'requested':
@@ -426,10 +451,10 @@
                             return true; // 'all'
                     }
                 });
-                
+
                 this.renderHistory();
             }
-            
+
             renderStats() {
                 const statsContainer = document.getElementById('statsContainer');
                 statsContainer.innerHTML = `
@@ -459,25 +484,25 @@
                     </div>
                 `;
             }
-            
+
             renderHistory() {
                 const container = document.getElementById('historyContainer');
                 const emptyState = document.getElementById('emptyState');
-                
+
                 if (this.filteredData.length === 0) {
                     container.innerHTML = '';
                     emptyState.classList.remove('d-none');
                     return;
                 }
-                
+
                 emptyState.classList.add('d-none');
-                
+
                 container.innerHTML = this.filteredData.map(item => {
                     const emergencyClass = `emergency-${item.emergencyType}`;
                     const timeAgo = this.getTimeAgo(item.date);
                     const badgeColor = this.getBadgeColor(item.emergencyType);
                     const badgeText = this.getBadgeText(item.emergencyType);
-                    
+
                     return `
                         <div class="list-group-item help-card ${emergencyClass} mb-2" data-history-id="${item.id}">
                             <div class="d-flex justify-content-between">
@@ -496,7 +521,7 @@
                         </div>
                     `;
                 }).join('');
-                
+
                 // Add click event listeners to history items
                 document.querySelectorAll('.help-card').forEach(card => {
                     card.addEventListener('click', (e) => {
@@ -505,16 +530,16 @@
                     });
                 });
             }
-            
+
             showHistoryDetails(historyId) {
                 const item = this.historyData.find(h => h.id === historyId);
                 if (!item) return;
-                
+
                 const modalTitle = document.getElementById('detailModalTitle');
                 const modalBody = document.getElementById('detailModalBody');
-                
+
                 modalTitle.textContent = item.title;
-                
+
                 modalBody.innerHTML = `
                     <div class="mb-3">
                         <span class="badge ${this.getBadgeColor(item.emergencyType)}">${this.getBadgeText(item.emergencyType)}</span>
@@ -561,21 +586,21 @@
                         </div>
                     ` : ''}
                 `;
-                
+
                 // Store current item for sharing
                 this.currentDetailItem = item;
-                
+
                 const modal = new bootstrap.Modal(document.getElementById('historyDetailModal'));
                 modal.show();
             }
-            
+
             renderStars(rating, large = false) {
                 const fullStars = Math.floor(rating);
                 const halfStar = rating % 1 >= 0.5;
                 const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
-                
+
                 const starSize = large ? 'fs-5' : '';
-                
+
                 let stars = '';
                 for (let i = 0; i < fullStars; i++) {
                     stars += `<i class="bi bi-star-fill ${starSize}"></i>`;
@@ -586,10 +611,10 @@
                 for (let i = 0; i < emptyStars; i++) {
                     stars += `<i class="bi bi-star ${starSize}"></i>`;
                 }
-                
+
                 return stars;
             }
-            
+
             getBadgeColor(emergencyType) {
                 const colors = {
                     danger: 'bg-danger',
@@ -599,7 +624,7 @@
                 };
                 return colors[emergencyType] || 'bg-secondary';
             }
-            
+
             getBadgeText(emergencyType) {
                 const texts = {
                     danger: 'Emergency',
@@ -609,24 +634,24 @@
                 };
                 return texts[emergencyType] || 'Other';
             }
-            
+
             getTimeAgo(date) {
                 const now = new Date();
                 const diffMs = now - date;
                 const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                
+
                 if (diffDays === 0) return 'Today';
                 if (diffDays === 1) return 'Yesterday';
                 if (diffDays < 7) return `${diffDays} days ago`;
                 if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
                 return `${Math.floor(diffDays / 30)} months ago`;
             }
-            
+
             showExportModal() {
                 const modal = new bootstrap.Modal(document.getElementById('exportModal'));
                 modal.show();
             }
-            
+
             exportAsPDF() {
                 this.showToast('Preparing PDF export...', 'info');
                 // In real app, this would generate and download a PDF
@@ -636,7 +661,7 @@
                     exportModal.hide();
                 }, 2000);
             }
-            
+
             exportAsCSV() {
                 const csvContent = this.generateCSV();
                 this.downloadFile(csvContent, 'helpon-history.csv', 'text/csv');
@@ -644,7 +669,7 @@
                 const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
                 exportModal.hide();
             }
-            
+
             exportAsJSON() {
                 const jsonContent = JSON.stringify(this.historyData, null, 2);
                 this.downloadFile(jsonContent, 'helpon-history.json', 'application/json');
@@ -652,7 +677,7 @@
                 const exportModal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
                 exportModal.hide();
             }
-            
+
             generateCSV() {
                 const headers = ['Date', 'Type', 'Title', 'Person', 'Points', 'Rating', 'Location'];
                 const rows = this.historyData.map(item => [
@@ -664,10 +689,10 @@
                     item.rating,
                     `"${item.location}"`
                 ]);
-                
+
                 return [headers, ...rows].map(row => row.join(',')).join('\n');
             }
-            
+
             downloadFile(content, filename, mimeType) {
                 const blob = new Blob([content], { type: mimeType });
                 const url = URL.createObjectURL(blob);
@@ -679,13 +704,13 @@
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
             }
-            
+
             shareHelpStory() {
                 if (!this.currentDetailItem) return;
-                
+
                 const item = this.currentDetailItem;
                 const text = `I ${item.type === 'requested' ? 'received help' : 'helped someone'} through HelpOn: "${item.title}" - ${item.description.substring(0, 100)}...`;
-                
+
                 if (navigator.share) {
                     navigator.share({
                         title: 'My HelpOn Story',
@@ -703,14 +728,14 @@
                     });
                 }
             }
-            
+
             goBack() {
                 this.showToast('Returning to home...', 'info');
                 setTimeout(() => {
                     window.location.href = 'home.html';
                 }, 500);
             }
-            
+
             showLoadingSkeleton() {
                 const skeleton = document.getElementById('loadingSkeleton');
                 skeleton.innerHTML = `
@@ -725,22 +750,22 @@
                     </div>
                 `;
             }
-            
+
             hideLoadingSkeleton() {
                 document.getElementById('loadingSkeleton').innerHTML = '';
             }
-            
+
             showToast(message, type = 'info') {
                 const toastContainer = document.querySelector('.toast-container');
                 const toastId = 'toast-' + Date.now();
-                
+
                 const icons = {
                     success: 'bi-check-circle-fill',
                     error: 'bi-exclamation-triangle-fill',
                     warning: 'bi-exclamation-circle-fill',
                     info: 'bi-info-circle-fill'
                 };
-                
+
                 const toastHtml = `
                     <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
                         <div class="d-flex">
@@ -751,23 +776,24 @@
                         </div>
                     </div>
                 `;
-                
+
                 toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-                
+
                 const toastElement = document.getElementById(toastId);
                 const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
                 toast.show();
-                
-                toastElement.addEventListener('hidden.bs.toast', function() {
+
+                toastElement.addEventListener('hidden.bs.toast', function () {
                     toastElement.remove();
                 });
             }
         }
-        
+
         // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const historyManager = new HistoryManager();
         });
     </script>
 </body>
+
 </html>
