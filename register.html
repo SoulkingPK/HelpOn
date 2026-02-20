@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,18 +14,22 @@
             display: flex;
             align-items: center;
         }
+
         .card {
             border: none;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
+
         .form-control {
             border-radius: 10px;
             padding: 12px 20px;
         }
+
         .form-control:focus {
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
         }
+
         .btn-primary {
             background-color: #2563eb;
             border: none;
@@ -32,31 +37,38 @@
             padding: 12px;
             font-weight: 600;
         }
+
         .btn-primary:hover {
             background-color: #1e40af;
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
         }
+
         .password-toggle {
             cursor: pointer;
             transition: all 0.3s;
         }
+
         .password-toggle:hover {
             color: #2563eb !important;
         }
+
         .logo-text {
             font-weight: 700;
             background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
         .alert {
             border-radius: 10px;
             border: none;
         }
+
         .progress-custom-height {
             height: 6px;
         }
+
         .role-option {
             border: 2px solid #e2e8f0;
             border-radius: 10px;
@@ -65,20 +77,24 @@
             cursor: pointer;
             transition: all 0.3s;
         }
+
         .role-option:hover {
             border-color: #2563eb;
             background-color: #f0f7ff;
         }
+
         .role-option.selected {
             border-color: #2563eb;
             background-color: #e0e7ff;
         }
+
         .form-check-input:checked {
             background-color: #2563eb;
             border-color: #2563eb;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="row justify-content-center">
@@ -90,40 +106,41 @@
                             <h2 class="logo-text">Join HelpOn</h2>
                             <p class="text-muted">Save and Be Saved</p>
                         </div>
-                        
+
                         <div id="registerAlert" class="alert alert-danger d-none" role="alert">
                             <i class="bi bi-exclamation-triangle-fill me-2"></i>
                             <span id="alertMessage"></span>
                         </div>
-                        
+
                         <form id="registerForm">
                             <div class="mb-3">
                                 <label class="form-label">Full Name</label>
-                                <input type="text" class="form-control form-control-lg" id="fullName" 
-                                    required placeholder="Enter your full name">
+                                <input type="text" class="form-control form-control-lg" id="fullName" required
+                                    placeholder="Enter your full name">
                                 <div class="invalid-feedback" id="fullNameFeedback"></div>
                             </div>
-                            
+
                             <div class="mb-3">
                                 <label class="form-label">Phone Number</label>
-                                <input type="tel" class="form-control form-control-lg" id="phoneNumber" 
-                                    required placeholder="Enter your phone number">
+                                <input type="tel" class="form-control form-control-lg" id="phoneNumber" required
+                                    placeholder="Enter your phone number">
                                 <div class="invalid-feedback" id="phoneFeedback"></div>
                             </div>
-                            
+
                             <div class="mb-3">
                                 <label class="form-label">Email (recommended)</label>
-                                <input type="email" class="form-control form-control-lg" id="email" 
+                                <input type="email" class="form-control form-control-lg" id="email"
                                     placeholder="Enter your email">
                                 <div class="invalid-feedback" id="emailFeedback"></div>
                             </div>
-                            
+
                             <div class="mb-3">
                                 <label class="form-label">Password</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control form-control-lg" id="password" 
-                                        required placeholder="Create a password">
-                                    <button type="button" class="btn btn-outline-secondary password-toggle" id="togglePassword">
+                                    <input type="password" class="form-control form-control-lg" id="password" required
+                                        placeholder="Create a password">
+                                    <button type="button" class="btn btn-outline-secondary password-toggle"
+                                        id="togglePassword">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
@@ -133,19 +150,20 @@
                                 <small class="text-muted" id="passwordStrengthText">Password strength</small>
                                 <div class="invalid-feedback" id="passwordFeedback"></div>
                             </div>
-                            
+
                             <div class="mb-4">
                                 <label class="form-label">Confirm Password</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control form-control-lg" id="confirmPassword" 
+                                    <input type="password" class="form-control form-control-lg" id="confirmPassword"
                                         required placeholder="Confirm your password">
-                                    <button type="button" class="btn btn-outline-secondary password-toggle" id="toggleConfirmPassword">
+                                    <button type="button" class="btn btn-outline-secondary password-toggle"
+                                        id="toggleConfirmPassword">
                                         <i class="bi bi-eye"></i>
                                     </button>
                                 </div>
                                 <div class="invalid-feedback" id="confirmPasswordFeedback"></div>
                             </div>
-                            
+
                             <div class="mb-4">
                                 <label class="form-label">I want to:</label>
                                 <div class="d-flex gap-2">
@@ -159,31 +177,33 @@
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div class="mb-4">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="terms" required>
                                     <label class="form-check-label" for="terms">
-                                        I agree to the <a href="#" class="text-decoration-none">Terms</a> and <a href="#" class="text-decoration-none">Privacy Policy</a>
+                                        I agree to the <a href="#" class="text-decoration-none">Terms</a> and <a
+                                            href="#" class="text-decoration-none">Privacy Policy</a>
                                     </label>
                                 </div>
                                 <div class="invalid-feedback" id="termsFeedback"></div>
                             </div>
-                            
+
                             <div class="d-grid mb-3">
                                 <button type="submit" class="btn btn-primary btn-lg" id="registerBtn">
                                     <span class="spinner-border spinner-border-sm d-none" id="registerSpinner"></span>
                                     <span id="registerText">Create Account</span>
                                 </button>
                             </div>
-                            
+
                             <div class="alert alert-info d-flex align-items-center">
                                 <i class="bi bi-info-circle-fill me-2"></i>
                                 <div>HelpOn works best with location access</div>
                             </div>
-                            
+
                             <div class="text-center mt-3">
-                                <p class="text-muted">Already have an account? <a href="index.html" class="text-decoration-none">Login</a></p>
+                                <p class="text-muted">Already have an account? <a href="index.html"
+                                        class="text-decoration-none">Login</a></p>
                             </div>
                         </form>
                     </div>
@@ -193,7 +213,7 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Elements
             const registerForm = document.getElementById('registerForm');
             const fullNameInput = document.getElementById('fullName');
@@ -211,12 +231,12 @@
             const alertMessage = document.getElementById('alertMessage');
             const passwordStrengthBar = document.getElementById('passwordStrengthBar');
             const passwordStrengthText = document.getElementById('passwordStrengthText');
-            
+
             // Toggle password visibility
-            togglePassword.addEventListener('click', function() {
+            togglePassword.addEventListener('click', function () {
                 const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                 passwordInput.setAttribute('type', type);
-                
+
                 const eyeIcon = this.querySelector('i');
                 if (type === 'password') {
                     eyeIcon.classList.remove('bi-eye-slash');
@@ -226,12 +246,12 @@
                     eyeIcon.classList.add('bi-eye-slash');
                 }
             });
-            
+
             // Toggle confirm password visibility
-            toggleConfirmPassword.addEventListener('click', function() {
+            toggleConfirmPassword.addEventListener('click', function () {
                 const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                 confirmPasswordInput.setAttribute('type', type);
-                
+
                 const eyeIcon = this.querySelector('i');
                 if (type === 'password') {
                     eyeIcon.classList.remove('bi-eye-slash');
@@ -241,15 +261,15 @@
                     eyeIcon.classList.add('bi-eye-slash');
                 }
             });
-            
+
             // Password strength indicator
-            passwordInput.addEventListener('input', function() {
+            passwordInput.addEventListener('input', function () {
                 const password = this.value;
                 let strength = 0;
                 let message = '';
                 let barColor = '';
                 let barWidth = '0%';
-                
+
                 if (password.length > 0) {
                     // Check password strength
                     if (password.length < 6) {
@@ -263,13 +283,13 @@
                         const hasLowerCase = /[a-z]/.test(password);
                         const hasNumbers = /\d/.test(password);
                         const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-                        
+
                         let complexity = 0;
                         if (hasUpperCase) complexity++;
                         if (hasLowerCase) complexity++;
                         if (hasNumbers) complexity++;
                         if (hasSpecial) complexity++;
-                        
+
                         if (complexity === 1) {
                             strength = 2;
                             message = 'Weak';
@@ -293,16 +313,16 @@
                         }
                     }
                 }
-                
+
                 passwordStrengthBar.style.width = barWidth;
                 passwordStrengthBar.className = `progress-bar ${barColor}`;
                 passwordStrengthText.textContent = message || 'Password strength';
             });
-            
+
             // Form validation
-            registerForm.addEventListener('submit', function(e) {
+            registerForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-                
+
                 // Reset validation
                 fullNameInput.classList.remove('is-invalid');
                 phoneInput.classList.remove('is-invalid');
@@ -311,16 +331,16 @@
                 confirmPasswordInput.classList.remove('is-invalid');
                 termsCheckbox.classList.remove('is-invalid');
                 registerAlert.classList.add('d-none');
-                
+
                 let isValid = true;
-                
+
                 // Validate full name
                 if (!fullNameInput.value.trim()) {
                     fullNameInput.classList.add('is-invalid');
                     document.getElementById('fullNameFeedback').textContent = 'Please enter your full name';
                     isValid = false;
                 }
-                
+
                 // Validate phone number
                 if (!phoneInput.value.trim()) {
                     phoneInput.classList.add('is-invalid');
@@ -331,14 +351,14 @@
                     document.getElementById('phoneFeedback').textContent = 'Please enter a valid phone number';
                     isValid = false;
                 }
-                
+
                 // Validate email if provided
                 if (emailInput.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value)) {
                     emailInput.classList.add('is-invalid');
                     document.getElementById('emailFeedback').textContent = 'Please enter a valid email address';
                     isValid = false;
                 }
-                
+
                 // Validate password
                 if (!passwordInput.value) {
                     passwordInput.classList.add('is-invalid');
@@ -349,32 +369,32 @@
                     document.getElementById('passwordFeedback').textContent = 'Password must be at least 6 characters';
                     isValid = false;
                 }
-                
+
                 // Validate confirm password
                 if (passwordInput.value !== confirmPasswordInput.value) {
                     confirmPasswordInput.classList.add('is-invalid');
                     document.getElementById('confirmPasswordFeedback').textContent = 'Passwords do not match';
                     isValid = false;
                 }
-                
+
                 // Validate terms
                 if (!termsCheckbox.checked) {
                     termsCheckbox.classList.add('is-invalid');
                     document.getElementById('termsFeedback').textContent = 'You must agree to the terms and conditions';
                     isValid = false;
                 }
-                
+
                 if (!isValid) return;
-                
+
                 // Simulate registration process
                 registerBtn.disabled = true;
                 registerSpinner.classList.remove('d-none');
                 registerText.textContent = 'Creating account...';
-                
+
                 // Real API call
                 const getHelp = document.getElementById('getHelp').checked;
                 const offerHelp = document.getElementById('offerHelp').checked;
-                
+
                 const userData = {
                     full_name: fullNameInput.value.trim(),
                     phone_number: phoneInput.value.trim(),
@@ -391,24 +411,28 @@
                     },
                     body: JSON.stringify(userData)
                 })
-                .then(async response => {
-                    const data = await response.json();
-                    if (!response.ok) {
-                        throw new Error(data.detail || 'Registration failed');
-                    }
-                    // Save token
-                    localStorage.setItem('helpon_token', data.access_token);
-                    window.location.href = 'home.html';
-                })
-                .catch(error => {
-                    registerAlert.classList.remove('d-none');
-                    alertMessage.textContent = error.message;
-                    registerBtn.disabled = false;
-                    registerSpinner.classList.add('d-none');
-                    registerText.textContent = 'Create Account';
-                });
+                    .then(async response => {
+                        const data = await response.json();
+                        if (!response.ok) {
+                            throw new Error(data.detail || 'Registration failed');
+                        }
+                        // Save token
+                        localStorage.setItem('helpon_token', data.access_token);
+                        if (data.full_name) {
+                            localStorage.setItem('helpon_user_name', data.full_name);
+                        }
+                        window.location.href = 'home.html';
+                    })
+                    .catch(error => {
+                        registerAlert.classList.remove('d-none');
+                        alertMessage.textContent = error.message;
+                        registerBtn.disabled = false;
+                        registerSpinner.classList.add('d-none');
+                        registerText.textContent = 'Create Account';
+                    });
             });
         });
     </script>
 </body>
+
 </html>
