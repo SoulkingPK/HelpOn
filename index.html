@@ -235,6 +235,9 @@
                         }
                         // Save token
                         localStorage.setItem('helpon_token', data.access_token);
+                        if (data.full_name) {
+                            localStorage.setItem('helpon_user_name', data.full_name);
+                        }
                         window.location.href = 'home.html';
                     })
                     .catch(error => {

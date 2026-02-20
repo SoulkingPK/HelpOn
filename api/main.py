@@ -71,7 +71,7 @@ async def register_user(user: UserCreate):
         data={"sub": user.phone_number}, expires_delta=access_token_expires
     )
     
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "full_name": user.full_name}
 
 @app.post("/api/login", response_model=Token)
 async def login_user(login_data: UserLogin):
@@ -107,4 +107,4 @@ async def login_user(login_data: UserLogin):
     access_token = create_access_token(
         data={"sub": str(user.get("phone_number", user.get("email")))}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "full_name": str(user.get("full_name", ""))}
