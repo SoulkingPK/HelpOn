@@ -232,7 +232,7 @@
                 <div class="d-flex justify-content-center gap-3 mt-3">
                     <small class="text-nowrap"><i class="bi bi-person-fill text-primary"></i> You</small>
                     <small class="text-nowrap"><i class="bi bi-people-fill text-success"></i> <span
-                            id="helpersCount">3</span> Helpers Nearby</small>
+                            id="helpersCount">0</span> Helpers Nearby</small>
                 </div>
             </div>
         </section>
@@ -258,13 +258,13 @@
             <div class="card-body">
                 <h5 class="card-title fw-semibold mb-3">Your Rewards</h5>
                 <div class="d-flex justify-content-between mb-2">
-                    <span><i class="bi bi-coin text-warning"></i> <span id="pointsCount">120</span> Points</span>
-                    <span>Rank: <span id="userRank">14th</span></span>
+                    <span><i class="bi bi-coin text-warning"></i> <span id="pointsCount">0</span> Points</span>
+                    <span>Rank: <span id="userRank">—</span></span>
                 </div>
                 <div class="progress mb-1" style="height: 8px;">
-                    <div class="progress-bar bg-warning" id="progressBar" style="width: 24%"></div>
+                    <div class="progress-bar bg-warning" id="progressBar" style="width: 0%"></div>
                 </div>
-                <small class="text-muted">Next reward at 500 points</small>
+                <small class="text-muted" id="pointsHint">Start helping to earn points</small>
                 <div class="mt-3">
                     <a href="leaderboard.html" class="btn btn-outline-warning w-100 fw-bold"><i
                             class="bi bi-trophy-fill me-2"></i>View Leaderboard</a>
@@ -823,6 +823,8 @@
                         this.checkAcceptedTasksVisibility();
                     }, 3000);
 
+                    updatePoints(HELP_POINTS_PER_TASK);
+                    incrementHelpsCount();
                     showToast('Task completed! Points awarded.', 'success');
 
                 } catch (error) {
@@ -880,7 +882,9 @@
             initToastSystem();
 
             // Show welcome message
-            showToast('Welcome back, Praveen!', 'success');
+            const welcomeName = (localStorage.getItem('helpon_user_name') || '').split(' ')[0];
+            const welcomeText = welcomeName ? `Welcome back, ${welcomeName}!` : 'Welcome back!';
+            showToast(welcomeText, 'success');
         });
 
         // SOS Button Functionality
@@ -1040,7 +1044,143 @@
         }
 
         // Rewards System
+        const HELP_POINTS_PER_TASK = 20;
+        const LOCATION_TTL_MS = 5 * 60 * 1000;
+        const DEFAULT_LOCATION = { lat: 28.6139, lon: 77.2090 };
+        let homeMap = null;
+        let homeUserMarker = null;
+        let locationSyncStarted = false;
+        let nearbyUsersStarted = false;
+
+        function getUserKey() {
+            const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
+            if (name) return name.replace(/\s+/g, '_');
+            const token = localStorage.getItem('helpon_token');
+            return token ? token.slice(-12) : 'guest';
+        }
+
+        function getPointsStorageKey() {
+            return `helpon_points_${getUserKey()}`;
+        }
+
+        function getHelpsStorageKey() {
+            return `helpon_helps_${getUserKey()}`;
+        }
+
+        function getLocationStorageKey() {
+            return `helpon_last_location_${getUserKey()}`;
+        }
+
+        function getPointsHistoryKey() {
+            return `helpon_points_history_${getUserKey()}`;
+        }
+
+        function loadUserPoints() {
+            const key = getPointsStorageKey();
+            const raw = localStorage.getItem(key);
+            if (raw === null) {
+                localStorage.setItem(key, '0');
+                return 0;
+            }
+            const points = parseInt(raw, 10);
+            return Number.isFinite(points) ? points : 0;
+        }
+
+        function saveUserPoints(points) {
+            const safePoints = Math.max(0, Math.floor(points));
+            localStorage.setItem(getPointsStorageKey(), String(safePoints));
+            return safePoints;
+        }
+
+        function loadHelpsCount() {
+            const key = getHelpsStorageKey();
+            const raw = localStorage.getItem(key);
+            if (raw === null) {
+                localStorage.setItem(key, '0');
+                return 0;
+            }
+            const helps = parseInt(raw, 10);
+            return Number.isFinite(helps) ? helps : 0;
+        }
+
+        function saveHelpsCount(count) {
+            const safeCount = Math.max(0, Math.floor(count));
+            localStorage.setItem(getHelpsStorageKey(), String(safeCount));
+            return safeCount;
+        }
+
+        function incrementHelpsCount() {
+            const current = loadHelpsCount();
+            return saveHelpsCount(current + 1);
+        }
+
+        function loadSavedLocation() {
+            try {
+                const raw = localStorage.getItem(getLocationStorageKey());
+                if (!raw) return null;
+                const data = JSON.parse(raw);
+                if (!Number.isFinite(data.lat) || !Number.isFinite(data.lon)) return null;
+                return data;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function saveLocation(lat, lon) {
+            localStorage.setItem(getLocationStorageKey(), JSON.stringify({
+                lat: lat,
+                lon: lon,
+                ts: Date.now()
+            }));
+        }
+
+        function isLocationFresh(location) {
+            return location && location.ts && (Date.now() - location.ts) < LOCATION_TTL_MS;
+        }
+
+        function setPointsHint(points) {
+            const hint = document.getElementById('pointsHint');
+            if (!hint) return;
+            if (points <= 0) {
+                hint.textContent = 'Start helping to earn points';
+            } else if (points < 500) {
+                hint.textContent = `Next reward at 500 points (${500 - points} more)`;
+            } else {
+                hint.textContent = 'You unlocked a reward!';
+            }
+        }
+
+        function appendPointsHistory(points, description) {
+            if (!points) return;
+            const key = getPointsHistoryKey();
+            let history = [];
+            try {
+                history = JSON.parse(localStorage.getItem(key)) || [];
+            } catch (e) {
+                history = [];
+            }
+            history.unshift({
+                type: 'earned',
+                description: description,
+                points: points,
+                date: new Date().toISOString()
+            });
+            localStorage.setItem(key, JSON.stringify(history.slice(0, 50)));
+        }
+
+        function setPointsUI(points) {
+            const pointsElement = document.getElementById('pointsCount');
+            if (pointsElement) pointsElement.textContent = points;
+            const progressPercentage = Math.min((points / 500) * 100, 100);
+            const progressBar = document.getElementById('progressBar');
+            if (progressBar) progressBar.style.width = `${progressPercentage}%`;
+            setPointsHint(points);
+        }
+
         async function initRewardsSystem() {
+            const storedPoints = loadUserPoints();
+            setPointsUI(storedPoints);
+
             try {
                 const token = localStorage.getItem('helpon_token');
                 if (!token) return;
@@ -1052,14 +1192,11 @@
                 if (res.ok) {
                     const data = await res.json();
 
-                    const points = data.points || 0;
-                    document.getElementById('pointsCount').textContent = points;
+                    const points = saveUserPoints(data.points || 0);
+                    setPointsUI(points);
 
-                    const rank = data.local_rank || 14;
-                    document.getElementById('userRank').textContent = rank + 'th';
-
-                    const progressPercentage = Math.min((points / 500) * 100, 100);
-                    document.getElementById('progressBar').style.width = `${progressPercentage}%`;
+                    const rank = Number.isFinite(data.local_rank) ? data.local_rank : 0;
+                    document.getElementById('userRank').textContent = rank > 0 ? `${rank}th` : '—';
                 }
             } catch (e) {
                 console.error("Error fetching points", e);
@@ -1067,17 +1204,14 @@
         }
 
         function updatePoints(pointsToAdd) {
-            const pointsElement = document.getElementById('pointsCount');
-            let currentPoints = parseInt(pointsElement.textContent);
-            currentPoints += pointsToAdd;
-            pointsElement.textContent = currentPoints;
+            const currentPoints = loadUserPoints();
+            const updatedPoints = saveUserPoints(currentPoints + pointsToAdd);
+            setPointsUI(updatedPoints);
+            if (pointsToAdd > 0) {
+                appendPointsHistory(pointsToAdd, 'Help task completed');
+            }
 
-            // Update progress bar
-            const progressPercentage = Math.min((currentPoints / 500) * 100, 100);
-            document.getElementById('progressBar').style.width = `${progressPercentage}%`;
-
-            // Check if user reached a milestone
-            if (currentPoints >= 500) {
+            if (currentPoints < 500 && updatedPoints >= 500) {
                 showToast('Congratulations! You reached 500 points and earned a reward!', 'success');
             }
         }
@@ -1092,29 +1226,56 @@
                 window.location.href = 'map.html';
             });
 
-            // Try HTML5 geolocation
-            if (navigator.geolocation) {
+            const savedLocation = loadSavedLocation();
+            if (savedLocation) {
+                userLat = savedLocation.lat;
+                userLon = savedLocation.lon;
+                setupLeafletMap(userLat, userLon);
+            } else {
+                userLat = DEFAULT_LOCATION.lat;
+                userLon = DEFAULT_LOCATION.lon;
+                setupLeafletMap(userLat, userLon);
+            }
+
+            startLocationSync();
+            startNearbyUsersPoll();
+
+            const shouldRequest = !savedLocation || !isLocationFresh(savedLocation);
+            if (navigator.geolocation && shouldRequest) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
                         userLat = position.coords.latitude;
                         userLon = position.coords.longitude;
+                        saveLocation(userLat, userLon);
                         setupLeafletMap(userLat, userLon);
-                        syncLocationLoop();
-                        fetchNearbyUsers();
+                        startLocationSync();
+                        startNearbyUsersPoll();
                     },
                     (error) => {
                         console.warn("Geolocation error:", error);
-                        userLat = 28.6139;
-                        userLon = 77.2090;
-                        setupLeafletMap(userLat, userLon); // Default to New Delhi
+                        if (savedLocation) {
+                            showToast('Location permission denied. Using last known location.', 'warning');
+                        } else {
+                            showToast('Location permission denied. Showing default area.', 'warning');
+                        }
                     },
                     { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
                 );
-            } else {
-                userLat = 28.6139;
-                userLon = 77.2090;
-                setupLeafletMap(userLat, userLon);
+            } else if (!navigator.geolocation && !savedLocation) {
+                showToast('Location not supported. Showing default area.', 'warning');
             }
+        }
+
+        function startLocationSync() {
+            if (locationSyncStarted) return;
+            locationSyncStarted = true;
+            syncLocationLoop();
+        }
+
+        function startNearbyUsersPoll() {
+            if (nearbyUsersStarted) return;
+            nearbyUsersStarted = true;
+            fetchNearbyUsers();
         }
 
         async function syncLocationLoop() {
@@ -1149,25 +1310,34 @@
         }
 
         function setupLeafletMap(lat, lon) {
-            const map = L.map('mapContainer').setView([lat, lon], 14);
+            if (!homeMap) {
+                homeMap = L.map('mapContainer').setView([lat, lon], 14);
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(homeMap);
 
-            // User pin styling
-            const userIconHtml = `<div style="background-color:#0d6efd; width:18px; height:18px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>`;
-            const userIcon = L.divIcon({
-                className: 'custom-user-icon',
-                html: userIconHtml,
-                iconSize: [18, 18],
-                iconAnchor: [9, 9]
-            });
+                // User pin styling
+                const userIconHtml = `<div style="background-color:#0d6efd; width:18px; height:18px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>`;
+                const userIcon = L.divIcon({
+                    className: 'custom-user-icon',
+                    html: userIconHtml,
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                });
 
-            L.marker([lat, lon], { icon: userIcon }).addTo(map).bindPopup("<b>You are here</b>").openPopup();
+                homeUserMarker = L.marker([lat, lon], { icon: userIcon })
+                    .addTo(homeMap)
+                    .bindPopup("<b>You are here</b>");
 
-            // Load live amenities
-            loadNearbyAmenities(lat, lon, map);
+                // Load live amenities once on init
+                loadNearbyAmenities(lat, lon, homeMap);
+            } else {
+                homeMap.setView([lat, lon], 14);
+                if (homeUserMarker) {
+                    homeUserMarker.setLatLng([lat, lon]);
+                }
+            }
         }
 
         async function loadNearbyAmenities(lat, lon, map) {

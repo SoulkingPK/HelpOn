@@ -138,8 +138,8 @@
                 </div>
                 <input type="file" id="avatarInput" accept="image/*" style="display: none;">
             </div>
-            <h4 class="mt-3 mb-1" id="userName">Alex Johnson</h4>
-            <p class="text-muted mb-3">Guardian Level Helper</p>
+            <h4 class="mt-3 mb-1" id="userName">Your Name</h4>
+            <p class="text-muted mb-3">New Member</p>
             <button class="btn btn-outline-primary btn-sm rounded-pill px-3" id="editProfileBtn">
                 <i class="bi bi-pencil-fill me-1"></i> Edit Profile
             </button>
@@ -150,24 +150,24 @@
             <div class="col-md-4">
                 <div class="card stats-card shadow-sm border-0 h-100" id="helpsCard">
                     <div class="card-body text-center py-3">
-                        <h3 class="text-primary mb-1" id="helpsCount">42</h3>
-                        <p class="text-muted small mb-0">Helps Given</p>
+                        <h3 class="text-primary mb-1" id="helpsCount">0</h3>
+                        <p class="text-muted small mb-0" id="helpsLabel">No activity yet</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card stats-card shadow-sm border-0 h-100" id="pointsCard">
                     <div class="card-body text-center py-3">
-                        <h3 class="text-primary mb-1" id="pointsCount">1,250</h3>
-                        <p class="text-muted small mb-0">HelpPoints</p>
+                        <h3 class="text-primary mb-1" id="pointsCount">0</h3>
+                        <p class="text-muted small mb-0" id="pointsLabel">Start helping to earn points</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card stats-card shadow-sm border-0 h-100" id="rankCard">
                     <div class="card-body text-center py-3">
-                        <h3 class="text-primary mb-1" id="rankPosition">#8</h3>
-                        <p class="text-muted small mb-0">Local Rank</p>
+                        <h3 class="text-primary mb-1" id="rankPosition">—</h3>
+                        <p class="text-muted small mb-0" id="rankLabel">No rank yet</p>
                     </div>
                 </div>
             </div>
@@ -181,27 +181,29 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">First Name</label>
-                            <input type="text" class="form-control" id="firstName" value="Alex" title="First Name"
+                            <input type="text" class="form-control" id="firstName" value="" placeholder="Not set"
+                                title="First Name"
                                 readonly>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Last Name</label>
-                            <input type="text" class="form-control" id="lastName" value="Johnson" title="Last Name"
+                            <input type="text" class="form-control" id="lastName" value="" placeholder="Not set"
+                                title="Last Name"
                                 readonly>
                         </div>
                         <div class="col-12">
                             <label class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" value="alex.johnson@example.com"
+                            <input type="email" class="form-control" id="email" value="" placeholder="Not set"
                                 title="Email" readonly>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Phone</label>
-                            <input type="tel" class="form-control" id="phone" value="+1 (555) 123-4567"
+                            <input type="tel" class="form-control" id="phone" value="" placeholder="Not set"
                                 title="Phone Number" readonly>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Member Since</label>
-                            <input type="text" class="form-control" id="memberSince" value="January 15, 2022"
+                            <input type="text" class="form-control" id="memberSince" value="—"
                                 title="Member Since" readonly>
                         </div>
                     </div>
@@ -350,10 +352,90 @@
             let originalFormData = {};
             let hasUnsavedChanges = false;
 
+            function getUserKey() {
+                const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
+                if (name) return name.replace(/\s+/g, '_');
+                const token = localStorage.getItem('helpon_token');
+                return token ? token.slice(-12) : 'guest';
+            }
+
+            function getPointsStorageKey() {
+                return `helpon_points_${getUserKey()}`;
+            }
+
+            function getHelpsStorageKey() {
+                return `helpon_helps_${getUserKey()}`;
+            }
+
+            function loadUserPoints() {
+                const key = getPointsStorageKey();
+                const raw = localStorage.getItem(key);
+                if (raw === null) {
+                    localStorage.setItem(key, '0');
+                    return 0;
+                }
+                const points = parseInt(raw, 10);
+                return Number.isFinite(points) ? points : 0;
+            }
+
+            function saveUserPoints(points) {
+                const safePoints = Math.max(0, Math.floor(points));
+                localStorage.setItem(getPointsStorageKey(), String(safePoints));
+                return safePoints;
+            }
+
+            function setPointsUI(points) {
+                if (pointsCard) document.getElementById('pointsCount').textContent = points;
+                const pointsLabel = document.getElementById('pointsLabel');
+                if (pointsLabel) {
+                    pointsLabel.textContent = points > 0 ? 'HelpPoints' : 'Start helping to earn points';
+                }
+            }
+
+            function loadHelpsCount() {
+                const key = getHelpsStorageKey();
+                const raw = localStorage.getItem(key);
+                if (raw === null) {
+                    localStorage.setItem(key, '0');
+                    return 0;
+                }
+                const helps = parseInt(raw, 10);
+                return Number.isFinite(helps) ? helps : 0;
+            }
+
+            function saveHelpsCount(count) {
+                const safeCount = Math.max(0, Math.floor(count));
+                localStorage.setItem(getHelpsStorageKey(), String(safeCount));
+                return safeCount;
+            }
+
+            function setHelpsUI(count) {
+                if (helpsCard) document.getElementById('helpsCount').textContent = count;
+                const helpsLabel = document.getElementById('helpsLabel');
+                if (helpsLabel) {
+                    helpsLabel.textContent = count > 0 ? 'Helps Given' : 'No activity yet';
+                }
+            }
+
+            function setRankUI(rank) {
+                if (rankCard) {
+                    const rankText = rank > 0 ? `#${rank}` : '—';
+                    document.getElementById('rankPosition').textContent = rankText;
+                }
+                const rankLabel = document.getElementById('rankLabel');
+                if (rankLabel) {
+                    rankLabel.textContent = rank > 0 ? 'Local Rank' : 'No rank yet';
+                }
+            }
+
             // Initialize - store original form values
             formInputs.forEach(input => {
                 originalFormData[input.id] = input.value;
             });
+
+            setPointsUI(loadUserPoints());
+            setHelpsUI(loadHelpsCount());
+            setRankUI(0);
 
             // Load Real Data from Backend
             async function fetchProfileData() {
@@ -367,9 +449,13 @@
 
                     if (res.ok) {
                         const data = await res.json();
-                        if (pointsCard) document.getElementById('pointsCount').textContent = data.points;
-                        if (helpsCard) document.getElementById('helpsCount').textContent = data.helps_given;
-                        if (rankCard) document.getElementById('rankPosition').textContent = '#' + data.local_rank;
+                        if (pointsCard) setPointsUI(saveUserPoints(data.points || 0));
+
+                        const helpsGiven = Number.isFinite(data.helps_given) ? data.helps_given : 0;
+                        setHelpsUI(saveHelpsCount(helpsGiven));
+
+                        const localRank = Number.isFinite(data.local_rank) ? data.local_rank : 0;
+                        setRankUI(localRank);
 
                         // Handle verification badge
                         const verifyBadge = document.querySelector('.verification-badge');
