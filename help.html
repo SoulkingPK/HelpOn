@@ -213,6 +213,14 @@
             display: none;
         }
     </style>
+    <!-- EmailJS CDN -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function () {
+            // TODO: Replace 'YOUR_PUBLIC_KEY' with your actual EmailJS public key
+            emailjs.init("YOUR_PUBLIC_KEY");
+        })();
+    </script>
 </head>
 
 <body>
@@ -260,20 +268,23 @@
                 within 24 hours.</p>
 
             <form id="supportForm" novalidate>
+                <!-- Honeypot field for spam bots -->
+                <input type="text" name="_honey" style="display:none">
+
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label" for="supportName">Full Name</label>
-                        <input type="text" class="form-control" id="supportName" required>
+                        <input type="text" class="form-control" id="supportName" name="name" required>
                         <div class="invalid-feedback">Please provide your name.</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label" for="supportEmail">Email Address</label>
-                        <input type="email" class="form-control" id="supportEmail" required>
+                        <input type="email" class="form-control" id="supportEmail" name="email" required>
                         <div class="invalid-feedback">Please provide a valid email address.</div>
                     </div>
                     <div class="col-12">
                         <label class="form-label" for="supportSubject">Subject</label>
-                        <select class="form-select" id="supportSubject" required>
+                        <select class="form-select" id="supportSubject" name="subject" required>
                             <option value="">Choose a topic...</option>
                             <option value="Account Issue">Account / Login Issues</option>
                             <option value="App Bug">Report a Bug</option>
@@ -284,7 +295,7 @@
                     </div>
                     <div class="col-12">
                         <label class="form-label" for="supportMessage">Message</label>
-                        <textarea class="form-control" id="supportMessage" rows="5" required></textarea>
+                        <textarea class="form-control" id="supportMessage" name="message" rows="5" required></textarea>
                         <div class="invalid-feedback">Please provide a message describing your issue.</div>
                     </div>
                     <div class="col-12 mt-4 text-end">
@@ -469,35 +480,26 @@
                     emailInput.setCustomValidity("");
                 }
 
+                // Spam Honeypot Check
+                if (supportForm.elements['_honey'].value !== "") {
+                    showToast('Request sent successfully! We will email you soon.', 'success');
+                    supportForm.reset();
+                    supportForm.classList.remove('was-validated');
+                    return;
+                }
+
                 submitSupportBtn.disabled = true;
                 supportSpinner.classList.remove('d-none');
 
-                const payload = {
-                    name: document.getElementById('supportName').value,
-                    email: document.getElementById('supportEmail').value,
-                    subject: document.getElementById('supportSubject').value,
-                    message: document.getElementById('supportMessage').value
-                };
-
                 try {
-                    const token = localStorage.getItem('helpon_token');
-                    const res = await fetch(`${apiBase}/support`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: JSON.stringify(payload)
-                    });
+                    // TODO: Replace 'YOUR_SERVICE_ID' and 'YOUR_TEMPLATE_ID' with actual EmailJS IDs
+                    await emailjs.sendForm('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', supportForm);
 
-                    if (res.ok) {
-                        showToast('Request sent successfully! We will email you soon.', 'success');
-                        supportForm.reset();
-                        supportForm.classList.remove('was-validated');
-                    } else {
-                        throw new Error('Failed');
-                    }
+                    showToast('Request sent successfully! We will email you soon.', 'success');
+                    supportForm.reset();
+                    supportForm.classList.remove('was-validated');
                 } catch (e) {
+                    console.error('EmailJS Verification Error:', e);
                     showToast('Failed to send request. Please try again.', 'danger');
                 } finally {
                     submitSupportBtn.disabled = false;
