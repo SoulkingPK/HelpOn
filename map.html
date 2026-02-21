@@ -530,6 +530,38 @@
             return `helpon_points_history_${getUserKey()}`;
         }
 
+        function getAlertedSOSKey() {
+            return `helpon_alerted_sos_${getUserKey()}`;
+        }
+
+        function getLastAlertTimestampKey() {
+            return `helpon_last_sos_alert_${getUserKey()}`;
+        }
+
+        function loadAlertedSOS() {
+            try {
+                const raw = localStorage.getItem(getAlertedSOSKey());
+                const list = raw ? JSON.parse(raw) : [];
+                return new Set(Array.isArray(list) ? list : []);
+            } catch (e) {
+                return new Set();
+            }
+        }
+
+        function saveAlertedSOS(alertedSet) {
+            localStorage.setItem(getAlertedSOSKey(), JSON.stringify(Array.from(alertedSet)));
+        }
+
+        function loadLastAlertTimestamp() {
+            const raw = localStorage.getItem(getLastAlertTimestampKey());
+            const ts = parseInt(raw, 10);
+            return Number.isFinite(ts) ? ts : 0;
+        }
+
+        function saveLastAlertTimestamp(ts) {
+            localStorage.setItem(getLastAlertTimestampKey(), String(ts));
+        }
+
         function loadSavedLocation() {
             try {
                 const raw = localStorage.getItem(getLocationStorageKey());
@@ -629,6 +661,40 @@
 
         function buildDirectionsLink(lat, lon) {
             return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+        }
+
+        let sosAudioContext = null;
+
+        function playSosAlertTone() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                if (!sosAudioContext) sosAudioContext = new AudioCtx();
+                if (sosAudioContext.state === 'suspended') {
+                    sosAudioContext.resume();
+                }
+
+                const oscillator = sosAudioContext.createOscillator();
+                const gain = sosAudioContext.createGain();
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 880;
+                gain.gain.setValueAtTime(0.001, sosAudioContext.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.2, sosAudioContext.currentTime + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, sosAudioContext.currentTime + 0.6);
+
+                oscillator.connect(gain);
+                gain.connect(sosAudioContext.destination);
+                oscillator.start();
+                oscillator.stop(sosAudioContext.currentTime + 0.65);
+            } catch (e) {
+                console.warn('Audio alert blocked:', e);
+            }
+        }
+
+        function vibrateAlert() {
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 120, 200]);
+            }
         }
 
         const emergencyIconCache = {};
@@ -733,6 +799,9 @@
                     pharmacy: L.markerClusterGroup({ chunkedLoading: true })
                 };
                 this.currentLocation = { lat: DEFAULT_LOCATION.lat, lon: DEFAULT_LOCATION.lon };
+                this.alertedEmergencies = loadAlertedSOS();
+                this.lastAlertTimestamp = loadLastAlertTimestamp();
+                this.initialFetch = true;
                 this.isFilterVisible = false;
                 this.activeEmergencyId = null;
                 this.init();
@@ -988,12 +1057,25 @@
                         })
                         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
+                    const newAlerts = [];
+                    const missedAlerts = [];
+
                     emergencies.forEach(e => {
                         const distanceKm = getDistanceKm(this.currentLocation.lat, this.currentLocation.lon, e.lat, e.lon);
                         const distanceText = formatDistance(distanceKm);
                         const timeText = formatTimeAgo(e.created_at);
                         const meta = getEmergencyMeta(e.type);
                         const directions = buildDirectionsLink(e.lat, e.lon);
+                        const createdTs = new Date(e.created_at).getTime();
+
+                        if (!this.alertedEmergencies.has(e.id)) {
+                            if (this.initialFetch) {
+                                missedAlerts.push({ ...e, meta, distanceText, timeText });
+                            } else {
+                                newAlerts.push({ ...e, meta, distanceText, timeText });
+                            }
+                            this.alertedEmergencies.add(e.id);
+                        }
 
                         const marker = L.marker([e.lat, e.lon], {
                             icon: getEmergencyIcon(e.type),
@@ -1039,6 +1121,29 @@
                             list.appendChild(card);
                         }
                     });
+
+                    if (missedAlerts.length > 0 && this.initialFetch) {
+                        const first = missedAlerts[0];
+                        const extra = missedAlerts.length > 1 ? ` (+${missedAlerts.length - 1} more)` : '';
+                        this.showToast(`Missed SOS alert: ${first.meta.label} - ${first.distanceText} away${extra}`, 'warning');
+                        saveLastAlertTimestamp(now);
+                    }
+
+                    if (newAlerts.length > 0) {
+                        newAlerts.forEach(alert => {
+                            this.showToast(`Emergency nearby! ${alert.meta.label} - ${alert.distanceText} away`, 'danger');
+                        });
+                        playSosAlertTone();
+                        vibrateAlert();
+                        const focusTarget = newAlerts[0];
+                        if (focusTarget) {
+                            this.map.setView([focusTarget.lat, focusTarget.lon], 14, { animate: true });
+                        }
+                        saveLastAlertTimestamp(now);
+                    }
+
+                    saveAlertedSOS(this.alertedEmergencies);
+                    this.initialFetch = false;
 
                     if (emptyState) {
                         emptyState.classList.toggle('d-none', emergencies.length > 0);
@@ -1200,13 +1305,13 @@
                 const toastId = 'toast-' + Date.now();
 
                 const toastHtml = `
-                        < div id = "${toastId}" class= "toast align-items-center text-bg-${type} border-0" role = "alert" aria - live="assertive" aria - atomic="true" >
-                    <div class="d-flex">
-                        <div class="toast-body">${message}</div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body">${message}</div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
                     </div>
-                    </div >
-                        `;
+                `;
 
                 toastContainer.insertAdjacentHTML('beforeend', toastHtml);
                 const toastElement = document.getElementById(toastId);
