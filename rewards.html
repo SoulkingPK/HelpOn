@@ -271,11 +271,27 @@
 
             init() {
                 this.setupEventListeners();
-                this.loadVouchers();
-                this.loadDonations();
-                this.loadBadges();
-                this.updatePointsDisplay();
+                this.fetchPoints().then(() => {
+                    this.loadVouchers();
+                    this.loadDonations();
+                    this.loadBadges();
+                    this.updatePointsDisplay();
+                });
                 this.showToast('Welcome to Rewards!', 'info');
+            }
+
+            async fetchPoints() {
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    if (!token) return;
+                    const res = await fetch('https://helpon-api.vercel.app/api/users/me/profile', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.userPoints = data.points; // Live points from backend
+                    }
+                } catch (e) { console.error('Error fetching points', e); }
             }
 
             setupEventListeners() {
@@ -590,7 +606,7 @@
 
                     // Show voucher code (simulated)
                     setTimeout(() => {
-                        alert(`Your voucher code: ${rewardId.toUpperCase()}-${Math.random().toString(36).substr(2, 8).toUpperCase()}\n\nThis code has been sent to your email.`);
+                        window.location.href = 'redeem-success.html';
                     }, 500);
 
                 } else {
@@ -634,12 +650,13 @@
                     this.updatePointsDisplay();
                     this.loadDonations();
 
-                    // Show success message
-                    this.showToast(`Thank you for donating to ${donationName}!`, 'success');
-
                     // Close modal
                     const donateModal = bootstrap.Modal.getInstance(document.getElementById('donateModal'));
                     donateModal.hide();
+
+                    setTimeout(() => {
+                        window.location.href = 'donate-success.html';
+                    }, 500);
 
                 } else {
                     this.showToast('Not enough points to make this donation', 'error');
