@@ -13,6 +13,9 @@
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <style>
         :root {
             --primary: #2563eb;
@@ -99,6 +102,22 @@
 
         .emergency-pin {
             background-color: var(--danger);
+        }
+
+        .hospital-pin {
+            background-color: #ef4444;
+        }
+
+        .police-pin {
+            background-color: #2563eb;
+        }
+
+        .fire-pin {
+            background-color: #f97316;
+        }
+
+        .pharmacy-pin {
+            background-color: #10b981;
         }
 
         .map-overlay {
@@ -208,6 +227,63 @@
         .filter-hidden {
             display: none;
         }
+
+        .chip-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        .chip.btn-outline-primary {
+            border-color: #cbd5f5;
+            color: #1e40af;
+        }
+
+        .chip.btn-check:checked + .chip {
+            background: #2563eb;
+            color: white;
+            border-color: #2563eb;
+        }
+
+        .marker-pulse {
+            animation: pulse 1.6s infinite;
+        }
+
+        .marker-pop {
+            animation: pop 0.35s ease;
+        }
+
+        @keyframes pop {
+            from {
+                transform: scale(0.85);
+                opacity: 0.6;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.45);
+            }
+            70% {
+                transform: scale(1.08);
+                box-shadow: 0 0 0 12px rgba(220, 38, 38, 0);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+            }
+        }
     </style>
 </head>
 
@@ -250,6 +326,10 @@
                 title="Locate Me">
                 <i class="bi bi-geo-alt"></i>
             </button>
+            <button class="btn btn-warning rounded-circle shadow-sm" id="findNearbyBtn" style="width: 40px; height: 40px;"
+                title="Find Nearby">
+                <i class="bi bi-search"></i>
+            </button>
         </div>
 
         <!-- Map Legend -->
@@ -266,6 +346,22 @@
                 <div class="legend-color emergency-pin"></div>
                 <span>Emergencies</span>
             </div>
+            <div class="legend-item">
+                <div class="legend-color hospital-pin"></div>
+                <span>Hospital</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color police-pin"></div>
+                <span>Police</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color fire-pin"></div>
+                <span>Fire</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color pharmacy-pin"></div>
+                <span>Pharmacy</span>
+            </div>
         </div>
 
         <!-- Emergency Overlay -->
@@ -274,31 +370,9 @@
                 <h5 class="mb-0">Nearby Emergencies</h5>
                 <a href="#" class="small" id="viewAllEmergencies">View All</a>
             </div>
-
-            <div class="card emergency-card mb-3" data-emergency-id="1">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <span class="badge bg-danger mb-1">Health Emergency</span>
-                            <p class="mb-0">200m away - 5 mins ago</p>
-                            <small>Cardiac patient needs immediate assistance</small>
-                        </div>
-                        <button class="btn btn-primary btn-sm assist-btn">Assist</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card emergency-card" data-emergency-id="2">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <span class="badge bg-warning text-dark mb-1">I'm in danger</span>
-                            <p class="mb-0">450m away - 8 mins ago</p>
-                            <small>Harassment situation, need backup</small>
-                        </div>
-                        <button class="btn btn-primary btn-sm assist-btn">Assist</button>
-                    </div>
-                </div>
+            <div id="emergencyList"></div>
+            <div class="text-center text-muted py-3 d-none" id="emergencyEmpty">
+                No active requests yet.
             </div>
         </div>
     </div>
@@ -316,18 +390,25 @@
                 <label class="form-check-label" for="emergenciesToggle">Show Emergencies</label>
             </div>
         </div>
-        <div class="filter-option">
-            <div class="form-check form-switch me-3">
-                <input class="form-check-input" type="checkbox" id="hospitalsToggle">
-                <label class="form-check-label" for="hospitalsToggle">Hospitals</label>
-            </div>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="policeToggle">
-                <label class="form-check-label" for="policeToggle">Police Stations</label>
+        <div class="mt-3">
+            <div class="text-muted small mb-2">Nearby Services</div>
+            <div class="chip-group">
+                <input class="btn-check" type="checkbox" id="hospitalsToggle" autocomplete="off">
+                <label class="btn btn-outline-primary chip" for="hospitalsToggle">🚑 Hospitals</label>
+
+                <input class="btn-check" type="checkbox" id="policeToggle" autocomplete="off">
+                <label class="btn btn-outline-primary chip" for="policeToggle">👮 Police</label>
+
+                <input class="btn-check" type="checkbox" id="fireToggle" autocomplete="off">
+                <label class="btn btn-outline-primary chip" for="fireToggle">🚒 Fire</label>
+
+                <input class="btn-check" type="checkbox" id="pharmacyToggle" autocomplete="off">
+                <label class="btn btn-outline-primary chip" for="pharmacyToggle">💊 Pharmacy</label>
             </div>
         </div>
         <div class="mt-3">
             <button class="btn btn-primary btn-sm" id="applyFiltersBtn">Apply Filters</button>
+            <button class="btn btn-warning btn-sm ms-2" id="findNearbyBtnInline">Find Nearby</button>
             <button class="btn btn-outline-secondary btn-sm ms-2" id="resetFiltersBtn">Reset</button>
         </div>
     </div>
@@ -423,6 +504,8 @@
         const HELP_POINTS_PER_TASK = 20;
         const LOCATION_TTL_MS = 5 * 60 * 1000;
         const DEFAULT_LOCATION = { lat: 28.6139, lon: 77.2090 };
+        const EMERGENCY_TTL_MS = 45 * 60 * 1000;
+        const MAX_EMERGENCY_DISTANCE_KM = 10;
 
         function getUserKey() {
             const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
@@ -510,6 +593,107 @@
             return saveHelpsCount(current + 1);
         }
 
+        function toRad(value) {
+            return (value * Math.PI) / 180;
+        }
+
+        function getDistanceKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function formatDistance(km) {
+            if (!Number.isFinite(km)) return '-';
+            if (km < 1) return `${Math.round(km * 1000)} m`;
+            return `${km.toFixed(1)} km`;
+        }
+
+        function formatTimeAgo(iso) {
+            if (!iso) return 'Just now';
+            const date = new Date(iso);
+            if (Number.isNaN(date.getTime())) return 'Just now';
+            const diffMs = Date.now() - date.getTime();
+            const diffMins = Math.floor(diffMs / 60000);
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} min ago`;
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours < 24) return `${diffHours} hr ago`;
+            const diffDays = Math.floor(diffHours / 24);
+            return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+        }
+
+        function buildDirectionsLink(lat, lon) {
+            return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+        }
+
+        const emergencyIconCache = {};
+        const serviceIconCache = {};
+
+        function getEmergencyMeta(type) {
+            const normalized = (type || '').toLowerCase();
+            if (normalized.includes('health')) {
+                return { label: 'Health Emergency', color: '#dc2626', icon: 'bi-heart-pulse-fill' };
+            }
+            if (normalized.includes('danger') || normalized.includes('sos')) {
+                return { label: "I'm in danger", color: '#f97316', icon: 'bi-exclamation-triangle-fill' };
+            }
+            if (normalized.includes('lost')) {
+                return { label: 'Lost', color: '#0ea5e9', icon: 'bi-compass-fill' };
+            }
+            return { label: 'Emergency', color: '#ef4444', icon: 'bi-bell-fill' };
+        }
+
+        function getServiceMeta(category) {
+            const map = {
+                hospital: { label: 'Hospital', color: '#ef4444', icon: 'bi-hospital-fill' },
+                police: { label: 'Police Station', color: '#2563eb', icon: 'bi-shield-shaded' },
+                fire: { label: 'Fire Station', color: '#f97316', icon: 'bi-fire' },
+                pharmacy: { label: 'Pharmacy', color: '#10b981', icon: 'bi-capsule' }
+            };
+            return map[category] || { label: 'Service', color: '#64748b', icon: 'bi-geo-alt-fill' };
+        }
+
+        function getEmergencyIcon(type) {
+            const meta = getEmergencyMeta(type);
+            if (emergencyIconCache[meta.label]) return emergencyIconCache[meta.label];
+            const iconHtml = `
+                <div class="marker-pulse" style="background:${meta.color}; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; box-shadow:0 6px 14px rgba(15,23,42,0.25);">
+                    <i class="bi ${meta.icon}" style="font-size:14px;"></i>
+                </div>
+            `;
+            const icon = L.divIcon({
+                className: '',
+                html: iconHtml,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+            });
+            emergencyIconCache[meta.label] = icon;
+            return icon;
+        }
+
+        function getServiceIcon(category) {
+            const meta = getServiceMeta(category);
+            if (serviceIconCache[category]) return serviceIconCache[category];
+            const iconHtml = `
+                <div class="marker-pop" style="background:white; width:32px; height:32px; border-radius:50%; border:2px solid ${meta.color}; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 14px rgba(15,23,42,0.18);">
+                    <i class="bi ${meta.icon}" style="color:${meta.color}; font-size:16px;"></i>
+                </div>
+            `;
+            const icon = L.divIcon({
+                className: '',
+                html: iconHtml,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+            serviceIconCache[category] = icon;
+            return icon;
+        }
+
         function appendPointsHistory(points, description) {
             if (!points) return;
             const key = getPointsHistoryKey();
@@ -541,9 +725,14 @@
             constructor() {
                 this.map = null;
                 this.userMarker = null;
-                this.hospitalMarkers = L.layerGroup();
-                this.policeMarkers = L.layerGroup();
                 this.emergencyMarkers = L.layerGroup();
+                this.serviceClusters = {
+                    hospital: L.markerClusterGroup({ chunkedLoading: true }),
+                    police: L.markerClusterGroup({ chunkedLoading: true }),
+                    fire: L.markerClusterGroup({ chunkedLoading: true }),
+                    pharmacy: L.markerClusterGroup({ chunkedLoading: true })
+                };
+                this.currentLocation = { lat: DEFAULT_LOCATION.lat, lon: DEFAULT_LOCATION.lon };
                 this.isFilterVisible = false;
                 this.activeEmergencyId = null;
                 this.init();
@@ -568,13 +757,12 @@
                     attribution: '&copy; OpenStreetMap contributors'
                 }).addTo(this.map);
 
-                this.map.addLayer(this.hospitalMarkers);
-                this.map.addLayer(this.policeMarkers);
                 this.map.addLayer(this.emergencyMarkers);
 
+                this.currentLocation = { lat: initialLat, lon: initialLon };
                 this.setUserMarker(initialLat, initialLon);
-                this.fetchAmenities(initialLat, initialLon);
                 this.fetchEmergencies();
+                this.applyFilters({ silent: true });
 
                 const shouldRequest = !savedLocation || !isLocationFresh(savedLocation);
                 if (navigator.geolocation && shouldRequest) {
@@ -585,11 +773,11 @@
                             const lon = position.coords.longitude;
 
                             saveLocation(lat, lon);
+                            this.currentLocation = { lat, lon };
                             this.map.setView([lat, lon], 14);
                             this.setUserMarker(lat, lon);
-                            this.fetchAmenities(lat, lon);
                             this.fetchEmergencies();
-                            this.showToast('Location updated! Loading nearby emergencies and services.', 'success');
+                            this.showToast('Location updated! Loading nearby emergencies.', 'success');
                         },
                         (error) => {
                             console.warn("Geolocation error:", error);
@@ -624,21 +812,60 @@
                 }
             }
 
-            async fetchAmenities(lat, lon) {
-                this.hospitalMarkers.clearLayers();
-                this.policeMarkers.clearLayers();
+            getSelectedServiceCategories() {
+                const categories = [];
+                if (document.getElementById('hospitalsToggle')?.checked) categories.push('hospital');
+                if (document.getElementById('policeToggle')?.checked) categories.push('police');
+                if (document.getElementById('fireToggle')?.checked) categories.push('fire');
+                if (document.getElementById('pharmacyToggle')?.checked) categories.push('pharmacy');
+                return categories;
+            }
 
-                const query = `
+            clearServiceClusters() {
+                Object.values(this.serviceClusters).forEach(cluster => cluster.clearLayers());
+            }
+
+            buildServiceQuery(categories, lat, lon) {
+                const radius = 5000;
+                const parts = [];
+                if (categories.includes('hospital')) {
+                    parts.push(`node["amenity"="hospital"](around:${radius},${lat},${lon});`);
+                    parts.push(`node["amenity"="clinic"](around:${radius},${lat},${lon});`);
+                }
+                if (categories.includes('police')) {
+                    parts.push(`node["amenity"="police"](around:${radius},${lat},${lon});`);
+                }
+                if (categories.includes('fire')) {
+                    parts.push(`node["amenity"="fire_station"](around:${radius},${lat},${lon});`);
+                }
+                if (categories.includes('pharmacy')) {
+                    parts.push(`node["amenity"="pharmacy"](around:${radius},${lat},${lon});`);
+                }
+
+                return `
                     [out:json][timeout:25];
                     (
-                      node["amenity"="hospital"](around:5000,${lat},${lon});
-                      node["amenity"="clinic"](around:5000,${lat},${lon});
-                      node["amenity"="police"](around:5000,${lat},${lon});
+                      ${parts.join('\n')}
                     );
                     out body;
                     >;
                     out skel qt;
                 `;
+            }
+
+            async fetchServicesForSelection() {
+                const categories = this.getSelectedServiceCategories();
+                if (categories.length === 0) {
+                    this.clearServiceClusters();
+                    this.applyFilters({ silent: true });
+                    this.showToast('Select a service category first.', 'info');
+                    return;
+                }
+
+                this.clearServiceClusters();
+
+                const { lat, lon } = this.currentLocation;
+                const query = this.buildServiceQuery(categories, lat, lon);
 
                 try {
                     const response = await fetch('https://overpass-api.de/api/interpreter', {
@@ -647,45 +874,42 @@
                     });
                     const data = await response.json();
 
-                    const hospitalIcon = L.divIcon({
-                        className: 'custom-hospital-icon',
-                        html: `<div style="background-color:white; width:30px; height:30px; border-radius:50%; border:2px solid #dc3545; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 6px rgba(0,0,0,0.3);"><i class="bi bi-hospital-fill" style="color:#dc3545; font-size:18px;"></i></div>`,
-                        iconSize: [30, 30],
-                        iconAnchor: [15, 15]
-                    });
-
-                    const policeIcon = L.divIcon({
-                        className: 'custom-police-icon',
-                        html: `<div style="background-color:white; width:30px; height:30px; border-radius:50%; border:2px solid #0d6efd; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 6px rgba(0,0,0,0.3);"><i class="bi bi-shield-fill-check" style="color:#0d6efd; font-size:18px;"></i></div>`,
-                        iconSize: [30, 30],
-                        iconAnchor: [15, 15]
-                    });
-
                     data.elements.forEach(el => {
                         if (el.type === 'node' && el.tags) {
-                            const isHospital = el.tags.amenity === 'hospital' || el.tags.amenity === 'clinic';
-                            const isPolice = el.tags.amenity === 'police';
-                            const name = el.tags.name || (isHospital ? 'Medical Facility' : 'Police Station');
+                            const amenity = el.tags.amenity;
+                            let category = null;
+                            if (amenity === 'hospital' || amenity === 'clinic') category = 'hospital';
+                            if (amenity === 'police') category = 'police';
+                            if (amenity === 'fire_station') category = 'fire';
+                            if (amenity === 'pharmacy') category = 'pharmacy';
+                            if (!category || !categories.includes(category)) return;
 
-                            let iconToUse = isHospital ? hospitalIcon : (isPolice ? policeIcon : null);
-                            if (!iconToUse) return;
+                            const meta = getServiceMeta(category);
+                            const name = el.tags.name || meta.label;
+                            const distanceKm = getDistanceKm(lat, lon, el.lat, el.lon);
+                            const distanceText = formatDistance(distanceKm);
+                            const directions = buildDirectionsLink(el.lat, el.lon);
 
-                            const marker = L.marker([el.lat, el.lon], { icon: iconToUse })
-                                .bindPopup(`<b>${name}</b><br>${isHospital ? 'Emergency Medical Services' : 'Law Enforcement'}`);
+                            const marker = L.marker([el.lat, el.lon], {
+                                icon: getServiceIcon(category),
+                                riseOnHover: true
+                            }).bindPopup(`
+                                <div>
+                                    <strong>${name}</strong><br>
+                                    <small>${meta.label} - ${distanceText} away</small><br>
+                                    <a href="${directions}" target="_blank" rel="noopener">Navigate with Google Maps</a>
+                                </div>
+                            `);
 
-                            if (isHospital) {
-                                this.hospitalMarkers.addLayer(marker);
-                            } else if (isPolice) {
-                                this.policeMarkers.addLayer(marker);
-                            }
+                            this.serviceClusters[category].addLayer(marker);
                         }
                     });
 
-                    // Trigger initial UI filter state match
-                    this.applyFilters();
-
+                    this.applyFilters({ silent: true });
+                    this.showToast('Nearby services updated.', 'success');
                 } catch (error) {
-                    console.error("Error fetching Overpass data:", error);
+                    console.error("Error fetching services", error);
+                    this.showToast('Failed to load nearby services.', 'error');
                 }
             }
 
@@ -715,8 +939,16 @@
                     this.locateMe();
                 });
 
+                document.getElementById('findNearbyBtn').addEventListener('click', () => {
+                    this.fetchServicesForSelection();
+                });
+
+                document.getElementById('findNearbyBtnInline').addEventListener('click', () => {
+                    this.fetchServicesForSelection();
+                });
+
                 document.getElementById('applyFiltersBtn').addEventListener('click', () => {
-                    this.applyFilters();
+                    this.applyFilters({ silent: true });
                 });
 
                 document.getElementById('resetFiltersBtn').addEventListener('click', () => {
@@ -737,33 +969,82 @@
                     const data = await res.json();
 
                     this.emergencyMarkers.clearLayers();
+                    const list = document.getElementById('emergencyList');
+                    const emptyState = document.getElementById('emergencyEmpty');
+                    if (list) list.innerHTML = '';
 
-                    const sosIcon = L.divIcon({
-                        className: 'custom-sos-icon',
-                        html: `<div style="background-color:white; width:34px; height:34px; border-radius:50%; border:3px solid #dc3545; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(220,53,69,0.5);"><i class="bi bi-exclamation-triangle-fill" style="color:#dc3545; font-size:18px;"></i></div>`,
-                        iconSize: [34, 34],
-                        iconAnchor: [17, 17]
-                    });
+                    const now = Date.now();
+                    const emergencies = (data.emergencies || [])
+                        .map(e => ({
+                            ...e,
+                            created_at: e.created_at || new Date().toISOString()
+                        }))
+                        .filter(e => {
+                            const createdTime = new Date(e.created_at).getTime();
+                            if (Number.isNaN(createdTime)) return false;
+                            if (now - createdTime > EMERGENCY_TTL_MS) return false;
+                            const distance = getDistanceKm(this.currentLocation.lat, this.currentLocation.lon, e.lat, e.lon);
+                            return distance <= MAX_EMERGENCY_DISTANCE_KM;
+                        })
+                        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-                    data.emergencies.forEach(e => {
-                        const marker = L.marker([e.lat, e.lon], { icon: sosIcon });
+                    emergencies.forEach(e => {
+                        const distanceKm = getDistanceKm(this.currentLocation.lat, this.currentLocation.lon, e.lat, e.lon);
+                        const distanceText = formatDistance(distanceKm);
+                        const timeText = formatTimeAgo(e.created_at);
+                        const meta = getEmergencyMeta(e.type);
+                        const directions = buildDirectionsLink(e.lat, e.lon);
+
+                        const marker = L.marker([e.lat, e.lon], {
+                            icon: getEmergencyIcon(e.type),
+                            riseOnHover: true
+                        });
 
                         const popupContent = `
-                            <div class="text-center p-1">
-                                <h6 class="mb-1 text-danger fw-bold">${e.type}</h6>
-                                <p class="small mb-2">${e.description}</p>
-                                <p class="small text-muted mb-2">Requested by: ${e.created_by}</p>
-                                ${e.status === 'active' ?
-                                `<button class="btn btn-sm btn-danger w-100" onclick="window.mapManagerInstance.acceptEmergency('${e.id}')">Accept Request</button>` :
-                                `<button class="btn btn-sm btn-success w-100" onclick="window.mapManagerInstance.completeEmergency('${e.id}')">Mark Completed</button>`
-                            }
+                            <div class="p-1">
+                                <h6 class="mb-1 fw-bold" style="color:${meta.color};">${meta.label}</h6>
+                                <p class="small mb-2">${e.description || 'Emergency request'}</p>
+                                <p class="small text-muted mb-2">${distanceText} away - ${timeText}</p>
+                                <a class="btn btn-sm btn-outline-primary w-100 mb-2" href="${directions}" target="_blank" rel="noopener">Navigate with Google Maps</a>
+                                ${e.status === 'active'
+                                    ? `<button class="btn btn-sm btn-danger w-100" onclick="window.mapManagerInstance.acceptEmergency('${e.id}')">Accept Request</button>`
+                                    : `<button class="btn btn-sm btn-success w-100" onclick="window.mapManagerInstance.completeEmergency('${e.id}')">Mark Completed</button>`
+                                }
                             </div>
                         `;
                         marker.bindPopup(popupContent);
                         this.emergencyMarkers.addLayer(marker);
+
+                        if (list) {
+                            const card = document.createElement('div');
+                            card.className = 'card emergency-card mb-2';
+                            card.innerHTML = `
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <span class="badge" style="background:${meta.color};">${meta.label}</span>
+                                            <p class="mb-0 mt-1">${distanceText} away - ${timeText}</p>
+                                            <small class="text-muted">${e.description || 'Emergency request'}</small>
+                                        </div>
+                                        <div class="d-flex flex-column gap-2">
+                                            <a class="btn btn-outline-primary btn-sm" href="${directions}" target="_blank" rel="noopener">Navigate</a>
+                                            ${e.status === 'active'
+                                                ? `<button class="btn btn-primary btn-sm" onclick="window.mapManagerInstance.acceptEmergency('${e.id}')">Assist</button>`
+                                                : `<button class="btn btn-success btn-sm" onclick="window.mapManagerInstance.completeEmergency('${e.id}')">Complete</button>`
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            list.appendChild(card);
+                        }
                     });
 
-                    this.applyFilters();
+                    if (emptyState) {
+                        emptyState.classList.toggle('d-none', emergencies.length > 0);
+                    }
+
+                    this.applyFilters({ silent: true });
                 } catch (err) {
                     console.error("Failed fetching live emergencies", err);
                 }
@@ -840,8 +1121,11 @@
                         (position) => {
                             const lat = position.coords.latitude;
                             const lon = position.coords.longitude;
+                            this.currentLocation = { lat, lon };
+                            saveLocation(lat, lon);
                             this.map.setView([lat, lon], 15);
                             this.setUserMarker(lat, lon);
+                            this.fetchEmergencies();
                         },
                         (error) => {
                             this.showToast('Location access denied.', 'error');
@@ -850,24 +1134,32 @@
                 }
             }
 
-            applyFilters() {
+            applyFilters(options = {}) {
                 const hospitalsToggle = document.getElementById('hospitalsToggle');
                 const policeToggle = document.getElementById('policeToggle');
+                const fireToggle = document.getElementById('fireToggle');
+                const pharmacyToggle = document.getElementById('pharmacyToggle');
                 const emergenciesToggle = document.getElementById('emergenciesToggle'); // Keep for UI feedback if wanted
+                const { silent = false } = options;
 
                 if (!this.map) return;
 
-                if (hospitalsToggle && hospitalsToggle.checked) {
-                    this.map.addLayer(this.hospitalMarkers);
-                } else {
-                    this.map.removeLayer(this.hospitalMarkers);
-                }
+                const serviceToggles = {
+                    hospital: hospitalsToggle,
+                    police: policeToggle,
+                    fire: fireToggle,
+                    pharmacy: pharmacyToggle
+                };
 
-                if (policeToggle && policeToggle.checked) {
-                    this.map.addLayer(this.policeMarkers);
-                } else {
-                    this.map.removeLayer(this.policeMarkers);
-                }
+                Object.entries(serviceToggles).forEach(([category, toggle]) => {
+                    const cluster = this.serviceClusters[category];
+                    if (!cluster) return;
+                    if (toggle && toggle.checked) {
+                        if (!this.map.hasLayer(cluster)) this.map.addLayer(cluster);
+                    } else {
+                        if (this.map.hasLayer(cluster)) this.map.removeLayer(cluster);
+                    }
+                });
 
                 if (emergenciesToggle && emergenciesToggle.checked) {
                     this.map.addLayer(this.emergencyMarkers);
@@ -875,16 +1167,24 @@
                     this.map.removeLayer(this.emergencyMarkers);
                 }
 
-                this.toggleFilter(); // Hide after applying
-                this.showToast('Map layers updated', 'success');
+                if (!silent) {
+                    this.toggleFilter(); // Hide after applying
+                    this.showToast('Map layers updated', 'success');
+                }
             }
 
             resetFilters() {
                 const hospitalsToggle = document.getElementById('hospitalsToggle');
                 const policeToggle = document.getElementById('policeToggle');
+                const fireToggle = document.getElementById('fireToggle');
+                const pharmacyToggle = document.getElementById('pharmacyToggle');
+                const emergenciesToggle = document.getElementById('emergenciesToggle');
 
-                if (hospitalsToggle) hospitalsToggle.checked = true; // Default custom settings
-                if (policeToggle) policeToggle.checked = true;
+                if (hospitalsToggle) hospitalsToggle.checked = false;
+                if (policeToggle) policeToggle.checked = false;
+                if (fireToggle) fireToggle.checked = false;
+                if (pharmacyToggle) pharmacyToggle.checked = false;
+                if (emergenciesToggle) emergenciesToggle.checked = true;
 
                 this.applyFilters();
             }
