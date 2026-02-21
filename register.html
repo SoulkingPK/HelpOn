@@ -404,7 +404,8 @@
                     offer_help: offerHelp
                 };
 
-                fetch('https://help-on.vercel.app/api/register', {
+                const apiBase = 'https://help-on.vercel.app/api';
+                fetch(`${apiBase}/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

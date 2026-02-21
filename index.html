@@ -221,7 +221,8 @@
                     password: passwordInput.value
                 };
 
-                fetch('https://help-on.vercel.app/api/login', {
+                const apiBase = 'https://help-on.vercel.app/api';
+                fetch(`${apiBase}/login`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

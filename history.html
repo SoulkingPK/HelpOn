@@ -239,6 +239,8 @@
 
     <!-- Custom JavaScript -->
     <script>
+        const apiBase = 'https://help-on.vercel.app/api';
+
         // History Manager Class
         class HistoryManager {
             constructor() {
@@ -264,7 +266,7 @@
             async loadHistoryData() {
                 try {
                     const token = localStorage.getItem('helpon_token');
-                    const res = await fetch('https://helpon-api.vercel.app/api/users/me/history', {
+                    const res = await fetch(`${apiBase}/users/me/history`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
 
