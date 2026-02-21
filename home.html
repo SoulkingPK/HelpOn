@@ -442,45 +442,60 @@
                 this.loadHelpRequests();
             }
 
-            // Load initial help requests (simulated data)
-            loadHelpRequests() {
-                this.availableRequests = [
-                    {
-                        id: 'req-001',
-                        type: 'Health Emergency',
-                        distance: '200m away',
-                        badgeClass: 'bg-danger',
-                        status: 'active',
-                        userName: 'John D.',
-                        phone: '+1-234-567-8900',
-                        location: 'Central Park, Near Fountain',
-                        timestamp: new Date().toISOString()
-                    },
-                    {
-                        id: 'req-002',
-                        type: 'I\'m in danger',
-                        distance: '450m away',
-                        badgeClass: 'bg-warning text-dark',
-                        status: 'active',
-                        userName: 'Sarah M.',
-                        phone: '+1-234-567-8901',
-                        location: 'Main Street, Bus Stop',
-                        timestamp: new Date().toISOString()
-                    },
-                    {
-                        id: 'req-003',
-                        type: 'Lost',
-                        distance: '150m away',
-                        badgeClass: 'bg-info',
-                        status: 'active',
-                        userName: 'Mike R.',
-                        phone: '+1-234-567-8902',
-                        location: 'Shopping Mall, Food Court',
-                        timestamp: new Date().toISOString()
-                    }
-                ];
+            async loadHelpRequests() {
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    if (!token) return;
 
-                this.renderHelpRequests();
+                    const res = await fetch('https://helpon-api.vercel.app/api/emergencies/nearby', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        this.availableRequests = data.emergencies.map(e => {
+                            let distanceStr = 'Unknown distance';
+                            if (window.userLat && window.userLon) {
+                                const R = 6371;
+                                const dLat = (e.lat - window.userLat) * Math.PI / 180;
+                                const dLon = (e.lon - window.userLon) * Math.PI / 180;
+                                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                    Math.cos(window.userLat * Math.PI / 180) * Math.cos(e.lat * Math.PI / 180) *
+                                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                                const d = R * c;
+                                if (d < 1) {
+                                    distanceStr = Math.round(d * 1000) + 'm away';
+                                } else {
+                                    distanceStr = d.toFixed(1) + 'km away';
+                                }
+                            }
+
+                            let badgeClass = 'bg-primary';
+                            if (e.type.toLowerCase().includes('health')) badgeClass = 'bg-danger';
+                            if (e.type.toLowerCase().includes('danger') || e.type.toLowerCase() === 'sos') badgeClass = 'bg-warning text-dark';
+                            if (e.type.toLowerCase().includes('lost')) badgeClass = 'bg-info';
+
+                            return {
+                                id: e.id,
+                                type: e.type,
+                                distance: distanceStr,
+                                badgeClass: badgeClass,
+                                status: e.status,
+                                userName: e.created_by,
+                                phone: 'Not provided',
+                                lat: e.lat,
+                                lon: e.lon,
+                                location: `Lat: ${e.lat.toFixed(4)}, Lon: ${e.lon.toFixed(4)}`,
+                                timestamp: e.created_at
+                            };
+                        });
+                        this.renderHelpRequests();
+                    }
+                } catch (e) { console.error('Error fetching help requests', e); }
+
+                // Poll every 15 seconds
+                setTimeout(() => this.loadHelpRequests(), 15000);
             }
 
             renderHelpRequests() {
@@ -541,8 +556,16 @@
                 acceptBtn.disabled = true;
 
                 try {
-                    // Simulate API call
-                    await this.simulateApiCall(1000);
+                    const token = localStorage.getItem('helpon_token');
+                    const res = await fetch(`https://helpon-api.vercel.app/api/emergencies/${requestId}/accept`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json();
+                        throw new Error(err.detail || 'Failed to accept');
+                    }
 
                     // Find the request data
                     const requestIndex = this.availableRequests.findIndex(req => req.id === requestId);
@@ -560,14 +583,11 @@
                     // Show success message
                     showToast('Help request accepted successfully!', 'success');
 
-                    // Update helpers count
-                    updateHelpersCount(-1);
-
                 } catch (error) {
                     // Reset button on error
                     acceptBtn.innerHTML = 'Accept';
                     acceptBtn.disabled = false;
-                    showToast('Failed to accept request. Please try again.', 'danger');
+                    showToast(error.message || 'Failed to accept request. Please try again.', 'danger');
                 }
             }
 
@@ -659,7 +679,11 @@
 
                 // Navigate button
                 taskElement.querySelector('.navigate-btn').addEventListener('click', (e) => {
-                    this.navigateToUser();
+                    const taskData = this.acceptedRequests.get(taskId.replace('accepted-', ''))?.data;
+                    if (taskData) {
+                        window.open(`https://www.google.com/maps/search/?api=1&query=${taskData.lat},${taskData.lon}`, '_blank');
+                        showToast('Opening navigation to user location...', 'info');
+                    }
                 });
 
                 // Complete button
@@ -757,8 +781,13 @@
                     completeBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
                     completeBtn.disabled = true;
 
-                    // Simulate API call to complete
-                    await this.simulateApiCall(800);
+                    const token = localStorage.getItem('helpon_token');
+                    const res = await fetch(`https://helpon-api.vercel.app/api/emergencies/${requestId}/complete`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (!res.ok) throw new Error('Failed to complete');
 
                     // Clear timer
                     if (acceptedRequest.timerInterval) {
@@ -797,9 +826,6 @@
                         this.acceptedRequests.delete(requestId);
                         this.checkAcceptedTasksVisibility();
                     }, 3000);
-
-                    // Award points
-                    updatePoints(15);
 
                     showToast('Task completed! Points awarded.', 'success');
 
