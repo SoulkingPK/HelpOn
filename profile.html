@@ -134,7 +134,7 @@
             <div class="d-flex justify-content-center">
                 <div class="avatar-preview rounded-circle bg-white overflow-hidden" id="avatarPreview">
                     <img src="assets/images/user-avathar.jpg" alt="Profile"
-                        class="img-fluid w-100 h-100 object-fit-cover" id="avatarImage">
+                        class="img-fluid w-100 h-100 object-fit-cover" id="avatarImage" loading="lazy">
                 </div>
                 <input type="file" id="avatarInput" accept="image/*" style="display: none;">
             </div>
@@ -267,7 +267,7 @@
                         <span><i class="bi bi-credit-card me-2"></i> Payment Methods</span>
                         <i class="bi bi-chevron-right"></i>
                     </a>
-                    <a href="#"
+                    <a href="help.html"
                         class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                         id="helpSupport">
                         <span><i class="bi bi-question-circle me-2"></i> Help & Support</span>
@@ -588,8 +588,7 @@
             });
 
             helpSupport.addEventListener('click', function (e) {
-                e.preventDefault();
-                showToast('Opening help & support', 'info');
+                // e.preventDefault();
             });
 
             // ID verification

@@ -337,7 +337,7 @@
                             <i class="bi bi-shield-lock me-2"></i> Privacy Settings </a>
                         <a href="#" class="list-group-item list-group-item-action" id="paymentMethodsBtn">
                             <i class="bi bi-credit-card me-2"></i> Payment Methods </a>
-                        <a href="#" class="list-group-item list-group-item-action" id="helpCenterBtn">
+                        <a href="help.html" class="list-group-item list-group-item-action" id="helpCenterBtn">
                             <i class="bi bi-question-circle me-2"></i> Help Center </a>
                         <a href="index.html" class="list-group-item list-group-item-action text-danger"
                             id="modalLogoutBtn">
@@ -1030,8 +1030,8 @@
                 showToast('Payment methods would open here', 'info');
             });
 
-            document.getElementById('helpCenterBtn').addEventListener('click', function () {
-                showToast('Help center would open here', 'info');
+            document.getElementById('helpCenterBtn').addEventListener('click', function (e) {
+                // e.preventDefault(); // allow navigation to help.html
             });
         }
 
