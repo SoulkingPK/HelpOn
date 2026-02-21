@@ -551,7 +551,8 @@
             const refreshToken = localStorage.getItem('helpon_refresh_token');
             if (!refreshToken) return null;
             try {
-                const res = await fetch('https://helpon-api.vercel.app/api/refresh', {
+                const apiBase = 'https://help-on.vercel.app/api';
+                const res = await fetch(`${apiBase}/token/refresh`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ refresh_token: refreshToken })
