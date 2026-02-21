@@ -91,7 +91,7 @@
                     <h5 class="mb-0 fw-bold text-primary">Rewards</h5>
                 </div>
                 <span class="badge bg-warning text-dark" id="pointsBadge">
-                    <i class="bi bi-coin"></i> <span id="pointsCount">1,250</span> Points
+                    <i class="bi bi-coin"></i> <span id="pointsCount">0</span> Points
                 </span>
             </div>
         </div>
@@ -101,12 +101,12 @@
         <!-- Points Summary -->
         <section class="card mb-4 border-0 shadow-sm">
             <div class="card-body text-center">
-                <h2 class="text-warning mb-1" id="totalPoints">1,250</h2>
+                <h2 class="text-warning mb-1" id="totalPoints">0</h2>
                 <p class="text-muted mb-3">Available HelpPoints</p>
                 <div class="progress mb-2" style="height: 10px;">
-                    <div class="progress-bar progress-bar-gradient" id="progressBar" style="width: 65%"></div>
+                    <div class="progress-bar progress-bar-gradient" id="progressBar" style="width: 0%"></div>
                 </div>
-                <small class="text-muted" id="nextTierText">Next tier at 2,000 points (750 more)</small>
+                <small class="text-muted" id="nextTierText">Next tier at 2,000 points (2,000 more)</small>
                 <div class="mt-3">
                     <a href="leaderboard.html" class="btn btn-warning w-100 fw-bold"><i
                             class="bi bi-trophy-fill me-2"></i>Global Leaderboard</a>
@@ -261,14 +261,52 @@
 
     <!-- Custom JavaScript -->
     <script>
+        function getUserKey() {
+            const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
+            if (name) return name.replace(/\s+/g, '_');
+            const token = localStorage.getItem('helpon_token');
+            return token ? token.slice(-12) : 'guest';
+        }
+
+        function makeStorageKey(suffix) {
+            return `helpon_${suffix}_${getUserKey()}`;
+        }
+
+        function loadNumber(key, fallback = 0) {
+            const raw = localStorage.getItem(key);
+            const value = parseInt(raw, 10);
+            return Number.isFinite(value) ? value : fallback;
+        }
+
+        function loadJson(key, fallback) {
+            try {
+                const raw = localStorage.getItem(key);
+                return raw ? JSON.parse(raw) : fallback;
+            } catch (e) {
+                return fallback;
+            }
+        }
+
         // Rewards Manager Class
         class RewardsManager {
             constructor() {
-                this.userPoints = 1250;
-                this.redeemedRewards = JSON.parse(localStorage.getItem('redeemedRewards')) || [];
-                this.donationsMade = JSON.parse(localStorage.getItem('donationsMade')) || [];
-                this.userBadges = JSON.parse(localStorage.getItem('userBadges')) || ['quick_responder', 'five_star_helper'];
-                this.pointsHistory = JSON.parse(localStorage.getItem('pointsHistory')) || this.getDefaultPointsHistory();
+                this.storage = {
+                    points: makeStorageKey('points'),
+                    redeemedRewards: makeStorageKey('redeemed_rewards'),
+                    donationsMade: makeStorageKey('donations_made'),
+                    userBadges: makeStorageKey('badges'),
+                    pointsHistory: makeStorageKey('points_history')
+                };
+
+                if (localStorage.getItem(this.storage.points) === null) {
+                    localStorage.setItem(this.storage.points, '0');
+                }
+
+                this.userPoints = loadNumber(this.storage.points, 0);
+                this.redeemedRewards = loadJson(this.storage.redeemedRewards, []);
+                this.donationsMade = loadJson(this.storage.donationsMade, []);
+                this.userBadges = loadJson(this.storage.userBadges, []);
+                this.pointsHistory = loadJson(this.storage.pointsHistory, this.getDefaultPointsHistory());
 
                 this.init();
             }
@@ -293,7 +331,8 @@
                     });
                     if (res.ok) {
                         const data = await res.json();
-                        this.userPoints = data.points; // Live points from backend
+                        this.userPoints = data.points || 0; // Live points from backend
+                        localStorage.setItem(this.storage.points, String(this.userPoints));
                     }
                 } catch (e) { console.error('Error fetching points', e); }
             }
@@ -720,9 +759,11 @@
                 // Update next tier text
                 const pointsNeeded = nextTier - this.userPoints;
                 document.getElementById('nextTierText').textContent =
-                    pointsNeeded > 0
-                        ? `Next tier at ${nextTier.toLocaleString()} points (${pointsNeeded} more)`
-                        : 'You reached the maximum tier!';
+                    this.userPoints <= 0
+                        ? 'Start helping to earn points'
+                        : (pointsNeeded > 0
+                            ? `Next tier at ${nextTier.toLocaleString()} points (${pointsNeeded} more)`
+                            : 'You reached the maximum tier!');
             }
 
             goBack() {
@@ -733,34 +774,15 @@
             }
 
             saveData() {
-                localStorage.setItem('userPoints', this.userPoints);
-                localStorage.setItem('redeemedRewards', JSON.stringify(this.redeemedRewards));
-                localStorage.setItem('donationsMade', JSON.stringify(this.donationsMade));
-                localStorage.setItem('userBadges', JSON.stringify(this.userBadges));
-                localStorage.setItem('pointsHistory', JSON.stringify(this.pointsHistory));
+                localStorage.setItem(this.storage.points, String(this.userPoints));
+                localStorage.setItem(this.storage.redeemedRewards, JSON.stringify(this.redeemedRewards));
+                localStorage.setItem(this.storage.donationsMade, JSON.stringify(this.donationsMade));
+                localStorage.setItem(this.storage.userBadges, JSON.stringify(this.userBadges));
+                localStorage.setItem(this.storage.pointsHistory, JSON.stringify(this.pointsHistory));
             }
 
             getDefaultPointsHistory() {
-                return [
-                    {
-                        type: 'earned',
-                        description: 'Helped with health emergency',
-                        points: 50,
-                        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-                    },
-                    {
-                        type: 'earned',
-                        description: 'Assisted lost person',
-                        points: 30,
-                        date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-                    },
-                    {
-                        type: 'earned',
-                        description: 'Quick response bonus',
-                        points: 20,
-                        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-                    }
-                ];
+                return [];
             }
 
             showToast(message, type = 'info') {
@@ -799,14 +821,7 @@
 
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function () {
-            const rewardsManager = new RewardsManager();
-
-            // Load saved points if available
-            const savedPoints = localStorage.getItem('userPoints');
-            if (savedPoints) {
-                rewardsManager.userPoints = parseInt(savedPoints);
-                rewardsManager.updatePointsDisplay();
-            }
+            new RewardsManager();
         });
     </script>
 </body>

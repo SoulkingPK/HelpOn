@@ -420,6 +420,122 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        const HELP_POINTS_PER_TASK = 20;
+        const LOCATION_TTL_MS = 5 * 60 * 1000;
+        const DEFAULT_LOCATION = { lat: 28.6139, lon: 77.2090 };
+
+        function getUserKey() {
+            const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
+            if (name) return name.replace(/\s+/g, '_');
+            const token = localStorage.getItem('helpon_token');
+            return token ? token.slice(-12) : 'guest';
+        }
+
+        function getPointsStorageKey() {
+            return `helpon_points_${getUserKey()}`;
+        }
+
+        function getHelpsStorageKey() {
+            return `helpon_helps_${getUserKey()}`;
+        }
+
+        function getLocationStorageKey() {
+            return `helpon_last_location_${getUserKey()}`;
+        }
+
+        function getPointsHistoryKey() {
+            return `helpon_points_history_${getUserKey()}`;
+        }
+
+        function loadSavedLocation() {
+            try {
+                const raw = localStorage.getItem(getLocationStorageKey());
+                if (!raw) return null;
+                const data = JSON.parse(raw);
+                if (!Number.isFinite(data.lat) || !Number.isFinite(data.lon)) return null;
+                return data;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function saveLocation(lat, lon) {
+            localStorage.setItem(getLocationStorageKey(), JSON.stringify({
+                lat: lat,
+                lon: lon,
+                ts: Date.now()
+            }));
+        }
+
+        function isLocationFresh(location) {
+            return location && location.ts && (Date.now() - location.ts) < LOCATION_TTL_MS;
+        }
+
+        function loadUserPoints() {
+            const key = getPointsStorageKey();
+            const raw = localStorage.getItem(key);
+            if (raw === null) {
+                localStorage.setItem(key, '0');
+                return 0;
+            }
+            const points = parseInt(raw, 10);
+            return Number.isFinite(points) ? points : 0;
+        }
+
+        function saveUserPoints(points) {
+            const safePoints = Math.max(0, Math.floor(points));
+            localStorage.setItem(getPointsStorageKey(), String(safePoints));
+            return safePoints;
+        }
+
+        function loadHelpsCount() {
+            const key = getHelpsStorageKey();
+            const raw = localStorage.getItem(key);
+            if (raw === null) {
+                localStorage.setItem(key, '0');
+                return 0;
+            }
+            const helps = parseInt(raw, 10);
+            return Number.isFinite(helps) ? helps : 0;
+        }
+
+        function saveHelpsCount(count) {
+            const safeCount = Math.max(0, Math.floor(count));
+            localStorage.setItem(getHelpsStorageKey(), String(safeCount));
+            return safeCount;
+        }
+
+        function incrementHelpsCount() {
+            const current = loadHelpsCount();
+            return saveHelpsCount(current + 1);
+        }
+
+        function appendPointsHistory(points, description) {
+            if (!points) return;
+            const key = getPointsHistoryKey();
+            let history = [];
+            try {
+                history = JSON.parse(localStorage.getItem(key)) || [];
+            } catch (e) {
+                history = [];
+            }
+            history.unshift({
+                type: 'earned',
+                description: description,
+                points: points,
+                date: new Date().toISOString()
+            });
+            localStorage.setItem(key, JSON.stringify(history.slice(0, 50)));
+        }
+
+        function awardPoints(pointsToAdd) {
+            const currentPoints = loadUserPoints();
+            saveUserPoints(currentPoints + pointsToAdd);
+            if (pointsToAdd > 0) {
+                appendPointsHistory(pointsToAdd, 'Emergency completed');
+            }
+        }
+
         // Map Manager Class
         class MapManager {
             constructor() {
@@ -439,10 +555,14 @@
             }
 
             initMap() {
-                // Initialize map with default coordinates (New Delhi as fallback)
+                const savedLocation = loadSavedLocation();
+                const initialLat = savedLocation ? savedLocation.lat : DEFAULT_LOCATION.lat;
+                const initialLon = savedLocation ? savedLocation.lon : DEFAULT_LOCATION.lon;
+
+                // Initialize map with saved or default coordinates
                 this.map = L.map('leafletMap', {
                     zoomControl: false // Disable default zoom to use our custom buttons
-                }).setView([28.6139, 77.2090], 13);
+                }).setView([initialLat, initialLon], 13);
 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; OpenStreetMap contributors'
@@ -452,33 +572,37 @@
                 this.map.addLayer(this.policeMarkers);
                 this.map.addLayer(this.emergencyMarkers);
 
-                // Try to get user's location
-                if (navigator.geolocation) {
+                this.setUserMarker(initialLat, initialLon);
+                this.fetchAmenities(initialLat, initialLon);
+                this.fetchEmergencies();
+
+                const shouldRequest = !savedLocation || !isLocationFresh(savedLocation);
+                if (navigator.geolocation && shouldRequest) {
                     this.showToast('Locating your position...', 'info');
                     navigator.geolocation.getCurrentPosition(
                         (position) => {
                             const lat = position.coords.latitude;
                             const lon = position.coords.longitude;
 
+                            saveLocation(lat, lon);
                             this.map.setView([lat, lon], 14);
                             this.setUserMarker(lat, lon);
                             this.fetchAmenities(lat, lon);
                             this.fetchEmergencies();
-                            this.showToast('Location found! Loading nearby emergencies and services.', 'success');
+                            this.showToast('Location updated! Loading nearby emergencies and services.', 'success');
                         },
                         (error) => {
                             console.warn("Geolocation error:", error);
-                            this.showToast('Could not access location. Using default map.', 'warning');
-                            this.setUserMarker(28.6139, 77.2090);
-                            this.fetchAmenities(28.6139, 77.2090);
-                            this.fetchEmergencies();
+                            if (savedLocation) {
+                                this.showToast('Location permission denied. Using last known location.', 'warning');
+                            } else {
+                                this.showToast('Location permission denied. Using default map.', 'warning');
+                            }
                         },
                         { enableHighAccuracy: true, timeout: 5000 }
                     );
-                } else {
-                    this.setUserMarker(28.6139, 77.2090);
-                    this.fetchAmenities(28.6139, 77.2090);
-                    this.fetchEmergencies();
+                } else if (!navigator.geolocation && !savedLocation) {
+                    this.showToast('Location not supported. Using default map.', 'warning');
                 }
             }
 
@@ -501,6 +625,9 @@
             }
 
             async fetchAmenities(lat, lon) {
+                this.hospitalMarkers.clearLayers();
+                this.policeMarkers.clearLayers();
+
                 const query = `
                     [out:json][timeout:25];
                     (
@@ -673,6 +800,8 @@
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (res.ok) {
+                        awardPoints(HELP_POINTS_PER_TASK);
+                        incrementHelpsCount();
                         this.showToast('+20 HelpPoints Awarded! Emergency Completed.', 'success');
                         this.map.closePopup();
                         this.fetchEmergencies();
