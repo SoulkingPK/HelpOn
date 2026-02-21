@@ -17,7 +17,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script>
-        if (!localStorage.getItem('helpon_token')) {
+        if (!localStorage.getItem('helpon_token') && !localStorage.getItem('helpon_refresh_token')) {
             window.location.href = 'index.html';
         }
     </script>
@@ -547,13 +547,60 @@
             return localStorage.getItem('helpon_token');
         }
 
-        function handleAuthFailure(res) {
-            if (res.status === 401 || res.status === 403) {
-                localStorage.removeItem('helpon_token');
-                window.location.href = 'index.html';
-                return true;
+        async function refreshAccessToken() {
+            const refreshToken = localStorage.getItem('helpon_refresh_token');
+            if (!refreshToken) return null;
+            try {
+                const res = await fetch('https://helpon-api.vercel.app/api/refresh', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+                if (!res.ok) return null;
+                const data = await res.json();
+                if (data.access_token) {
+                    localStorage.setItem('helpon_token', data.access_token);
+                }
+                if (data.refresh_token) {
+                    localStorage.setItem('helpon_refresh_token', data.refresh_token);
+                }
+                return data.access_token || null;
+            } catch (e) {
+                console.error('Refresh token failed:', e);
+                return null;
             }
-            return false;
+        }
+
+        async function fetchWithAuth(url, options = {}) {
+            const accessToken = getAuthToken();
+            if (!accessToken) {
+                return { res: null, authError: true };
+            }
+
+            const merged = {
+                ...options,
+                headers: {
+                    ...(options.headers || {}),
+                    Authorization: `Bearer ${accessToken}`
+                }
+            };
+
+            let res = await fetch(url, merged);
+            if (res.status === 401 || res.status === 403) {
+                const newToken = await refreshAccessToken();
+                if (!newToken) {
+                    return { res, authError: true };
+                }
+                merged.headers.Authorization = `Bearer ${newToken}`;
+                res = await fetch(url, merged);
+            }
+            return { res, authError: false };
+        }
+
+        function handleAuthFailure() {
+            localStorage.removeItem('helpon_token');
+            localStorage.removeItem('helpon_refresh_token');
+            window.location.href = 'index.html';
         }
 
         function loadAlertedSOS() {
@@ -1052,14 +1099,16 @@
                     const token = getAuthToken();
                     if (!token) {
                         this.showToast('Please log in to view emergencies.', 'warning');
-                        window.location.href = 'index.html';
+                        handleAuthFailure();
                         return;
                     }
-                    const res = await fetch('https://helpon-api.vercel.app/api/emergencies/nearby', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    if (handleAuthFailure(res)) return;
-                    if (!res.ok) {
+                    const { res, authError } = await fetchWithAuth('https://helpon-api.vercel.app/api/emergencies/nearby');
+                    if (authError) {
+                        this.showToast('Session expired. Please log in again.', 'warning');
+                        handleAuthFailure();
+                        return;
+                    }
+                    if (!res || !res.ok) {
                         throw new Error('Failed to load emergencies');
                     }
                     const data = await res.json();
@@ -1190,14 +1239,17 @@
                     const token = getAuthToken();
                     if (!token) {
                         this.showToast('Please log in to respond.', 'warning');
-                        window.location.href = 'index.html';
+                        handleAuthFailure();
                         return;
                     }
-                    const res = await fetch(`https://helpon-api.vercel.app/api/emergencies/${id}/accept`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}` }
+                    const { res, authError } = await fetchWithAuth(`https://helpon-api.vercel.app/api/emergencies/${id}/accept`, {
+                        method: 'POST'
                     });
-                    if (handleAuthFailure(res)) return;
+                    if (authError) {
+                        this.showToast('Session expired. Please log in again.', 'warning');
+                        handleAuthFailure();
+                        return;
+                    }
                     if (res.ok) {
                         this.showToast('Emergency Request Accepted!', 'success');
                         this.map.closePopup();
@@ -1216,14 +1268,17 @@
                     const token = getAuthToken();
                     if (!token) {
                         this.showToast('Please log in to complete SOS.', 'warning');
-                        window.location.href = 'index.html';
+                        handleAuthFailure();
                         return;
                     }
-                    const res = await fetch(`https://helpon-api.vercel.app/api/emergencies/${id}/complete`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}` }
+                    const { res, authError } = await fetchWithAuth(`https://helpon-api.vercel.app/api/emergencies/${id}/complete`, {
+                        method: 'POST'
                     });
-                    if (handleAuthFailure(res)) return;
+                    if (authError) {
+                        this.showToast('Session expired. Please log in again.', 'warning');
+                        handleAuthFailure();
+                        return;
+                    }
                     if (res.ok) {
                         awardPoints(HELP_POINTS_PER_TASK);
                         incrementHelpsCount();

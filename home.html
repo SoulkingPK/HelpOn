@@ -177,7 +177,7 @@
     </style>
     <script>
         // Authentication check
-        if (!localStorage.getItem('helpon_token')) {
+        if (!localStorage.getItem('helpon_token') && !localStorage.getItem('helpon_refresh_token')) {
             window.location.href = 'index.html';
         }
 
@@ -1189,6 +1189,55 @@
             return `helpon_sos_requests_${getUserKey()}`;
         }
 
+        async function refreshAccessToken() {
+            const refreshToken = localStorage.getItem('helpon_refresh_token');
+            if (!refreshToken) return null;
+            try {
+                const res = await fetch('https://helpon-api.vercel.app/api/refresh', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+                if (!res.ok) return null;
+                const data = await res.json();
+                if (data.access_token) {
+                    localStorage.setItem('helpon_token', data.access_token);
+                }
+                if (data.refresh_token) {
+                    localStorage.setItem('helpon_refresh_token', data.refresh_token);
+                }
+                return data.access_token || null;
+            } catch (e) {
+                console.error('Refresh token failed:', e);
+                return null;
+            }
+        }
+
+        async function fetchWithAuth(url, options = {}) {
+            const accessToken = localStorage.getItem('helpon_token');
+            if (!accessToken) {
+                return { res: null, authError: true };
+            }
+            const merged = {
+                ...options,
+                headers: {
+                    ...(options.headers || {}),
+                    Authorization: `Bearer ${accessToken}`
+                }
+            };
+
+            let res = await fetch(url, merged);
+            if (res.status === 401 || res.status === 403) {
+                const newToken = await refreshAccessToken();
+                if (!newToken) {
+                    return { res, authError: true };
+                }
+                merged.headers.Authorization = `Bearer ${newToken}`;
+                res = await fetch(url, merged);
+            }
+            return { res, authError: false };
+        }
+
         function loadUserPoints() {
             const key = getPointsStorageKey();
             const raw = localStorage.getItem(key);
@@ -1434,12 +1483,20 @@
 
         async function syncLocationLoop() {
             try {
-                const token = localStorage.getItem('helpon_token');
-                await fetch('https://helpon-api.vercel.app/api/users/me/location', {
+                const { res, authError } = await fetchWithAuth('https://helpon-api.vercel.app/api/users/me/location', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ lat: userLat, lon: userLon })
                 });
+                if (authError) {
+                    localStorage.removeItem('helpon_token');
+                    localStorage.removeItem('helpon_refresh_token');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                if (res && !res.ok) {
+                    console.warn('Location sync failed with status', res.status);
+                }
             } catch (err) { console.error("Location sync failed"); }
 
             // Sync every 30 seconds
@@ -1448,10 +1505,14 @@
 
         async function fetchNearbyUsers() {
             try {
-                const token = localStorage.getItem('helpon_token');
-                const res = await fetch('https://helpon-api.vercel.app/api/emergencies/nearby', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const { res, authError } = await fetchWithAuth('https://helpon-api.vercel.app/api/emergencies/nearby');
+                if (authError) {
+                    localStorage.removeItem('helpon_token');
+                    localStorage.removeItem('helpon_refresh_token');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                if (!res || !res.ok) throw new Error('Failed to load nearby');
                 const data = await res.json();
 
                 // Update helpers count metric to reflect active users over mocked values
@@ -1561,6 +1622,7 @@
                             showToast('Logging out...', 'info');
                             // Clear auth token
                             localStorage.removeItem('helpon_token');
+                            localStorage.removeItem('helpon_refresh_token');
                             setTimeout(() => {
                                 window.location.href = 'index.html';
                             }, 1000);
@@ -1626,11 +1688,10 @@
 
             try {
                 // Post live emergency to backend
-                const res = await fetch('https://helpon-api.vercel.app/api/emergencies', {
+                const { res, authError } = await fetchWithAuth('https://helpon-api.vercel.app/api/emergencies', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
                         type: payload.type,
@@ -1640,8 +1701,9 @@
                     })
                 });
 
-                if (res.status === 401 || res.status === 403) {
+                if (authError || !res) {
                     localStorage.removeItem('helpon_token');
+                    localStorage.removeItem('helpon_refresh_token');
                     showToast('Session expired. Please log in again.', 'warning');
                     window.location.href = 'index.html';
                     return null;
