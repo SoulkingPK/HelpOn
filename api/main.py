@@ -214,6 +214,67 @@ async def update_settings(settings: UserSettingsUpdate, current_user: dict = Dep
     )
     return {"status": "Settings updated"}
 
+@app.get("/api/users/me/history")
+async def get_history(current_user: dict = Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    
+    # 1. Get emergencies requested by this user (where they were the victim needing help)
+    requested_cursor = emergencies_collection.find({"created_by": user_id}).sort("created_at", -1)
+    requests = await requested_cursor.to_list(length=50)
+    
+    # 2. Get emergencies responded to by this user (where they were the helper)
+    responded_cursor = emergencies_collection.find({"accepted_by": user_id}).sort("created_at", -1)
+    responses = await responded_cursor.to_list(length=50)
+    
+    history = []
+    
+    for req in requests:
+        helper_name = None
+        if req.get("accepted_by"):
+            helper_user = await users_collection.find_one({"_id": ObjectId(req["accepted_by"])})
+            if helper_user:
+                helper_name = helper_user.get("full_name")
+                
+        history.append({
+            "id": str(req["_id"]),
+            "type": "requested",
+            "emergencyType": req.get("type", "other").lower(),
+            "title": f"Requested SOS",
+            "description": req.get("description", "SOS Help Request"),
+            "person": "You",
+            "date": req.get("created_at", datetime.utcnow()).isoformat() if req.get("created_at") else None,
+            "points": 0,
+            "rating": 5.0, # Defaulting for now
+            "duration": "10 minutes",
+            "location": "Map Location",
+            "status": req.get("status", "active"),
+            "helper": helper_name
+        })
+        
+    for res in responses:
+        # User is the helper here, so they earned points
+        points_earned = 20 if res.get("status") == "completed" else 0
+        history.append({
+            "id": str(res["_id"]),
+            "type": "responded",
+            "emergencyType": res.get("type", "other").lower(),
+            "title": f"Responded to SOS",
+            "description": res.get("description", "Responded to emergency"),
+            "person": res.get("created_name", "Unknown User"),
+            "date": res.get("created_at", datetime.utcnow()).isoformat() if res.get("created_at") else None,
+            "points": points_earned,
+            "rating": 5.0, # Defaulting for now
+            "duration": "15 minutes",
+            "location": "Map Location",
+            "status": res.get("status", "active"),
+            "helper": None # User IS the helper here
+        })
+        
+    # Sort history by Date descending
+    history.sort(key=lambda x: x["date"] if x["date"] else "", reverse=True)
+    
+    return history
+
 @app.post("/api/emergencies")
 async def create_emergency(emergency: EmergencyCreate, current_user: dict = Depends(get_current_user)):
     new_emergency = {
