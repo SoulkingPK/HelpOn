@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help & Support - HelpOn</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 80px;
+            scroll-behavior: smooth;
+        }
+
+        .hero-section {
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            color: white;
+            padding: 3rem 0;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .search-container {
+            max-width: 600px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .search-input {
+            border-radius: 30px;
+            padding: 15px 25px;
+            padding-left: 50px;
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            font-size: 1.1rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+            font-size: 1.2rem;
+        }
+
+        .faq-item {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+        }
+
+        .faq-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .faq-question {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: #1e293b;
+        }
+
+        .faq-answer {
+            color: #64748b;
+            display: none;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        .faq-item.active .faq-answer {
+            display: block;
+        }
+
+        .faq-item.active .faq-toggle {
+            transform: rotate(180deg);
+        }
+
+        .faq-toggle {
+            transition: transform 0.3s;
+        }
+
+        .contact-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            border: none;
+        }
+
+        /* Floating AI Chatbot */
+        .chatbot-btn {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
+            cursor: pointer;
+            z-index: 1000;
+            transition: transform 0.3s;
+        }
+
+        .chatbot-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .chatbot-window {
+            position: fixed;
+            bottom: 160px;
+            right: 20px;
+            width: 350px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            z-index: 1000;
+            transform-origin: bottom right;
+            transition: all 0.3s ease;
+            height: 450px;
+        }
+
+        .chatbot-window.active {
+            display: flex;
+            animation: popup 0.3s ease forwards;
+        }
+
+        @keyframes popup {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .chatbot-header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chatbot-messages {
+            flex-grow: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+
+        .chat-bubble {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            line-height: 1.4;
+            display: inline-block;
+            clear: both;
+        }
+
+        .chat-user {
+            background: #2563eb;
+            color: white;
+            float: right;
+            border-bottom-right-radius: 5px;
+        }
+
+        .chat-bot {
+            background: #e2e8f0;
+            color: #1e293b;
+            float: left;
+            border-bottom-left-radius: 5px;
+        }
+
+        .chatbot-input {
+            padding: 15px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .clear-search-btn {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: #6c757d;
+            cursor: pointer;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Top Nav -->
+    <nav class="navbar navbar-light bg-white shadow-sm sticky-top">
+        <div class="container">
+            <a href="profile.html" class="btn btn-outline-secondary btn-sm rounded-pill">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+            <span class="navbar-brand mb-0 h1">Help & Support</span>
+            <div style="width: 60px;"></div> <!-- Spacer for centering -->
+        </div>
+    </nav>
+
+    <!-- Hero / Search Section -->
+    <div class="hero-section">
+        <div class="container">
+            <h1 class="mb-3 fw-bold">How can we help you?</h1>
+            <p class="mb-4">Search our knowledge base or get in touch with our team.</p>
+
+            <div class="search-container">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" class="form-control search-input" id="searchInput"
+                    placeholder="Search for answers (e.g., 'points', 'verify', 'location')">
+                <button class="clear-search-btn" id="clearSearchBtn"><i class="bi bi-x-circle-fill"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- FAQs Section -->
+        <h3 class="mb-4 fw-bold" id="faqTitle">Frequently Asked Questions</h3>
+        <div id="faqContainer" class="mb-5">
+            <!-- Spinner -->
+            <div class="text-center py-4" id="faqSpinner">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="text-muted mt-2">Loading FAQs...</p>
+            </div>
+        </div>
+
+        <!-- Contact Support Form -->
+        <div class="contact-card mt-5 mb-5" id="contactSection">
+            <h3 class="mb-4 fw-bold">Still need help?</h3>
+            <p class="text-muted mb-4">Fill out the form below and our support team will get back to you via email
+                within 24 hours.</p>
+
+            <form id="supportForm" novalidate>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="supportName">Full Name</label>
+                        <input type="text" class="form-control" id="supportName" required>
+                        <div class="invalid-feedback">Please provide your name.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="supportEmail">Email Address</label>
+                        <input type="email" class="form-control" id="supportEmail" required>
+                        <div class="invalid-feedback">Please provide a valid email address.</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="supportSubject">Subject</label>
+                        <select class="form-select" id="supportSubject" required>
+                            <option value="">Choose a topic...</option>
+                            <option value="Account Issue">Account / Login Issues</option>
+                            <option value="App Bug">Report a Bug</option>
+                            <option value="Verification">Verification Help</option>
+                            <option value="Other">Other Inquiry</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a subject.</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="supportMessage">Message</label>
+                        <textarea class="form-control" id="supportMessage" rows="5" required></textarea>
+                        <div class="invalid-feedback">Please provide a message describing your issue.</div>
+                    </div>
+                    <div class="col-12 mt-4 text-end">
+                        <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill" id="submitSupportBtn">
+                            <span class="spinner-border spinner-border-sm d-none me-2" id="supportSpinner"></span>
+                            <i class="bi bi-send me-1"></i> Send Request
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- AI Chatbot Floating Widget -->
+    <div class="chatbot-btn" id="chatbotToggle">
+        <i class="bi bi-robot"></i>
+    </div>
+
+    <div class="chatbot-window" id="chatbotWindow">
+        <div class="chatbot-header">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-robot fs-4 me-2"></i>
+                <h5 class="mb-0">HelpOn AI Assistant</h5>
+            </div>
+            <i class="bi bi-x-lg" style="cursor: pointer;" id="closeChatbot"></i>
+        </div>
+        <div class="chatbot-messages" id="chatMsgs">
+            <div class="chat-bubble chat-bot">Hello! I am your AI assistant. How can I help you today?</div>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" class="form-control" id="chatInput" placeholder="Type a message...">
+            <button class="btn btn-success" id="sendChatBtn"><i class="bi bi-send"></i></button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="navbar fixed-bottom bg-white shadow-sm border-top py-1">
+        <div class="container">
+            <div class="d-flex justify-content-around w-100">
+                <a href="home.html" class="text-center text-muted d-flex flex-column align-items-center">
+                    <i class="bi bi-house-door fs-5"></i>
+                    <span class="small">Home</span>
+                </a>
+                <a href="map.html" class="text-center text-muted d-flex flex-column align-items-center">
+                    <i class="bi bi-map fs-5"></i>
+                    <span class="small">Map</span>
+                </a>
+                <a href="rewards.html" class="text-center text-muted d-flex flex-column align-items-center">
+                    <i class="bi bi-gift fs-5"></i>
+                    <span class="small">Rewards</span>
+                </a>
+                <a href="inbox.html" class="text-center text-muted d-flex flex-column align-items-center">
+                    <i class="bi bi-inbox fs-5"></i>
+                    <span class="small">Inbox</span>
+                </a>
+                <a href="profile.html" class="text-center text-primary d-flex flex-column align-items-center">
+                    <i class="bi bi-person-fill fs-5"></i>
+                    <span class="small">Profile</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Toasts -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 2000;">
+        <div id="liveToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive"
+            aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                    aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check auth
+            if (!localStorage.getItem('helpon_token')) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const apiBase = 'https://helpon-api.vercel.app/api';
+            let allFaqs = [];
+
+            // --- Toasts ---
+            const showToast = (message, type = 'success') => {
+                const toastEl = document.getElementById('liveToast');
+                const toastMsg = document.getElementById('toastMessage');
+                toastEl.className = `toast align-items-center text-white border-0 bg-${type}`;
+                toastMsg.innerText = message;
+                const toast = new bootstrap.Toast(toastEl);
+                toast.show();
+            };
+
+            // --- Form Auto-fill if User data available ---
+            const userName = localStorage.getItem('helpon_user_name');
+            if (userName) document.getElementById('supportName').value = userName;
+
+            // --- FAQs Logic ---
+            const faqContainer = document.getElementById('faqContainer');
+            const searchInput = document.getElementById('searchInput');
+            const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+            const renderFaqs = (faqs) => {
+                faqContainer.innerHTML = '';
+                if (faqs.length === 0) {
+                    faqContainer.innerHTML = `<p class="text-muted text-center py-4">No FAQs found matching your search. Try adjusting your keywords.</p>`;
+                    return;
+                }
+
+                faqs.forEach(faq => {
+                    const item = document.createElement('div');
+                    item.className = 'faq-item d-flex justify-content-between align-items-center flex-wrap';
+                    item.innerHTML = `
+                        <div class="w-100 d-flex justify-content-between">
+                            <span class="faq-question">${faq.question}</span>
+                            <i class="bi bi-chevron-down faq-toggle"></i>
+                        </div>
+                        <div class="faq-answer w-100">${faq.answer}</div>
+                    `;
+                    item.addEventListener('click', () => {
+                        item.classList.toggle('active');
+                    });
+                    faqContainer.appendChild(item);
+                });
+            };
+
+            const loadFaqs = async () => {
+                try {
+                    const res = await fetch(`${apiBase}/faqs`);
+                    if (res.ok) {
+                        allFaqs = await res.json();
+                        renderFaqs(allFaqs);
+                    } else {
+                        throw new Error('Failed to fetch');
+                    }
+                } catch (e) {
+                    faqContainer.innerHTML = `<p class="text-danger text-center">Failed to load FAQs. Please try again later.</p>`;
+                }
+            };
+
+            loadFaqs();
+
+            searchInput.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                clearSearchBtn.style.display = query.length > 0 ? 'block' : 'none';
+
+                const filtered = allFaqs.filter(faq =>
+                    faq.question.toLowerCase().includes(query) ||
+                    faq.answer.toLowerCase().includes(query)
+                );
+                renderFaqs(filtered);
+            });
+
+            clearSearchBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                clearSearchBtn.style.display = 'none';
+                renderFaqs(allFaqs);
+            });
+
+            // --- Support Form Logic ---
+            const supportForm = document.getElementById('supportForm');
+            const submitSupportBtn = document.getElementById('submitSupportBtn');
+            const supportSpinner = document.getElementById('supportSpinner');
+
+            supportForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                supportForm.classList.add('was-validated');
+
+                if (!supportForm.checkValidity()) return;
+
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const emailInput = document.getElementById('supportEmail');
+                if (!emailRegex.test(emailInput.value)) {
+                    emailInput.setCustomValidity("Invalid");
+                    return;
+                } else {
+                    emailInput.setCustomValidity("");
+                }
+
+                submitSupportBtn.disabled = true;
+                supportSpinner.classList.remove('d-none');
+
+                const payload = {
+                    name: document.getElementById('supportName').value,
+                    email: document.getElementById('supportEmail').value,
+                    subject: document.getElementById('supportSubject').value,
+                    message: document.getElementById('supportMessage').value
+                };
+
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    const res = await fetch(`${apiBase}/support`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (res.ok) {
+                        showToast('Request sent successfully! We will email you soon.', 'success');
+                        supportForm.reset();
+                        supportForm.classList.remove('was-validated');
+                    } else {
+                        throw new Error('Failed');
+                    }
+                } catch (e) {
+                    showToast('Failed to send request. Please try again.', 'danger');
+                } finally {
+                    submitSupportBtn.disabled = false;
+                    supportSpinner.classList.add('d-none');
+                }
+            });
+
+            // --- AI Chatbot Logic ---
+            const chatbotToggle = document.getElementById('chatbotToggle');
+            const chatbotWindow = document.getElementById('chatbotWindow');
+            const closeChatbot = document.getElementById('closeChatbot');
+            const sendChatBtn = document.getElementById('sendChatBtn');
+            const chatInput = document.getElementById('chatInput');
+            const chatMsgs = document.getElementById('chatMsgs');
+
+            chatbotToggle.addEventListener('click', () => {
+                chatbotWindow.classList.add('active');
+                chatbotToggle.style.transform = 'scale(0)';
+            });
+
+            closeChatbot.addEventListener('click', () => {
+                chatbotWindow.classList.remove('active');
+                chatbotToggle.style.transform = 'scale(1)';
+            });
+
+            const scrollChat = () => chatMsgs.scrollTop = chatMsgs.scrollHeight;
+
+            const sendChat = async () => {
+                const msg = chatInput.value.trim();
+                if (!msg) return;
+
+                // Add user msg
+                chatMsgs.innerHTML += `<div class="chat-bubble chat-user">${msg}</div>`;
+                chatInput.value = '';
+                scrollChat();
+
+                // Add loading typing indicator
+                const typingId = 'typing-' + Date.now();
+                chatMsgs.innerHTML += `<div class="chat-bubble chat-bot" id="${typingId}">...</div>`;
+                scrollChat();
+
+                try {
+                    const res = await fetch(`${apiBase}/chatbot`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ prompt: msg })
+                    });
+
+                    document.getElementById(typingId).remove();
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        chatMsgs.innerHTML += `<div class="chat-bubble chat-bot">${data.response}</div>`;
+                    } else {
+                        chatMsgs.innerHTML += `<div class="chat-bubble chat-bot text-danger">Sorry, I'm having trouble connecting right now.</div>`;
+                    }
+                } catch (e) {
+                    document.getElementById(typingId).remove();
+                    chatMsgs.innerHTML += `<div class="chat-bubble chat-bot text-danger">Connection error.</div>`;
+                }
+                scrollChat();
+            };
+
+            sendChatBtn.addEventListener('click', sendChat);
+            chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendChat();
+            });
+        });
+    </script>
+</body>
+
+</html>

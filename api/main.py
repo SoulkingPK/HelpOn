@@ -9,17 +9,25 @@ try:
     from api.models import (
         UserCreate, UserLogin, Token, UserInDB, LocationUpdate,
         EmergencyCreate, EmergencyResponse, NotificationResponse,
-        UserProfileResponse, UserSettingsUpdate
+        UserProfileResponse, UserSettingsUpdate,
+        HelpRequestCreate, HelpRequestResponse, ChatbotQuery
     )
-    from api.database import users_collection, emergencies_collection, notifications_collection
+    from api.database import (
+        users_collection, emergencies_collection, notifications_collection,
+        support_requests_collection, faqs_collection
+    )
     from api.auth import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, verify_token
 except ImportError:
     from models import (
         UserCreate, UserLogin, Token, UserInDB, LocationUpdate,
         EmergencyCreate, EmergencyResponse, NotificationResponse,
-        UserProfileResponse, UserSettingsUpdate
+        UserProfileResponse, UserSettingsUpdate,
+        HelpRequestCreate, HelpRequestResponse, ChatbotQuery
     )
-    from database import users_collection, emergencies_collection, notifications_collection
+    from database import (
+        users_collection, emergencies_collection, notifications_collection,
+        support_requests_collection, faqs_collection
+    )
     from auth import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, verify_token
 
 import traceback
@@ -29,6 +37,15 @@ from datetime import datetime
 from bson import ObjectId
 
 app = FastAPI(title="HelpOn API")
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi import Request
+
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
 
@@ -51,6 +68,17 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
     return user
+
+from typing import Optional
+
+async def get_current_user_optional(token: Optional[str] = Depends(OAuth2PasswordBearer(tokenUrl="api/login", auto_error=False))):
+    if not token:
+        return None
+    try:
+        user = await get_current_user(token)
+        return user
+    except:
+        return None
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
@@ -315,3 +343,152 @@ async def read_notification(notif_id: str, current_user: dict = Depends(get_curr
         {"$set": {"is_read": True}}
     )
     return {"status": "Read"}
+
+# --- Support & Help Endpoints --- #
+
+@app.post("/api/support", response_description="Submit a help request")
+async def submit_support_request(request: HelpRequestCreate, current_user: Optional[dict] = Depends(get_current_user_optional)):
+    user_id = str(current_user["_id"]) if current_user else None
+    
+    new_request = {
+        "name": request.name,
+        "email": request.email,
+        "subject": request.subject,
+        "message": request.message,
+        "user_id": user_id,
+        "status": "open",
+        "created_at": datetime.utcnow()
+    }
+    
+    result = await support_requests_collection.insert_one(new_request)
+    
+    # In a real app, send an email to the user here using SMTP or SendGrid
+    print(f"Mock Email Sent: 'We received your request ({request.subject}) and will respond shortly!' to {request.email}")
+    
+    return {"status": "success", "message": "Your request has been submitted successfully. We will email you shortly.", "id": str(result.inserted_id)}
+
+@app.get("/api/faqs", response_description="Get Frequently Asked Questions")
+async def get_faqs():
+    # If DB is empty, provide default FAQs
+    count = await faqs_collection.count_documents({})
+    if count == 0:
+        default_faqs = [
+            {"question": "How do I become a verified helper?", "answer": "You can request verification from your profile page. You will need to upload a valid government ID.", "category": "account"},
+            {"question": "How do HelpPoints work?", "answer": "You earn HelpPoints by assisting others during emergencies. These points can be redeemed in the Rewards section.", "category": "rewards"},
+            {"question": "Is my location always tracked?", "answer": "No. Your location is only shared when you actively have the app open or when you broadcast an SOS.", "category": "privacy"}
+        ]
+        await faqs_collection.insert_many(default_faqs)
+        
+    cursor = faqs_collection.find({})
+    faqs = await cursor.to_list(length=100)
+    
+    response = []
+    for faq in faqs:
+        response.append({
+            "id": str(faq["_id"]),
+            "question": faq["question"],
+            "answer": faq["answer"],
+            "category": faq.get("category", "general")
+        })
+    return response
+
+@app.post("/api/chatbot", response_description="AI Chatbot Assistant")
+async def ai_chatbot(query: ChatbotQuery):
+    # This is a mock AI response. In production, connect this to OpenAI/Gemini/Claude
+    user_msg = query.prompt.lower()
+    bot_response = "I am the HelpOn AI assistant. How can I help you today?"
+    
+    if "point" in user_msg or "reward" in user_msg:
+        bot_response = "You can earn HelpPoints by completing SOS assists. Navigate to the Rewards tab to see what you can redeem them for!"
+    elif "verify" in user_msg or "id" in user_msg:
+        bot_response = "To get verified, go to your Profile and click 'Complete Verification' under the Verification Status section."
+    elif "location" in user_msg or "tracking" in user_msg:
+        bot_response = "HelpOn only tracks your location when the app is active to preserve your privacy."
+        
+    return {"response": bot_response}
+
+# --- Support & Help Endpoints --- #
+
+@app.post("/api/support", response_description="Submit a help request")
+@limiter.limit("5/minute")
+async def submit_support_request(request: Request, body: HelpRequestCreate, current_user: Optional[dict] = Depends(get_current_user_optional)):
+    user_id = str(current_user["_id"]) if current_user else None
+    
+    new_request = {
+        "name": body.name,
+        "email": body.email,
+        "subject": body.subject,
+        "message": body.message,
+        "user_id": user_id,
+        "status": "open",
+        "created_at": datetime.utcnow()
+    }
+    
+    result = await support_requests_collection.insert_one(new_request)
+    
+    # In a real app, send an email to the user here using SMTP or SendGrid
+    print(f"Mock Email Sent: 'We received your request ({body.subject}) and will respond shortly!' to {body.email}")
+    
+    return {"status": "success", "message": "Your request has been submitted successfully. We will email you shortly.", "id": str(result.inserted_id)}
+
+@app.get("/api/faqs", response_description="Get Frequently Asked Questions")
+async def get_faqs():
+    # If DB is empty, provide default FAQs
+    count = await faqs_collection.count_documents({})
+    if count == 0:
+        default_faqs = [
+            {"question": "How do I become a verified helper?", "answer": "You can request verification from your profile page. You will need to upload a valid government ID.", "category": "account"},
+            {"question": "How do HelpPoints work?", "answer": "You earn HelpPoints by assisting others during emergencies. These points can be redeemed in the Rewards section.", "category": "rewards"},
+            {"question": "Is my location always tracked?", "answer": "No. Your location is only shared when you actively have the app open or when you broadcast an SOS.", "category": "privacy"}
+        ]
+        await faqs_collection.insert_many(default_faqs)
+        
+    cursor = faqs_collection.find({})
+    faqs = await cursor.to_list(length=100)
+    
+    response = []
+    for faq in faqs:
+        response.append({
+            "id": str(faq["_id"]),
+            "question": faq["question"],
+            "answer": faq["answer"],
+            "category": faq.get("category", "general")
+        })
+    return response
+
+@app.post("/api/chatbot", response_description="AI Chatbot Assistant")
+async def ai_chatbot(query: ChatbotQuery):
+    # This is a mock AI response. In production, connect this to OpenAI/Gemini/Claude
+    user_msg = query.prompt.lower()
+    bot_response = "I am the HelpOn AI assistant. How can I help you today?"
+    
+    if "point" in user_msg or "reward" in user_msg:
+        bot_response = "You can earn HelpPoints by completing SOS assists. Navigate to the Rewards tab to see what you can redeem them for!"
+    elif "verify" in user_msg or "id" in user_msg:
+        bot_response = "To get verified, go to your Profile and click 'Complete Verification' under the Verification Status section."
+    elif "location" in user_msg or "tracking" in user_msg:
+        bot_response = "HelpOn only tracks your location when the app is active to preserve your privacy."
+        
+    return {"response": bot_response}
+
+# --- Admin Endpoints --- #
+
+@app.get("/api/admin/support", response_description="Get all support requests")
+async def get_all_support_requests(current_user: dict = Depends(get_current_user)):
+    # In a real app, verify the user is an admin here
+    
+    cursor = support_requests_collection.find({}).sort("created_at", -1)
+    requests = await cursor.to_list(length=100)
+    
+    response = []
+    for req in requests:
+        response.append({
+            "id": str(req["_id"]),
+            "name": req["name"],
+            "email": req["email"],
+            "subject": req["subject"],
+            "message": req["message"],
+            "status": req.get("status", "open"),
+            "created_at": req["created_at"].isoformat() if "created_at" in req else None
+        })
+    return response

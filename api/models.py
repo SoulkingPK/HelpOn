@@ -70,3 +70,22 @@ class UserProfileResponse(BaseModel):
 class UserSettingsUpdate(BaseModel):
     notifications_enabled: bool
     privacy_mode: bool
+
+# --- Support & Help Models --- #
+
+class HelpRequestCreate(BaseModel):
+    name: str
+    email: EmailStr
+    subject: str
+    message: str
+
+class HelpRequestResponse(BaseModel):
+    id: str
+    name: str
+    subject: str
+    status: str
+    created_at: str
+    user_id: Optional[str] = None
+
+class ChatbotQuery(BaseModel):
+    prompt: str
