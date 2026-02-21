@@ -96,6 +96,8 @@ async def register_user(user: UserCreate):
     user_dict = user.dict()
     del user_dict["password"]
     user_dict["hashed_password"] = hashed_password
+    user_dict["points"] = 0
+    user_dict["helps_given"] = 0
     
     new_user = await users_collection.insert_one(user_dict)
     
