@@ -214,6 +214,29 @@ async def update_settings(settings: UserSettingsUpdate, current_user: dict = Dep
     )
     return {"status": "Settings updated"}
 
+@app.get("/api/leaderboard")
+async def get_leaderboard():
+    # Fetch top 50 users sorted by points descending
+    cursor = users_collection.find(
+        {}, 
+        {"full_name": 1, "points": 1, "helps_given": 1, "verified": 1}
+    ).sort("points", -1).limit(50)
+    
+    users = await cursor.to_list(length=50)
+    
+    leaderboard = []
+    for rank, user in enumerate(users, start=1):
+        leaderboard.append({
+            "id": str(user["_id"]),
+            "rank": rank,
+            "name": user.get("full_name", "Anonymous Helper") or "Anonymous Helper",
+            "points": user.get("points", 0),
+            "helps": user.get("helps_given", 0),
+            "verified": user.get("verified", False)
+        })
+        
+    return leaderboard
+
 @app.get("/api/users/me/history")
 async def get_history(current_user: dict = Depends(get_current_user)):
     user_id = str(current_user["_id"])

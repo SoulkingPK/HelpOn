@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard - HelpOn</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding-bottom: 80px;
+        }
+
+        .header-bg {
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: white;
+            padding: 2rem 0 3rem 0;
+            text-align: center;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+            box-shadow: 0 4px 15px rgba(255, 165, 0, 0.2);
+        }
+
+        .leaderboard-container {
+            margin-top: -30px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .rank-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+            display: flex;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+
+        .rank-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .rank-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .rank-1 .rank-number {
+            background: #FFD700;
+            color: #8B6508;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+
+        .rank-2 .rank-number {
+            background: #C0C0C0;
+            color: #4A4A4A;
+            box-shadow: 0 0 10px rgba(192, 192, 192, 0.5);
+        }
+
+        .rank-3 .rank-number {
+            background: #CD7F32;
+            color: #5A3A15;
+            box-shadow: 0 0 10px rgba(205, 127, 50, 0.5);
+        }
+
+        .rank-other .rank-number {
+            background: #f1f5f9;
+            color: #64748b;
+        }
+
+        .rank-info {
+            flex-grow: 1;
+            margin-left: 15px;
+        }
+
+        .rank-points {
+            font-weight: bold;
+            color: #10b981;
+            font-size: 1.1rem;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 1.2rem;
+            margin-left: 15px;
+        }
+
+        .verified-badge {
+            color: #3b82f6;
+            margin-left: 4px;
+        }
+
+        .skeleton-row {
+            height: 80px;
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 15px;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes loading {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* Floating current user rank */
+        .my-rank-banner {
+            position: fixed;
+            bottom: 70px;
+            left: 0;
+            right: 0;
+            background: #1e293b;
+            color: white;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky-top">
+        <div class="container py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="home.html" class="btn btn-outline-secondary btn-sm" id="backBtn">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+                <h5 class="mb-0 fw-bold">Leaderboard</h5>
+                <div style="width: 60px;"></div> <!-- Spacer -->
+            </div>
+        </div>
+    </header>
+
+    <div class="header-bg">
+        <div class="container">
+            <i class="bi bi-trophy-fill"
+                style="font-size: 3rem; color: #fff; text-shadow: 0 4px 10px rgba(0,0,0,0.2);"></i>
+            <h2 class="fw-bold mt-2">Top Helpers</h2>
+            <p class="mb-0 opacity-75">Making a difference, one rescue at a time.</p>
+        </div>
+    </div>
+
+    <main class="container leaderboard-container" id="leaderboardList">
+        <!-- Skeleton Loading -->
+        <div class="skeleton-row"></div>
+        <div class="skeleton-row"></div>
+        <div class="skeleton-row"></div>
+        <div class="skeleton-row"></div>
+        <div class="skeleton-row"></div>
+    </main>
+
+    <!-- My Rank Banner -->
+    <div class="my-rank-banner shadow" id="myRankBanner">
+        <div class="d-flex align-items-center">
+            <span class="badge bg-secondary me-2 fs-6" id="myRankDisplay">#--</span>
+            <span class="fw-bold">Your Rank</span>
+        </div>
+        <div class="text-end">
+            <span class="d-block fw-bold text-success" id="myPointsDisplay">-- pts</span>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="navbar fixed-bottom bg-white shadow-sm border-top py-1">
+        <div class="container">
+            <div class="d-flex justify-content-around w-100">
+                <a href="home.html" class="text-center text-muted d-flex flex-column align-items-center">
+                    <i class="bi bi-house-door fs-5"></i>
+                    <span class="small">Home</span>
+                </a>
+                <a href="map.html" class="text-center text-muted d-flex flex-column align-items-center">
+                    <i class="bi bi-map fs-5"></i>
+                    <span class="small">Map</span>
+                </a>
+                <a href="rewards.html" class="text-center text-primary d-flex flex-column align-items-center">
+                    <i class="bi bi-gift-fill fs-5"></i>
+                    <span class="small">Rewards</span>
+                </a>
+                <a href="inbox.html" class="text-center text-muted d-flex flex-column align-items-center">
+                    <i class="bi bi-inbox fs-5"></i>
+                    <span class="small">Inbox</span>
+                </a>
+                <a href="profile.html" class="text-center text-muted d-flex flex-column align-items-center">
+                    <i class="bi bi-person fs-5"></i>
+                    <span class="small">Profile</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Toasts -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 2000;">
+        <div id="liveToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive"
+            aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                    aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!localStorage.getItem('helpon_token')) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            const token = localStorage.getItem('helpon_token');
+            const apiBase = 'https://helpon-api.vercel.app/api';
+
+            const listContainer = document.getElementById('leaderboardList');
+            const myRankBanner = document.getElementById('myRankBanner');
+            const myRankDisplay = document.getElementById('myRankDisplay');
+            const myPointsDisplay = document.getElementById('myPointsDisplay');
+
+            const showToast = (message, type = 'danger') => {
+                const toastEl = document.getElementById('liveToast');
+                toastEl.className = `toast align-items-center text-white border-0 bg-${type}`;
+                document.getElementById('toastMessage').innerText = message;
+                new bootstrap.Toast(toastEl).show();
+            };
+
+            const getRankClass = (rank) => {
+                if (rank === 1) return 'rank-1';
+                if (rank === 2) return 'rank-2';
+                if (rank === 3) return 'rank-3';
+                return 'rank-other';
+            };
+
+            // First load profile to know who "we" are
+            let myProfileData = null;
+            try {
+                const profRes = await fetch(`${apiBase}/users/me/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (profRes.ok) myProfileData = await profRes.json();
+            } catch (e) { }
+
+            // Load Leaderboard
+            try {
+                const res = await fetch(`${apiBase}/leaderboard`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) throw new Error('Failed to fetch leaderboard');
+                const leaderboard = await res.json();
+
+                listContainer.innerHTML = '';
+
+                if (leaderboard.length === 0) {
+                    listContainer.innerHTML = '<div class="text-center text-muted p-5">No users ranked yet.</div>';
+                    return;
+                }
+
+                let foundMyRank = false;
+
+                leaderboard.forEach((user) => {
+                    const rankClass = getRankClass(user.rank);
+                    const verifiedIcon = user.verified ? '<i class="bi bi-patch-check-fill verified-badge" title="Verified Responder"></i>' : '';
+
+                    // Identify if this is me
+                    const isMe = myProfileData && (user.name === myProfileData.full_name && user.points === myProfileData.points);
+                    if (isMe) {
+                        foundMyRank = true;
+                        myRankDisplay.innerText = `#${user.rank}`;
+                        myPointsDisplay.innerText = `${user.points} pts`;
+                        myRankBanner.style.display = 'flex';
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = `rank-card ${rankClass} ${isMe ? 'border border-primary border-2' : ''}`;
+                    card.innerHTML = `
+                        <div class="rank-number">${user.rank}</div>
+                        <div class="user-avatar">
+                            <i class="bi bi-person-fill"></i>
+                        </div>
+                        <div class="rank-info">
+                            <h6 class="mb-0 fw-bold">${user.name} ${isMe ? '(You)' : ''} ${verifiedIcon}</h6>
+                            <small class="text-muted">${user.helps} helps given</small>
+                        </div>
+                        <div class="rank-points">
+                            ${user.points} <span style="font-size: 0.8rem; color:#64748b;">pts</span>
+                        </div>
+                    `;
+                    listContainer.appendChild(card);
+                });
+
+                // If the user isn't in the top 50, fake it for the banner at bottom
+                if (!foundMyRank && myProfileData) {
+                    myRankDisplay.innerText = `#${myProfileData.local_rank}`; // Assuming local_rank is passed from profile
+                    myPointsDisplay.innerText = `${myProfileData.points} pts`;
+                    myRankBanner.style.display = 'flex';
+                }
+
+            } catch (e) {
+                console.error(e);
+                listContainer.innerHTML = '<div class="text-center text-danger p-5"><i class="bi bi-exclamation-triangle-fill fs-1"></i><br>Failed to load leaderboard.</div>';
+                showToast('Could not load Leaderboard data.');
+            }
+        });
+    </script>
+</body>
+
+</html>
