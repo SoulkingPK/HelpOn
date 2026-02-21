@@ -95,6 +95,72 @@
             border: none;
         }
 
+        .form-status {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            font-size: 0.98rem;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+            animation: fadeSlide 0.25s ease;
+        }
+
+        .form-status.show {
+            display: flex;
+        }
+
+        .form-status.success {
+            background: #ecfdf3;
+            color: #166534;
+            border: 1px solid #86efac;
+        }
+
+        .form-status.error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .form-status.info {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+        }
+
+        .form-status .status-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        @keyframes fadeSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .touch-feedback:active {
+            transform: translateY(1px) scale(0.99);
+        }
+
+        .touch-feedback:focus-visible {
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.3);
+        }
+
+        @media (max-width: 576px) {
+            .form-status {
+                font-size: 0.95rem;
+                padding: 12px 14px;
+            }
+        }
+
         /* Floating AI Chatbot */
         .chatbot-btn {
             position: fixed;
@@ -280,7 +346,7 @@
                     <div class="col-md-6">
                         <label class="form-label" for="supportEmail">Email Address</label>
                         <input type="email" class="form-control" id="supportEmail" name="email" required>
-                        <div class="invalid-feedback">Please provide a valid email address.</div>
+                        <div class="invalid-feedback">Enter a valid email address.</div>
                     </div>
                     <div class="col-12">
                         <label class="form-label" for="supportSubject">Subject</label>
@@ -299,9 +365,10 @@
                         <div class="invalid-feedback">Please provide a message describing your issue.</div>
                     </div>
                     <div class="col-12 mt-4 text-end">
-                        <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill" id="submitSupportBtn">
+                        <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill touch-feedback"
+                            id="submitSupportBtn">
                             <span class="spinner-border spinner-border-sm d-none me-2" id="supportSpinner"></span>
-                            <i class="bi bi-send me-1"></i> Send Request
+                            <i class="bi bi-send me-1"></i> <span id="supportBtnText">Send Request</span>
                         </button>
                     </div>
                 </div>
@@ -464,17 +531,81 @@
             const supportForm = document.getElementById('supportForm');
             const submitSupportBtn = document.getElementById('submitSupportBtn');
             const supportSpinner = document.getElementById('supportSpinner');
+            const supportBtnText = document.getElementById('supportBtnText');
+            const supportStatus = document.createElement('div');
+            supportStatus.id = 'supportStatus';
+            supportStatus.className = 'form-status info';
+            supportStatus.setAttribute('role', 'status');
+            supportStatus.setAttribute('aria-live', 'polite');
+            supportStatus.setAttribute('aria-hidden', 'true');
+            supportStatus.innerHTML = `
+                <span class="status-icon" id="supportStatusIcon"><i class="bi bi-info-circle-fill"></i></span>
+                <span id="supportStatusMsg">Status message</span>
+            `;
+            supportForm.prepend(supportStatus);
+
+            let isSubmitting = false;
+            let lastSubmitAt = 0;
+            let statusTimer = null;
+            const cooldownMs = 10000;
+            const minDelayMs = 3500;
+
+            const showStatus = (type, message, autoHide = true) => {
+                clearTimeout(statusTimer);
+                supportStatus.className = `form-status ${type} show`;
+                const iconEl = document.getElementById('supportStatusIcon');
+                const msgEl = document.getElementById('supportStatusMsg');
+                if (iconEl) {
+                    if (type === 'success') iconEl.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
+                    if (type === 'error') iconEl.innerHTML = '<i class="bi bi-x-circle-fill"></i>';
+                    if (type === 'info') iconEl.innerHTML = '<i class="bi bi-info-circle-fill"></i>';
+                }
+                if (msgEl) msgEl.textContent = message;
+                supportStatus.setAttribute('aria-hidden', 'false');
+                if (autoHide) {
+                    statusTimer = setTimeout(() => hideStatus(), 4500);
+                }
+            };
+
+            const hideStatus = () => {
+                supportStatus.classList.remove('show');
+                supportStatus.setAttribute('aria-hidden', 'true');
+            };
+
+            const setLoading = (loading) => {
+                submitSupportBtn.disabled = loading;
+                submitSupportBtn.setAttribute('aria-busy', loading ? 'true' : 'false');
+                supportSpinner.classList.toggle('d-none', !loading);
+                supportBtnText.textContent = loading ? 'Sending…' : 'Send Request';
+            };
 
             supportForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                if (isSubmitting) {
+                    showStatus('info', 'Your request is already sending. Please wait.', true);
+                    return;
+                }
+
+                const now = Date.now();
+                if (now - lastSubmitAt < cooldownMs) {
+                    showStatus('error', 'Please wait a few seconds before sending another request.', true);
+                    return;
+                }
+
                 supportForm.classList.add('was-validated');
 
-                if (!supportForm.checkValidity()) return;
+                if (!supportForm.checkValidity()) {
+                    showStatus('error', 'Please fix the highlighted fields and try again.', true);
+                    supportForm.reportValidity();
+                    return;
+                }
 
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 const emailInput = document.getElementById('supportEmail');
                 if (!emailRegex.test(emailInput.value)) {
                     emailInput.setCustomValidity("Invalid");
+                    showStatus('error', 'Enter a valid email address.', true);
+                    supportForm.reportValidity();
                     return;
                 } else {
                     emailInput.setCustomValidity("");
@@ -482,28 +613,34 @@
 
                 // Spam Honeypot Check
                 if (supportForm.elements['_honey'].value !== "") {
+                    lastSubmitAt = now;
                     showToast('Request sent successfully! We will email you soon.', 'success');
+                    showStatus('success', 'Request sent successfully! We will email you soon.', true);
                     supportForm.reset();
                     supportForm.classList.remove('was-validated');
                     return;
                 }
 
-                submitSupportBtn.disabled = true;
-                supportSpinner.classList.remove('d-none');
+                isSubmitting = true;
+                lastSubmitAt = now;
+                setLoading(true);
 
                 try {
+                    await new Promise(resolve => setTimeout(resolve, minDelayMs));
                     // TODO: Replace 'YOUR_SERVICE_ID' and 'YOUR_TEMPLATE_ID' with actual EmailJS IDs
                     await emailjs.sendForm('service_2751qpq', 'template_nze4o9m', supportForm);
 
                     showToast('Request sent successfully! We will email you soon.', 'success');
+                    showStatus('success', 'Request sent successfully! We will email you soon.', true);
                     supportForm.reset();
                     supportForm.classList.remove('was-validated');
                 } catch (e) {
                     console.error('EmailJS Verification Error:', e);
                     showToast('Failed to send request. Please try again.', 'danger');
+                    showStatus('error', 'Failed to send request. Please try again in a moment.', true);
                 } finally {
-                    submitSupportBtn.disabled = false;
-                    supportSpinner.classList.add('d-none');
+                    setLoading(false);
+                    isSubmitting = false;
                 }
             });
 
