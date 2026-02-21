@@ -16,6 +16,11 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script>
+        if (!localStorage.getItem('helpon_token')) {
+            window.location.href = 'index.html';
+        }
+    </script>
     <style>
         :root {
             --primary: #2563eb;
@@ -538,6 +543,19 @@
             return `helpon_last_sos_alert_${getUserKey()}`;
         }
 
+        function getAuthToken() {
+            return localStorage.getItem('helpon_token');
+        }
+
+        function handleAuthFailure(res) {
+            if (res.status === 401 || res.status === 403) {
+                localStorage.removeItem('helpon_token');
+                window.location.href = 'index.html';
+                return true;
+            }
+            return false;
+        }
+
         function loadAlertedSOS() {
             try {
                 const raw = localStorage.getItem(getAlertedSOSKey());
@@ -1031,10 +1049,19 @@
 
             async fetchEmergencies() {
                 try {
-                    const token = localStorage.getItem('helpon_token');
+                    const token = getAuthToken();
+                    if (!token) {
+                        this.showToast('Please log in to view emergencies.', 'warning');
+                        window.location.href = 'index.html';
+                        return;
+                    }
                     const res = await fetch('https://helpon-api.vercel.app/api/emergencies/nearby', {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
+                    if (handleAuthFailure(res)) return;
+                    if (!res.ok) {
+                        throw new Error('Failed to load emergencies');
+                    }
                     const data = await res.json();
 
                     this.emergencyMarkers.clearLayers();
@@ -1160,11 +1187,17 @@
 
             async acceptEmergency(id) {
                 try {
-                    const token = localStorage.getItem('helpon_token');
+                    const token = getAuthToken();
+                    if (!token) {
+                        this.showToast('Please log in to respond.', 'warning');
+                        window.location.href = 'index.html';
+                        return;
+                    }
                     const res = await fetch(`https://helpon-api.vercel.app/api/emergencies/${id}/accept`, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
+                    if (handleAuthFailure(res)) return;
                     if (res.ok) {
                         this.showToast('Emergency Request Accepted!', 'success');
                         this.map.closePopup();
@@ -1180,11 +1213,17 @@
 
             async completeEmergency(id) {
                 try {
-                    const token = localStorage.getItem('helpon_token');
+                    const token = getAuthToken();
+                    if (!token) {
+                        this.showToast('Please log in to complete SOS.', 'warning');
+                        window.location.href = 'index.html';
+                        return;
+                    }
                     const res = await fetch(`https://helpon-api.vercel.app/api/emergencies/${id}/complete`, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
+                    if (handleAuthFailure(res)) return;
                     if (res.ok) {
                         awardPoints(HELP_POINTS_PER_TASK);
                         incrementHelpsCount();

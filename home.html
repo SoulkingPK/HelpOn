@@ -1640,6 +1640,13 @@
                     })
                 });
 
+                if (res.status === 401 || res.status === 403) {
+                    localStorage.removeItem('helpon_token');
+                    showToast('Session expired. Please log in again.', 'warning');
+                    window.location.href = 'index.html';
+                    return null;
+                }
+
                 if (res.ok) {
                     const data = await res.json();
                     storeSOSRequest({
