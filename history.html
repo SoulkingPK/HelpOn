@@ -261,87 +261,40 @@
                 }, 1000);
             }
 
-            loadHistoryData() {
-                // Simulated history data - in real app, this would come from an API
-                this.historyData = [
-                    {
-                        id: 1,
-                        type: 'responded',
-                        emergencyType: 'danger',
-                        title: 'Medical Assistance',
-                        description: 'Provided first aid and called ambulance for Jessica who fainted at the park',
-                        person: 'Jessica M.',
-                        date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-                        points: 50,
-                        rating: 4.9,
-                        duration: '15 minutes',
-                        location: 'Central Park',
-                        status: 'completed',
-                        helper: null
-                    },
-                    {
-                        id: 2,
-                        type: 'requested',
-                        emergencyType: 'health',
-                        title: 'Panic Attack Support',
-                        description: 'Experienced severe panic attack and needed immediate calming assistance',
-                        person: 'You',
-                        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
-                        points: 0,
-                        rating: 5.0,
-                        duration: '25 minutes',
-                        location: 'Home',
-                        status: 'completed',
-                        helper: 'Michael T.'
-                    },
-                    {
-                        id: 3,
-                        type: 'responded',
-                        emergencyType: 'other',
-                        title: 'Directions Needed',
-                        description: 'Helped lost tourist find their way back to hotel and recommended local attractions',
-                        person: 'Tourist from Japan',
-                        date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 2 weeks ago
-                        points: 20,
-                        rating: 4.7,
-                        duration: '8 minutes',
-                        location: 'City Center',
-                        status: 'completed',
-                        helper: null
-                    },
-                    {
-                        id: 4,
-                        type: 'responded',
-                        emergencyType: 'safety',
-                        title: 'Roadside Assistance',
-                        description: 'Helped change flat tire for elderly couple stranded on highway',
-                        person: 'Robert & Mary',
-                        date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000), // 3 weeks ago
-                        points: 30,
-                        rating: 5.0,
-                        duration: '20 minutes',
-                        location: 'Highway Exit 14',
-                        status: 'completed',
-                        helper: null
-                    },
-                    {
-                        id: 5,
-                        type: 'requested',
-                        emergencyType: 'danger',
-                        title: 'Harassment Situation',
-                        description: 'Felt unsafe walking home late at night, requested escort',
-                        person: 'You',
-                        date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 1 month ago
-                        points: 0,
-                        rating: 4.8,
-                        duration: '12 minutes',
-                        location: 'Main Street',
-                        status: 'completed',
-                        helper: 'Sarah K.'
-                    }
-                ];
+            async loadHistoryData() {
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    const res = await fetch('https://helpon-api.vercel.app/api/users/me/history', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (!res.ok) throw new Error('Failed to fetch history');
+
+                    const data = await res.json();
+
+                    this.historyData = data.map(item => ({
+                        id: item.id,
+                        type: item.type,
+                        emergencyType: item.emergencyType,
+                        title: item.title,
+                        description: item.description,
+                        person: item.person,
+                        date: new Date(item.date),
+                        points: item.points,
+                        rating: item.rating,
+                        duration: item.duration,
+                        location: item.location,
+                        status: item.status,
+                        helper: item.helper
+                    }));
+                } catch (e) {
+                    console.error('Error loading history:', e);
+                    this.showToast('Failed to load history from server', 'error');
+                    this.historyData = [];
+                }
 
                 this.calculateStats();
+                this.applyFilters();
             }
 
             calculateStats() {
@@ -351,7 +304,7 @@
                 this.stats = {
                     totalHelps: this.historyData.length,
                     totalPoints: this.historyData.reduce((sum, item) => sum + item.points, 0),
-                    avgRating: (this.historyData.reduce((sum, item) => sum + item.rating, 0) / this.historyData.length).toFixed(1),
+                    avgRating: (this.historyData.reduce((sum, item) => sum + item.rating, 0) / (this.historyData.length || 1)).toFixed(1),
                     thisMonth: this.historyData.filter(item => item.date >= thisMonth).length,
                     responses: this.historyData.filter(item => item.type === 'responded').length,
                     requests: this.historyData.filter(item => item.type === 'requested').length
