@@ -890,16 +890,47 @@
         // SOS Button Functionality
         function initSOSButton() {
             const sosBtn = document.getElementById('sosBtn');
+            if (!sosBtn) {
+                console.error('SOS button not found');
+                return;
+            }
+            if (sosBtn.dataset.bound === 'true') return;
+            sosBtn.dataset.bound = 'true';
             let activeEmergencyId = null;
 
-            sosBtn.addEventListener('click', async function () {
-                if (!sosActive) {
-                    // Activate SOS
-                    sosActive = true;
+            const setButtonState = (state) => {
+                if (state === 'sending') {
+                    sosBtn.disabled = true;
+                    sosBtn.classList.remove('btn-danger', 'btn-success');
+                    sosBtn.classList.add('btn-secondary');
+                    sosBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>SENDING SOS...';
+                    return;
+                }
+
+                if (state === 'active') {
+                    sosBtn.disabled = false;
                     sosBtn.classList.add('sos-active');
-                    sosBtn.classList.remove('btn-danger');
+                    sosBtn.classList.remove('btn-danger', 'btn-secondary');
                     sosBtn.classList.add('btn-success');
                     sosBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>MARK AS RESOLVED';
+                    return;
+                }
+
+                sosBtn.disabled = false;
+                sosBtn.classList.remove('sos-active', 'btn-success', 'btn-secondary');
+                sosBtn.classList.add('btn-danger');
+                sosBtn.innerHTML = '<i class="bi bi-bell-fill me-2"></i>SOS EMERGENCY';
+            };
+
+            sosBtn.addEventListener('click', async function () {
+                if (sosPending) {
+                    showToast('SOS is being sent. Please wait...', 'info');
+                    return;
+                }
+
+                if (!sosActive) {
+                    sosPending = true;
+                    setButtonState('sending');
 
                     // Get emergency type
                     const emergencyType = document.getElementById('emergencyType').value;
@@ -921,41 +952,80 @@
                             break;
                     }
 
-                    // Send SOS alert (simulated)
-                    activeEmergencyId = await sendSOSAlert(emergencyMessage);
+                    let locationData;
+                    try {
+                        locationData = await resolveLocationForSOS();
+                    } catch (error) {
+                        console.error('Location error:', error);
+                        showToast('Unable to get your location. Please enable location services.', 'danger');
+                        sosPending = false;
+                        setButtonState('idle');
+                        return;
+                    }
+
+                    if (locationData.source === 'saved') {
+                        showToast('Using last known location for SOS.', 'warning');
+                        userLat = locationData.lat;
+                        userLon = locationData.lon;
+                    }
+
+                    const timestamp = new Date().toISOString();
+                    activeEmergencyId = await sendSOSAlert({
+                        type: emergencyType,
+                        message: emergencyMessage,
+                        lat: locationData.lat,
+                        lon: locationData.lon,
+                        timestamp
+                    });
 
                     if (activeEmergencyId) {
+                        sosActive = true;
+                        sosPending = false;
+                        setButtonState('active');
+                        sosBtn.disabled = true;
+                        setTimeout(() => {
+                            if (sosActive) sosBtn.disabled = false;
+                        }, 1500);
+                        showToast('SOS sent successfully.', 'success');
+
                         // Simulate response after 5 seconds
                         sosTimer = setTimeout(function () {
                             showToast('Helpers are responding to your SOS', 'info');
                         }, 5000);
                     } else {
-                        // Reset if failed
+                        console.error('Failed to create SOS request');
                         sosActive = false;
-                        sosBtn.classList.remove('sos-active', 'btn-success');
-                        sosBtn.classList.add('btn-danger');
-                        sosBtn.innerHTML = '<i class="bi bi-bell-fill me-2"></i>SOS EMERGENCY';
+                        sosPending = false;
+                        setButtonState('idle');
                     }
                 } else {
+                    sosPending = true;
+                    sosBtn.disabled = true;
                     if (activeEmergencyId) {
                         try {
                             const token = localStorage.getItem('helpon_token');
-                            await fetch(`https://helpon-api.vercel.app/api/emergencies/${activeEmergencyId}/complete`, {
+                            const res = await fetch(`https://helpon-api.vercel.app/api/emergencies/${activeEmergencyId}/complete`, {
                                 method: 'POST',
                                 headers: { 'Authorization': `Bearer ${token}` }
                             });
-                        } catch (e) { }
-                        activeEmergencyId = null;
-                        showToast('Emergency Resolved! Your helper has been awarded points.', 'success');
+                            if (!res.ok) throw new Error('Failed to resolve SOS');
+                            activeEmergencyId = null;
+                            showToast('Emergency Resolved! Your helper has been awarded points.', 'success');
+                        } catch (e) {
+                            console.error('Failed to resolve SOS:', e);
+                            showToast('Failed to resolve SOS. Please try again.', 'danger');
+                            sosPending = false;
+                            sosBtn.disabled = false;
+                            return;
+                        }
                     } else {
                         showToast('SOS deactivated', 'warning');
                     }
 
                     // Deactivate SOS
                     sosActive = false;
-                    sosBtn.classList.remove('sos-active', 'btn-success');
-                    sosBtn.classList.add('btn-danger');
-                    sosBtn.innerHTML = '<i class="bi bi-bell-fill me-2"></i>SOS EMERGENCY';
+                    sosPending = false;
+                    setButtonState('idle');
 
                     if (sosTimer) {
                         clearTimeout(sosTimer);
@@ -1051,6 +1121,9 @@
         let homeUserMarker = null;
         let locationSyncStarted = false;
         let nearbyUsersStarted = false;
+        let sosActive = false;
+        let sosPending = false;
+        let sosTimer = null;
 
         function getUserKey() {
             const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
@@ -1073,6 +1146,10 @@
 
         function getPointsHistoryKey() {
             return `helpon_points_history_${getUserKey()}`;
+        }
+
+        function getSOSStorageKey() {
+            return `helpon_sos_requests_${getUserKey()}`;
         }
 
         function loadUserPoints() {
@@ -1136,6 +1213,46 @@
 
         function isLocationFresh(location) {
             return location && location.ts && (Date.now() - location.ts) < LOCATION_TTL_MS;
+        }
+
+        function resolveLocationForSOS() {
+            const saved = loadSavedLocation();
+            const hasSaved = saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lon);
+
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    if (hasSaved) return resolve({ ...saved, source: 'saved' });
+                    return reject(new Error('Geolocation not supported'));
+                }
+
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        userLat = lat;
+                        userLon = lon;
+                        saveLocation(lat, lon);
+                        resolve({ lat, lon, source: 'live' });
+                    },
+                    (error) => {
+                        console.warn('Geolocation error:', error);
+                        if (hasSaved) return resolve({ ...saved, source: 'saved', error });
+                        reject(error);
+                    },
+                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+                );
+            });
+        }
+
+        function storeSOSRequest(record) {
+            try {
+                const key = getSOSStorageKey();
+                const existing = JSON.parse(localStorage.getItem(key) || '[]');
+                existing.unshift(record);
+                localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
+            } catch (e) {
+                console.error('Failed to store SOS request locally', e);
+            }
         }
 
         function setPointsHint(points) {
@@ -1462,9 +1579,13 @@
             helpersCount.textContent = count;
         }
 
-        async function sendSOSAlert(message) {
+        async function sendSOSAlert(payload) {
             const token = localStorage.getItem('helpon_token');
-            if (!token) return null;
+            if (!token) {
+                showToast('Please log in to send SOS.', 'danger');
+                console.error('Missing auth token for SOS');
+                return null;
+            }
 
             try {
                 // Post live emergency to backend
@@ -1475,25 +1596,54 @@
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
-                        type: message,
-                        description: "Emergency requested via Quick SOS",
-                        lat: userLat,
-                        lon: userLon
+                        type: payload.type,
+                        description: payload.message || 'Emergency requested via Quick SOS',
+                        lat: payload.lat,
+                        lon: payload.lon
                     })
                 });
 
                 if (res.ok) {
                     const data = await res.json();
+                    storeSOSRequest({
+                        id: data.id || null,
+                        type: payload.type,
+                        message: payload.message,
+                        lat: payload.lat,
+                        lon: payload.lon,
+                        status: 'active',
+                        timestamp: payload.timestamp
+                    });
                     showToast('Emergency Broadcasted to nearby users!', 'success');
                     // Notification hits everyone, update local counts as visual feedback
                     setTimeout(() => updateHelpersCount(1), 2000);
                     return data.id;
                 } else {
+                    const errText = await res.text();
+                    console.error('SOS API Error:', errText);
+                    storeSOSRequest({
+                        id: null,
+                        type: payload.type,
+                        message: payload.message,
+                        lat: payload.lat,
+                        lon: payload.lon,
+                        status: 'pending',
+                        timestamp: payload.timestamp
+                    });
                     showToast('Failed to broadcast SOS. Retrying offline...', 'warning');
                     return null;
                 }
             } catch (e) {
                 console.error('SOS Error:', e);
+                storeSOSRequest({
+                    id: null,
+                    type: payload.type,
+                    message: payload.message,
+                    lat: payload.lat,
+                    lon: payload.lon,
+                    status: 'pending',
+                    timestamp: payload.timestamp
+                });
                 return null;
             }
         }
