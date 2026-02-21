@@ -126,6 +126,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const apiBase = 'https://help-on.vercel.app/api';
             // Elements
             const searchInput = document.getElementById('searchInput');
             const categoryButtons = document.querySelectorAll('.btn-category');
@@ -171,7 +172,7 @@
                     const token = localStorage.getItem('helpon_token');
                     if (!token) return;
 
-                    const res = await fetch('https://helpon-api.vercel.app/api/inbox', {
+                    const res = await fetch(`${apiBase}/inbox`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
 
@@ -225,7 +226,7 @@
                             // Call API to mark read
                             try {
                                 const token = localStorage.getItem('helpon_token');
-                                await fetch(`https://helpon-api.vercel.app/api/inbox/${n.id}/read`, {
+                                await fetch(`${apiBase}/inbox/${n.id}/read`, {
                                     method: 'POST',
                                     headers: { 'Authorization': `Bearer ${token}` }
                                 });

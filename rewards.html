@@ -261,6 +261,8 @@
 
     <!-- Custom JavaScript -->
     <script>
+        const apiBase = 'https://help-on.vercel.app/api';
+
         function getUserKey() {
             const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
             if (name) return name.replace(/\s+/g, '_');
@@ -326,7 +328,7 @@
                 try {
                     const token = localStorage.getItem('helpon_token');
                     if (!token) return;
-                    const res = await fetch('https://helpon-api.vercel.app/api/users/me/profile', {
+                    const res = await fetch(`${apiBase}/users/me/profile`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (res.ok) {

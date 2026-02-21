@@ -483,7 +483,7 @@
                     const token = localStorage.getItem('helpon_token');
                     if (!token) return;
 
-                    const res = await fetch('https://helpon-api.vercel.app/api/emergencies/nearby', {
+                    const res = await fetch(`${apiBase}/emergencies/nearby`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
 
@@ -593,7 +593,7 @@
 
                 try {
                     const token = localStorage.getItem('helpon_token');
-                    const res = await fetch(`https://helpon-api.vercel.app/api/emergencies/${requestId}/accept`, {
+                    const res = await fetch(`${apiBase}/emergencies/${requestId}/accept`, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -810,7 +810,7 @@
                     completeBtn.disabled = true;
 
                     const token = localStorage.getItem('helpon_token');
-                    const res = await fetch(`https://helpon-api.vercel.app/api/emergencies/${requestId}/complete`, {
+                    const res = await fetch(`${apiBase}/emergencies/${requestId}/complete`, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -1041,7 +1041,7 @@
                     if (activeEmergencyId) {
                         try {
                             const token = localStorage.getItem('helpon_token');
-                            const res = await fetch(`https://helpon-api.vercel.app/api/emergencies/${activeEmergencyId}/complete`, {
+                            const res = await fetch(`${apiBase}/emergencies/${activeEmergencyId}/complete`, {
                                 method: 'POST',
                                 headers: { 'Authorization': `Bearer ${token}` }
                             });
@@ -1151,6 +1151,7 @@
         }
 
         // Rewards System
+        const apiBase = 'https://help-on.vercel.app/api';
         const HELP_POINTS_PER_TASK = 20;
         const LOCATION_TTL_MS = 5 * 60 * 1000;
         const DEFAULT_LOCATION = { lat: 28.6139, lon: 77.2090 };
@@ -1193,7 +1194,7 @@
             const refreshToken = localStorage.getItem('helpon_refresh_token');
             if (!refreshToken) return null;
             try {
-                const res = await fetch('https://helpon-api.vercel.app/api/refresh', {
+                const res = await fetch(`${apiBase}/refresh`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ refresh_token: refreshToken })
@@ -1388,7 +1389,7 @@
                 const token = localStorage.getItem('helpon_token');
                 if (!token) return;
 
-                const res = await fetch('https://helpon-api.vercel.app/api/users/me/profile', {
+                const res = await fetch(`${apiBase}/users/me/profile`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -1483,7 +1484,7 @@
 
         async function syncLocationLoop() {
             try {
-                const { res, authError } = await fetchWithAuth('https://helpon-api.vercel.app/api/users/me/location', {
+                const { res, authError } = await fetchWithAuth(`${apiBase}/users/me/location`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ lat: userLat, lon: userLon })
@@ -1505,7 +1506,7 @@
 
         async function fetchNearbyUsers() {
             try {
-                const { res, authError } = await fetchWithAuth('https://helpon-api.vercel.app/api/emergencies/nearby');
+                const { res, authError } = await fetchWithAuth(`${apiBase}/emergencies/nearby`);
                 if (authError) {
                     localStorage.removeItem('helpon_token');
                     localStorage.removeItem('helpon_refresh_token');
@@ -1688,7 +1689,7 @@
 
             try {
                 // Post live emergency to backend
-                const { res, authError } = await fetchWithAuth('https://helpon-api.vercel.app/api/emergencies', {
+                const { res, authError } = await fetchWithAuth(`${apiBase}/emergencies`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

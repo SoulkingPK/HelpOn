@@ -323,6 +323,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            const apiBase = 'https://help-on.vercel.app/api';
             // Elements
             const avatarPreview = document.getElementById('avatarPreview');
             const avatarInput = document.getElementById('avatarInput');
@@ -443,7 +444,7 @@
                     const token = localStorage.getItem('helpon_token');
                     if (!token) return;
 
-                    const res = await fetch('https://helpon-api.vercel.app/api/users/me/profile', {
+                    const res = await fetch(`${apiBase}/users/me/profile`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
 
@@ -649,7 +650,7 @@
                 const isOn = confirm('Do you want to enable push notifications?');
                 try {
                     const token = localStorage.getItem('helpon_token');
-                    await fetch('https://helpon-api.vercel.app/api/users/me/settings', {
+                    await fetch(`${apiBase}/users/me/settings`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
