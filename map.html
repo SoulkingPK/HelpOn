@@ -427,7 +427,9 @@
                 this.userMarker = null;
                 this.hospitalMarkers = L.layerGroup();
                 this.policeMarkers = L.layerGroup();
+                this.emergencyMarkers = L.layerGroup();
                 this.isFilterVisible = false;
+                this.activeEmergencyId = null;
                 this.init();
             }
 
@@ -448,6 +450,7 @@
 
                 this.map.addLayer(this.hospitalMarkers);
                 this.map.addLayer(this.policeMarkers);
+                this.map.addLayer(this.emergencyMarkers);
 
                 // Try to get user's location
                 if (navigator.geolocation) {
@@ -460,6 +463,7 @@
                             this.map.setView([lat, lon], 14);
                             this.setUserMarker(lat, lon);
                             this.fetchAmenities(lat, lon);
+                            this.fetchEmergencies();
                             this.showToast('Location found! Loading nearby emergencies and services.', 'success');
                         },
                         (error) => {
@@ -467,12 +471,14 @@
                             this.showToast('Could not access location. Using default map.', 'warning');
                             this.setUserMarker(28.6139, 77.2090);
                             this.fetchAmenities(28.6139, 77.2090);
+                            this.fetchEmergencies();
                         },
                         { enableHighAccuracy: true, timeout: 5000 }
                     );
                 } else {
                     this.setUserMarker(28.6139, 77.2090);
                     this.fetchAmenities(28.6139, 77.2090);
+                    this.fetchEmergencies();
                 }
             }
 
@@ -595,6 +601,90 @@
                 });
             }
 
+            async fetchEmergencies() {
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    const res = await fetch('https://helpon-api.vercel.app/api/emergencies/nearby', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const data = await res.json();
+
+                    this.emergencyMarkers.clearLayers();
+
+                    const sosIcon = L.divIcon({
+                        className: 'custom-sos-icon',
+                        html: `<div style="background-color:white; width:34px; height:34px; border-radius:50%; border:3px solid #dc3545; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(220,53,69,0.5);"><i class="bi bi-exclamation-triangle-fill" style="color:#dc3545; font-size:18px;"></i></div>`,
+                        iconSize: [34, 34],
+                        iconAnchor: [17, 17]
+                    });
+
+                    data.emergencies.forEach(e => {
+                        const marker = L.marker([e.lat, e.lon], { icon: sosIcon });
+
+                        const popupContent = `
+                            <div class="text-center p-1">
+                                <h6 class="mb-1 text-danger fw-bold">${e.type}</h6>
+                                <p class="small mb-2">${e.description}</p>
+                                <p class="small text-muted mb-2">Requested by: ${e.created_by}</p>
+                                ${e.status === 'active' ?
+                                `<button class="btn btn-sm btn-danger w-100" onclick="window.mapManagerInstance.acceptEmergency('${e.id}')">Accept Request</button>` :
+                                `<button class="btn btn-sm btn-success w-100" onclick="window.mapManagerInstance.completeEmergency('${e.id}')">Mark Completed</button>`
+                            }
+                            </div>
+                        `;
+                        marker.bindPopup(popupContent);
+                        this.emergencyMarkers.addLayer(marker);
+                    });
+
+                    this.applyFilters();
+                } catch (err) {
+                    console.error("Failed fetching live emergencies", err);
+                }
+
+                // Poll every 15 seconds
+                setTimeout(() => this.fetchEmergencies(), 15000);
+            }
+
+            async acceptEmergency(id) {
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    const res = await fetch(`https://helpon-api.vercel.app/api/emergencies/${id}/accept`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        this.showToast('Emergency Request Accepted!', 'success');
+                        this.map.closePopup();
+                        this.fetchEmergencies();
+                    } else {
+                        const err = await res.json();
+                        this.showToast(err.detail || 'Failed to accept', 'error');
+                    }
+                } catch (err) {
+                    this.showToast('Network error', 'error');
+                }
+            }
+
+            async completeEmergency(id) {
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    const res = await fetch(`https://helpon-api.vercel.app/api/emergencies/${id}/complete`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        this.showToast('+20 HelpPoints Awarded! Emergency Completed.', 'success');
+                        this.map.closePopup();
+                        this.fetchEmergencies();
+                    } else {
+                        const err = await res.json();
+                        this.showToast(err.detail || 'Failed to complete', 'error');
+                    }
+                } catch (err) {
+                    this.showToast('Network error', 'error');
+                }
+            }
+
             goBack() {
                 window.location.href = 'home.html';
             }
@@ -650,6 +740,12 @@
                     this.map.removeLayer(this.policeMarkers);
                 }
 
+                if (emergenciesToggle && emergenciesToggle.checked) {
+                    this.map.addLayer(this.emergencyMarkers);
+                } else {
+                    this.map.removeLayer(this.emergencyMarkers);
+                }
+
                 this.toggleFilter(); // Hide after applying
                 this.showToast('Map layers updated', 'success');
             }
@@ -675,13 +771,13 @@
                 const toastId = 'toast-' + Date.now();
 
                 const toastHtml = `
-                    <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                        <div class="d-flex">
-                            <div class="toast-body">${message}</div>
-                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                        </div>
+                        < div id = "${toastId}" class= "toast align-items-center text-bg-${type} border-0" role = "alert" aria - live="assertive" aria - atomic="true" >
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
                     </div>
-                `;
+                    </div >
+                        `;
 
                 toastContainer.insertAdjacentHTML('beforeend', toastHtml);
                 const toastElement = document.getElementById(toastId);
@@ -694,7 +790,7 @@
 
         // Initialize when DOM is loaded
         document.addEventListener('DOMContentLoaded', function () {
-            const mapManager = new MapManager();
+            window.mapManagerInstance = new MapManager();
 
             // Load saved settings
             const savedSettings = localStorage.getItem('mapSettings');
@@ -709,7 +805,7 @@
                 if (settings.satelliteView) {
                     document.getElementById('mapPlaceholder').style.backgroundColor = '#1a3d5a';
                     document.getElementById('mapPlaceholder').innerHTML = `
-                        <i class="bi bi-globe fs-1 mb-2" style="color: #adb5bd;"></i>
+                        < i class="bi bi-globe fs-1 mb-2" style = "color: #adb5bd;" ></i >
                         <h4 style="color: white;">Satellite View</h4>
                         <p class="text-center" style="color: #adb5bd;">Satellite map with terrain data</p>
                     `;

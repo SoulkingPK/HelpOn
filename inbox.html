@@ -85,76 +85,7 @@
 
         <!-- Messages List -->
         <div class="list-group" id="messagesList">
-            <!-- Unread Message Example -->
-            <a href="#"
-                class="list-group-item list-group-item-action p-3 mb-2 message-card unread bg-white rounded-3 shadow-sm border-0"
-                data-category="alerts" data-read="false">
-                <div class="d-flex">
-                    <img src="assets/images/logo.png" class="avatar-sm rounded-circle me-3" alt="User">
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <h6 class="mb-0">Emergency Alert Team</h6>
-                            <small class="text-muted message-time">10 min ago</small>
-                        </div>
-                        <p class="mb-1">New help request nearby: Health emergency at Central Park</p>
-                        <small class="text-primary">Tap to respond</small>
-                    </div>
-                </div>
-            </a>
-
-            <!-- Read Message Example -->
-            <a href="#"
-                class="list-group-item list-group-item-action p-3 mb-2 message-card bg-white rounded-3 shadow-sm border-0"
-                data-category="rewards" data-read="true">
-                <div class="d-flex">
-                    <img src="assets/images/logo.png" class="avatar-sm rounded-circle me-3" alt="User">
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <h6 class="mb-0">Rewards Center</h6>
-                            <small class="text-muted message-time">2 hrs ago</small>
-                        </div>
-                        <p class="mb-1">You earned 50 HelpPoints for your recent assistance!</p>
-                        <small class="text-muted">Points added to your account</small>
-                    </div>
-                </div>
-            </a>
-
-            <!-- System Notification -->
-            <a href="#"
-                class="list-group-item list-group-item-action p-3 mb-2 message-card bg-white rounded-3 shadow-sm border-0"
-                data-category="alerts" data-read="true">
-                <div class="d-flex">
-                    <div
-                        class="avatar-sm bg-light rounded-circle me-3 d-flex align-items-center justify-content-center">
-                        <i class="bi bi-shield-check text-primary"></i>
-                    </div>
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <h6 class="mb-0">Security Alert</h6>
-                            <small class="text-muted message-time">Yesterday</small>
-                        </div>
-                        <p class="mb-1">New login detected from Chrome on Windows</p>
-                        <small class="text-muted">If this wasn't you, please secure your account</small>
-                    </div>
-                </div>
-            </a>
-
-            <!-- Older Message -->
-            <a href="#"
-                class="list-group-item list-group-item-action p-3 mb-2 message-card bg-white rounded-3 shadow-sm border-0"
-                data-category="help" data-read="true">
-                <div class="d-flex">
-                    <img src="assets/images/logo.png" class="avatar-sm rounded-circle me-3" alt="User">
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <h6 class="mb-0">Sarah M.</h6>
-                            <small class="text-muted message-time">Mar 15</small>
-                        </div>
-                        <p class="mb-1">Thank you for helping me yesterday!</p>
-                        <small class="text-muted">You earned 5★ rating</small>
-                    </div>
-                </div>
-            </a>
+            <!-- Notifications will be injected here -->
         </div>
 
         <!-- Empty State -->
@@ -209,7 +140,7 @@
             let searchQuery = '';
 
             // Initialize
-            updateUnreadCount();
+            fetchNotifications();
 
             // Search functionality
             searchInput.addEventListener('input', function () {
@@ -235,32 +166,86 @@
                 });
             });
 
-            // Mark as read functionality
-            messageCards.forEach(card => {
-                card.addEventListener('click', function (e) {
-                    e.preventDefault();
+            async function fetchNotifications() {
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    if (!token) return;
 
-                    // Mark as read
-                    if (this.getAttribute('data-read') === 'false') {
-                        this.setAttribute('data-read', 'true');
-                        this.classList.remove('unread');
+                    const res = await fetch('https://helpon-api.vercel.app/api/inbox', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
 
-                        // Update unread count in the UI
-                        updateUnreadCount();
-
-                        // If we're filtering by unread, hide this message
-                        if (currentCategory === 'unread') {
-                            this.style.display = 'none';
-                            checkEmptyState();
-                        }
+                    if (res.ok) {
+                        const notifications = await res.json();
+                        renderNotifications(notifications);
                     }
+                } catch (e) { console.error("Error fetching inbox", e); }
+            }
 
-                    // In a real app, you would navigate to the message detail page
-                    // For now, we'll just show an alert
-                    const sender = this.querySelector('h6').textContent;
-                    alert(`Opening message from: ${sender}`);
+            function renderNotifications(notifications) {
+                messagesList.innerHTML = '';
+                if (notifications.length === 0) {
+                    checkEmptyState(0);
+                    return;
+                }
+
+                notifications.forEach(n => {
+                    const date = new Date(n.created_at).toLocaleDateString();
+                    const iconClass = n.type === 'alert' ? 'bi-exclamation-triangle text-danger' :
+                        (n.type === 'help' ? 'bi-heart-fill text-danger' : 'bi-bell-fill text-primary');
+
+                    const a = document.createElement('a');
+                    a.href = '#';
+                    a.className = `list-group-item list-group-item-action p-3 mb-2 message-card ${n.is_read ? '' : 'unread'} bg-white rounded-3 shadow-sm border-0`;
+                    a.setAttribute('data-category', n.type === 'alert' ? 'alerts' : 'help');
+                    a.setAttribute('data-read', n.is_read ? 'true' : 'false');
+                    a.setAttribute('data-id', n.id);
+
+                    a.innerHTML = `
+                        <div class="d-flex">
+                            <div class="avatar-sm bg-light rounded-circle me-3 d-flex align-items-center justify-content-center">
+                                <i class="bi ${iconClass}"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <h6 class="mb-0">${n.title}</h6>
+                                    <small class="text-muted message-time">${date}</small>
+                                </div>
+                                <p class="mb-1">${n.message}</p>
+                            </div>
+                        </div>
+                    `;
+
+                    a.addEventListener('click', async function (e) {
+                        e.preventDefault();
+                        if (this.getAttribute('data-read') === 'false') {
+                            this.setAttribute('data-read', 'true');
+                            this.classList.remove('unread');
+
+                            // Call API to mark read
+                            try {
+                                const token = localStorage.getItem('helpon_token');
+                                await fetch(`https://helpon-api.vercel.app/api/inbox/${n.id}/read`, {
+                                    method: 'POST',
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                });
+                            } catch (err) { }
+
+                            updateUnreadCount();
+                            if (currentCategory === 'unread') {
+                                this.style.display = 'none';
+                                checkEmptyState();
+                            }
+                        }
+                    });
+
+                    messagesList.appendChild(a);
                 });
-            });
+
+                messageCards = document.querySelectorAll('.message-card');
+                updateUnreadCount();
+                filterMessages();
+            }
 
             // Filter messages based on current criteria
             function filterMessages() {
@@ -313,7 +298,7 @@
                 // Update the unread button text if there are unread messages
                 const unreadButton = document.querySelector('.btn-category[data-category="unread"]');
                 if (unreadCount > 0) {
-                    unreadButton.textContent = `Unread (${unreadCount})`;
+                    unreadButton.textContent = `Unread(${unreadCount})`;
                 } else {
                     unreadButton.textContent = 'Unread';
                 }
@@ -330,58 +315,8 @@
                 alert('Additional search filters would appear here');
             });
 
-            // Simulate receiving a new message (for demo purposes)
-            setTimeout(function () {
-                // Create a new message element
-                const newMessage = document.createElement('a');
-                newMessage.href = '#';
-                newMessage.className = 'list-group-item list-group-item-action p-3 mb-2 message-card unread bg-white rounded-3 shadow-sm border-0';
-                newMessage.setAttribute('data-category', 'alerts');
-                newMessage.setAttribute('data-read', 'false');
-
-                newMessage.innerHTML = `
-                    <div class="d-flex">
-                        <img src="assets/images/logo.png" class="avatar-sm rounded-circle me-3" alt="User">
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <h6 class="mb-0">System Update</h6>
-                                <small class="text-muted message-time">Just now</small>
-                            </div>
-                            <p class="mb-1">New features available in the latest app update</p>
-                            <small class="text-primary">Tap to learn more</small>
-                        </div>
-                    </div>
-                `;
-
-                // Add click handler to mark as read
-                newMessage.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    this.setAttribute('data-read', 'true');
-                    this.classList.remove('unread');
-                    updateUnreadCount();
-
-                    if (currentCategory === 'unread') {
-                        this.style.display = 'none';
-                        checkEmptyState();
-                    }
-
-                    alert('Opening message from: System Update');
-                });
-
-                // Add to the top of the messages list
-                messagesList.insertBefore(newMessage, messagesList.firstChild);
-
-                // Update unread count
-                updateUnreadCount();
-
-                // Show notification
-                if (Notification.permission === 'granted') {
-                    new Notification('HelpOn', {
-                        body: 'New message from System Update',
-                        icon: 'assets/images/logo.png'
-                    });
-                }
-            }, 10000); // Show after 10 seconds
+            // Periodically refresh Inbox
+            setInterval(fetchNotifications, 15000);
 
             // Request notification permission
             if ('Notification' in window && Notification.permission === 'default') {

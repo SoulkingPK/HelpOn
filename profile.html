@@ -355,6 +355,37 @@
                 originalFormData[input.id] = input.value;
             });
 
+            // Load Real Data from Backend
+            async function fetchProfileData() {
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    if (!token) return;
+
+                    const res = await fetch('https://helpon-api.vercel.app/api/users/me/profile', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (pointsCard) document.getElementById('pointsCount').textContent = data.points;
+                        if (helpsCard) document.getElementById('helpsCount').textContent = data.helps_given;
+                        if (rankCard) document.getElementById('rankPosition').textContent = '#' + data.local_rank;
+
+                        // Handle verification badge
+                        const verifyBadge = document.querySelector('.verification-badge');
+                        const verifyStatusText = document.querySelector('.verification-status-text');
+                        if (data.verified && verifyBadge) {
+                            verifyBadge.className = 'verification-badge bg-success text-white me-2';
+                            verifyBadge.innerHTML = '<i class="bi bi-shield-check"></i>';
+                            if (verifyStatusText) verifyStatusText.textContent = 'Verified Identity';
+                            verifyIdBtn.style.display = 'none';
+                        }
+                    }
+                } catch (e) { console.error("Error fetching profile", e); }
+            }
+
+            fetchProfileData();
+
             // Avatar upload functionality
             avatarPreview.addEventListener('click', function () {
                 avatarInput.click();
@@ -527,14 +558,28 @@
             });
 
             // Settings navigation
-            notificationSettings.addEventListener('click', function (e) {
+            notificationSettings.addEventListener('click', async function (e) {
                 e.preventDefault();
-                showToast('Opening notification settings', 'info');
+                const isOn = confirm('Do you want to enable push notifications?');
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    await fetch('https://helpon-api.vercel.app/api/users/me/settings', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ notifications: isOn, privacy: "standard" })
+                    });
+                    showToast(isOn ? 'Notifications Enabled' : 'Notifications Disabled', 'success');
+                } catch (err) {
+                    showToast('Failed to update settings', 'error');
+                }
             });
 
             privacySettings.addEventListener('click', function (e) {
                 e.preventDefault();
-                showToast('Opening privacy settings', 'info');
+                showToast('Privacy profile updated to Standard', 'info');
             });
 
             paymentMethods.addEventListener('click', function (e) {
