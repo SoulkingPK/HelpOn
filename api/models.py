@@ -15,11 +15,15 @@ class UserLogin(BaseModel):
 
 class Token(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str
     full_name: str = ""
 
 class TokenData(BaseModel):
     username: Optional[str] = None
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
 
 class UserInDB(BaseModel):
     full_name: str

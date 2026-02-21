@@ -10,25 +10,25 @@ try:
         UserCreate, UserLogin, Token, UserInDB, LocationUpdate,
         EmergencyCreate, EmergencyResponse, NotificationResponse,
         UserProfileResponse, UserSettingsUpdate,
-        HelpRequestCreate, HelpRequestResponse, ChatbotQuery
+        HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest
     )
     from api.database import (
         users_collection, emergencies_collection, notifications_collection,
         support_requests_collection, faqs_collection
     )
-    from api.auth import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, verify_token
+    from api.auth import get_password_hash, verify_password, create_access_token, create_refresh_token, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, verify_token, verify_refresh_token
 except ImportError:
     from models import (
         UserCreate, UserLogin, Token, UserInDB, LocationUpdate,
         EmergencyCreate, EmergencyResponse, NotificationResponse,
         UserProfileResponse, UserSettingsUpdate,
-        HelpRequestCreate, HelpRequestResponse, ChatbotQuery
+        HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest
     )
     from database import (
         users_collection, emergencies_collection, notifications_collection,
         support_requests_collection, faqs_collection
     )
-    from auth import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, verify_token
+    from auth import get_password_hash, verify_password, create_access_token, create_refresh_token, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, verify_token, verify_refresh_token
 
 import traceback
 from fastapi.responses import JSONResponse
@@ -139,8 +139,9 @@ async def register_user(user: UserCreate):
     access_token = create_access_token(
         data={"sub": user.phone_number}, expires_delta=access_token_expires
     )
+    refresh_token = create_refresh_token(data={"sub": user.phone_number}, expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
     
-    return {"access_token": access_token, "token_type": "bearer", "full_name": user.full_name}
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer", "full_name": user.full_name}
 
 @app.post("/api/login", response_model=Token)
 async def login_user(login_data: UserLogin):
@@ -176,7 +177,43 @@ async def login_user(login_data: UserLogin):
     access_token = create_access_token(
         data={"sub": str(user.get("phone_number", user.get("email")))}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer", "full_name": str(user.get("full_name", ""))}
+    refresh_token = create_refresh_token(
+        data={"sub": str(user.get("phone_number", user.get("email")))},
+        expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    )
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer", "full_name": str(user.get("full_name", ""))}
+
+@app.post("/api/refresh", response_model=Token)
+async def refresh_access_token(body: RefreshTokenRequest):
+    payload = verify_refresh_token(body.refresh_token)
+    if payload is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    username = payload.get("sub")
+    if not username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    user = await users_collection.find_one({
+        "$or": [{"email": username}, {"phone_number": username}]
+    })
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": str(user.get("phone_number", user.get("email")))}, expires_delta=access_token_expires
+    )
+    refresh_token = create_refresh_token(
+        data={"sub": str(user.get("phone_number", user.get("email")))},
+        expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    )
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "full_name": str(user.get("full_name", ""))
+    }
 
 # --- Real-World Tracking APIs --- #
 
