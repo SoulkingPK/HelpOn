@@ -235,7 +235,9 @@ async def get_nearby_emergencies(current_user: dict = Depends(get_current_user))
             "status": e["status"],
             "created_at": e["created_at"].isoformat()
         })
-    return {"emergencies": response, "active_helpers": 3}
+    # Calculate real active helpers in the last hour
+    active_users = await users_collection.count_documents({"last_active": {"$gte": datetime.utcnow() - timedelta(hours=1)}})
+    return {"emergencies": response, "active_helpers": active_users}
 
 @app.post("/api/emergencies/{emergency_id}/accept")
 async def accept_emergency(emergency_id: str, current_user: dict = Depends(get_current_user)):
@@ -260,8 +262,8 @@ async def complete_emergency(emergency_id: str, current_user: dict = Depends(get
     if not emergency:
         raise HTTPException(status_code=404, detail="Emergency not found")
         
-    if emergency.get("helper_id") != str(current_user["_id"]):
-         raise HTTPException(status_code=403, detail="You are not authorized to complete this emergency.")
+    if emergency.get("created_by") != str(current_user["_id"]):
+         raise HTTPException(status_code=403, detail="Only the user who requested help can complete the SOS.")
          
     # Mark resolved
     await emergencies_collection.update_one(
@@ -270,21 +272,23 @@ async def complete_emergency(emergency_id: str, current_user: dict = Depends(get
     )
     
     # Award 20 points and +1 help to the helper
-    await users_collection.update_one(
-        {"_id": current_user["_id"]},
-        {"$inc": {"points": 20, "helps_given": 1}}
-    )
-    
-    # Notify the victim
-    await notifications_collection.insert_one({
-        "user_id": emergency["created_by"],
-        "title": "Help Completed",
-        "message": f"{current_user.get('full_name')} has resolved your emergency.",
-        "type": "help",
-        "is_read": False,
-        "created_at": datetime.utcnow()
-    })
-    
+    helper_id = emergency.get("helper_id")
+    if helper_id:
+        await users_collection.update_one(
+            {"_id": ObjectId(helper_id)},
+            {"$inc": {"points": 20, "helps_given": 1}}
+        )
+        
+        # Notify the helper
+        await notifications_collection.insert_one({
+            "user_id": helper_id,
+            "title": "Help Rewards",
+            "message": f"{current_user.get('full_name')} marked the emergency as resolved! You have been awarded 20 HelpPoints.",
+            "type": "reward",
+            "is_read": False,
+            "created_at": datetime.utcnow()
+        })
+        
     return {"status": "Emergency resolved and 20 Points awarded."}
 
 @app.get("/api/inbox")

@@ -623,10 +623,6 @@
                                     <button class="btn btn-outline-success btn-sm flex-fill navigate-btn">
                                         <i class="bi bi-geo-alt"></i> Navigate
                                     </button>
-                                    <button class="btn btn-outline-warning btn-sm flex-fill complete-btn" 
-                                            data-request-id="${requestData.id}">
-                                        <i class="bi bi-check-circle"></i> Complete
-                                    </button>
                                     <button class="btn btn-outline-danger btn-sm cancel-btn" 
                                             data-request-id="${requestData.id}">
                                         <i class="bi bi-x-circle"></i>
@@ -686,11 +682,7 @@
                     }
                 });
 
-                // Complete button
-                taskElement.querySelector('.complete-btn').addEventListener('click', (e) => {
-                    const requestId = e.target.dataset.requestId;
-                    this.completeTask(requestId);
-                });
+                // Complete button removed - Victim has to complete it now
 
                 // Cancel button
                 taskElement.querySelector('.cancel-btn').addEventListener('click', (e) => {
@@ -890,15 +882,16 @@
         // SOS Button Functionality
         function initSOSButton() {
             const sosBtn = document.getElementById('sosBtn');
-            let sosActive = false;
-            let sosTimer = null;
+            let activeEmergencyId = null;
 
-            sosBtn.addEventListener('click', function () {
+            sosBtn.addEventListener('click', async function () {
                 if (!sosActive) {
                     // Activate SOS
                     sosActive = true;
                     sosBtn.classList.add('sos-active');
-                    sosBtn.innerHTML = '<i class="bi bi-bell-fill me-2"></i>SOS ACTIVE';
+                    sosBtn.classList.remove('btn-danger');
+                    sosBtn.classList.add('btn-success');
+                    sosBtn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>MARK AS RESOLVED';
 
                     // Get emergency type
                     const emergencyType = document.getElementById('emergencyType').value;
@@ -921,27 +914,44 @@
                     }
 
                     // Send SOS alert (simulated)
-                    sendSOSAlert(emergencyMessage);
+                    activeEmergencyId = await sendSOSAlert(emergencyMessage);
 
-                    // Show confirmation
-                    showToast('SOS alert sent! Help is on the way.', 'danger');
-
-                    // Simulate response after 5 seconds
-                    sosTimer = setTimeout(function () {
-                        showToast('Helpers are responding to your SOS', 'info');
-                    }, 5000);
-
+                    if (activeEmergencyId) {
+                        // Simulate response after 5 seconds
+                        sosTimer = setTimeout(function () {
+                            showToast('Helpers are responding to your SOS', 'info');
+                        }, 5000);
+                    } else {
+                        // Reset if failed
+                        sosActive = false;
+                        sosBtn.classList.remove('sos-active', 'btn-success');
+                        sosBtn.classList.add('btn-danger');
+                        sosBtn.innerHTML = '<i class="bi bi-bell-fill me-2"></i>SOS EMERGENCY';
+                    }
                 } else {
+                    if (activeEmergencyId) {
+                        try {
+                            const token = localStorage.getItem('helpon_token');
+                            await fetch(`https://helpon-api.vercel.app/api/emergencies/${activeEmergencyId}/complete`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                        } catch (e) { }
+                        activeEmergencyId = null;
+                        showToast('Emergency Resolved! Your helper has been awarded points.', 'success');
+                    } else {
+                        showToast('SOS deactivated', 'warning');
+                    }
+
                     // Deactivate SOS
                     sosActive = false;
-                    sosBtn.classList.remove('sos-active');
+                    sosBtn.classList.remove('sos-active', 'btn-success');
+                    sosBtn.classList.add('btn-danger');
                     sosBtn.innerHTML = '<i class="bi bi-bell-fill me-2"></i>SOS EMERGENCY';
 
                     if (sosTimer) {
                         clearTimeout(sosTimer);
                     }
-
-                    showToast('SOS deactivated', 'warning');
                 }
             });
         }
@@ -1026,9 +1036,30 @@
         }
 
         // Rewards System
-        function initRewardsSystem() {
-            // This would typically fetch data from an API
-            // For now, we'll just set up the UI elements
+        async function initRewardsSystem() {
+            try {
+                const token = localStorage.getItem('helpon_token');
+                if (!token) return;
+
+                const res = await fetch('https://helpon-api.vercel.app/api/users/me/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+
+                    const points = data.points || 0;
+                    document.getElementById('pointsCount').textContent = points;
+
+                    const rank = data.local_rank || 14;
+                    document.getElementById('userRank').textContent = rank + 'th';
+
+                    const progressPercentage = Math.min((points / 500) * 100, 100);
+                    document.getElementById('progressBar').style.width = `${progressPercentage}%`;
+                }
+            } catch (e) {
+                console.error("Error fetching points", e);
+            }
         }
 
         function updatePoints(pointsToAdd) {
@@ -1107,7 +1138,7 @@
                 // Update helpers count metric to reflect active users over mocked values
                 const helpersCount = document.getElementById('helpersCount');
                 if (helpersCount && data.active_helpers !== undefined) {
-                    helpersCount.textContent = data.active_helpers + 12; // Base padding + real users
+                    helpersCount.textContent = data.active_helpers; // Raw real users
                 }
             } catch (e) { }
             setTimeout(fetchNearbyUsers, 15000);
@@ -1259,7 +1290,7 @@
 
         async function sendSOSAlert(message) {
             const token = localStorage.getItem('helpon_token');
-            if (!token) return;
+            if (!token) return null;
 
             try {
                 // Post live emergency to backend
@@ -1278,14 +1309,18 @@
                 });
 
                 if (res.ok) {
+                    const data = await res.json();
                     showToast('Emergency Broadcasted to nearby users!', 'success');
                     // Notification hits everyone, update local counts as visual feedback
                     setTimeout(() => updateHelpersCount(1), 2000);
+                    return data.id;
                 } else {
                     showToast('Failed to broadcast SOS. Retrying offline...', 'warning');
+                    return null;
                 }
             } catch (e) {
                 console.error('SOS Error:', e);
+                return null;
             }
         }
 
