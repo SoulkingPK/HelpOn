@@ -10,11 +10,12 @@ try:
         UserCreate, UserLogin, Token, UserInDB, LocationUpdate,
         EmergencyCreate, EmergencyResponse, NotificationResponse,
         UserProfileResponse, UserSettingsUpdate,
-        HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest
+        HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest,
+        RewardResponse, RedemptionResponse
     )
     from api.database import (
         users_collection, emergencies_collection, notifications_collection,
-        support_requests_collection, faqs_collection
+        support_requests_collection, faqs_collection, rewards_collection, user_redemptions_collection
     )
     from api.auth import get_password_hash, verify_password, create_access_token, create_refresh_token, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, verify_token, verify_refresh_token
 except ImportError:
@@ -22,11 +23,12 @@ except ImportError:
         UserCreate, UserLogin, Token, UserInDB, LocationUpdate,
         EmergencyCreate, EmergencyResponse, NotificationResponse,
         UserProfileResponse, UserSettingsUpdate,
-        HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest
+        HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest,
+        RewardResponse, RedemptionResponse
     )
     from database import (
         users_collection, emergencies_collection, notifications_collection,
-        support_requests_collection, faqs_collection
+        support_requests_collection, faqs_collection, rewards_collection, user_redemptions_collection
     )
     from auth import get_password_hash, verify_password, create_access_token, create_refresh_token, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, verify_token, verify_refresh_token
 
@@ -341,7 +343,7 @@ async def get_history(current_user: dict = Depends(get_current_user)):
     
     return history
 
-@app.post("/api/emergencies")
+@app.post("/api/emergency/sos")
 async def create_emergency(emergency: EmergencyCreate, current_user: dict = Depends(get_current_user)):
     new_emergency = {
         "type": emergency.type,
@@ -372,7 +374,7 @@ async def create_emergency(emergency: EmergencyCreate, current_user: dict = Depe
         
     return {"status": "Emergency broadcasted", "id": str(result.inserted_id)}
 
-@app.get("/api/emergencies/nearby")
+@app.get("/api/emergency/nearby")
 async def get_nearby_emergencies(current_user: dict = Depends(get_current_user)):
     # Simulating getting all active emergencies
     cursor = emergencies_collection.find({"status": "active"})
@@ -394,10 +396,10 @@ async def get_nearby_emergencies(current_user: dict = Depends(get_current_user))
     active_users = await users_collection.count_documents({"last_active": {"$gte": datetime.utcnow() - timedelta(hours=1)}})
     return {"emergencies": response, "active_helpers": active_users}
 
-@app.post("/api/emergencies/{emergency_id}/accept")
-async def accept_emergency(emergency_id: str, current_user: dict = Depends(get_current_user)):
+@app.post("/api/emergency/{id}/accept")
+async def accept_emergency(id: str, current_user: dict = Depends(get_current_user)):
     result = await emergencies_collection.update_one(
-        {"_id": ObjectId(emergency_id), "status": "active"},
+        {"_id": ObjectId(id), "status": "active"},
         {"$set": {
             "status": "accepted",
             "helper_id": str(current_user["_id"]),
@@ -410,41 +412,41 @@ async def accept_emergency(emergency_id: str, current_user: dict = Depends(get_c
         
     return {"status": "Emergency accepted"}
 
-@app.post("/api/emergencies/{emergency_id}/complete")
-async def complete_emergency(emergency_id: str, current_user: dict = Depends(get_current_user)):
-    emergency = await emergencies_collection.find_one({"_id": ObjectId(emergency_id)})
+@app.put("/api/emergency/{id}/complete")
+async def complete_emergency(id: str, current_user: dict = Depends(get_current_user)):
+    emergency = await emergencies_collection.find_one({"_id": ObjectId(id)})
     
     if not emergency:
         raise HTTPException(status_code=404, detail="Emergency not found")
         
-    if emergency.get("created_by") != str(current_user["_id"]):
-         raise HTTPException(status_code=403, detail="Only the user who requested help can complete the SOS.")
+    if emergency.get("created_by") != str(current_user["_id"]) and emergency.get("helper_id") != str(current_user["_id"]):
+         raise HTTPException(status_code=403, detail="Only involved users can complete the SOS.")
          
     # Mark resolved
     await emergencies_collection.update_one(
-        {"_id": ObjectId(emergency_id)},
+        {"_id": ObjectId(id)},
         {"$set": {"status": "resolved"}}
     )
     
-    # Award 20 points and +1 help to the helper
+    # Award 50 points and +1 help to the helper
     helper_id = emergency.get("helper_id")
     if helper_id:
         await users_collection.update_one(
             {"_id": ObjectId(helper_id)},
-            {"$inc": {"points": 20, "helps_given": 1}}
+            {"$inc": {"points": 50, "helps_given": 1}}
         )
         
         # Notify the helper
         await notifications_collection.insert_one({
             "user_id": helper_id,
             "title": "Help Rewards",
-            "message": f"{current_user.get('full_name')} marked the emergency as resolved! You have been awarded 20 HelpPoints.",
+            "message": f"{current_user.get('full_name')} marked the emergency as resolved! You have been awarded 50 HelpPoints.",
             "type": "reward",
             "is_read": False,
             "created_at": datetime.utcnow()
         })
         
-    return {"status": "Emergency resolved and 20 Points awarded."}
+    return {"status": "Emergency resolved and 50 Points awarded."}
 
 @app.get("/api/inbox")
 async def get_inbox(current_user: dict = Depends(get_current_user)):
@@ -597,6 +599,143 @@ async def ai_chatbot(query: ChatbotQuery):
         bot_response = "HelpOn only tracks your location when the app is active to preserve your privacy."
         
     return {"response": bot_response}
+
+# --- Rewards & Redemptions Endpoints --- #
+
+@app.get("/api/user/points", response_description="Get user points balance")
+async def get_user_points(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["_id"]
+    user = await users_collection.find_one({"_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "points": user.get("points", 0),
+        "helps_given": user.get("helps_given", 0)
+    }
+
+@app.get("/api/rewards", response_description="Get all available rewards")
+async def get_rewards():
+    # If empty, seed database first
+    count = await rewards_collection.count_documents({})
+    if count == 0:
+        default_rewards = [
+            {
+                "id": "amazon_500",
+                "name": "₹500 Amazon Voucher",
+                "description": "Use for any purchase on Amazon",
+                "points_cost": 1000,
+                "image_text": "AMZN",
+                "image_color": "linear-gradient(135deg, #FF9900 0%, #FFD700 100%)"
+            },
+            {
+                "id": "zomato_300",
+                "name": "₹300 Zomato Credit",
+                "description": "Food delivery or dining",
+                "points_cost": 600,
+                "image_text": "ZOM",
+                "image_color": "linear-gradient(135deg, #E23744 0%, #FF6B6B 100%)"
+            },
+            {
+                "id": "flipkart_200",
+                "name": "₹200 Flipkart Voucher",
+                "description": "Apply at checkout",
+                "points_cost": 400,
+                "image_text": "FLP",
+                "image_color": "linear-gradient(135deg, #047BD5 0%, #00A8F0 100%)"
+            },
+            {
+                "id": "paytm_100",
+                "name": "₹100 Paytm Cash",
+                "description": "Direct wallet transfer",
+                "points_cost": 200,
+                "image_text": "PTM",
+                "image_color": "linear-gradient(135deg, #002E6E 0%, #0047AB 100%)"
+            }
+        ]
+        await rewards_collection.insert_many(default_rewards)
+
+    cursor = rewards_collection.find({})
+    rewards = await cursor.to_list(length=100)
+    
+    response = []
+    for r in rewards:
+        response.append({
+            "id": r["id"],
+            "name": r["name"],
+            "description": r["description"],
+            "points_cost": r["points_cost"],
+            "image_text": r["image_text"],
+            "image_color": r["image_color"]
+        })
+    return response
+
+@app.post("/api/rewards/{reward_id}/redeem", response_description="Redeem a reward")
+async def redeem_reward(reward_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["_id"]
+    user = await users_collection.find_one({"_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    reward = await rewards_collection.find_one({"id": reward_id})
+    if not reward:
+        raise HTTPException(status_code=404, detail="Reward not found")
+        
+    points_cost = int(reward.get("points_cost", 0))
+    current_points = int(user.get("points", 0))
+    
+    if current_points < points_cost:
+        raise HTTPException(status_code=400, detail="Insufficient points")
+        
+    # Deduct points locally then update DB
+    new_points = current_points - points_cost
+    await users_collection.update_one(
+        {"_id": user_id},
+        {"$set": {"points": new_points}}
+    )
+    
+    import random
+    import string
+    voucher_code = f"{reward.get('image_text', 'VOUCHER')}-{''.join(random.choices(string.ascii_uppercase + string.digits, k=4))}-{''.join(random.choices(string.ascii_uppercase + string.digits, k=4))}"
+    
+    redemption_record = {
+        "user_id": str(user_id),
+        "reward_id": reward_id,
+        "reward_name": reward["name"],
+        "points_cost": points_cost,
+        "voucher_code": voucher_code,
+        "status": "completed",
+        "created_at": datetime.utcnow()
+    }
+    
+    result = await user_redemptions_collection.insert_one(redemption_record)
+    
+    return {
+        "id": str(result.inserted_id),
+        "reward_id": reward_id,
+        "reward_name": reward["name"],
+        "voucher_code": voucher_code,
+        "status": "completed",
+        "created_at": redemption_record["created_at"]
+    }
+
+@app.get("/api/user/redemptions", response_description="Get user redemption history")
+async def get_user_redemptions(current_user: dict = Depends(get_current_user)):
+    user_id = str(current_user["_id"])
+    cursor = user_redemptions_collection.find({"user_id": user_id}).sort("created_at", -1)
+    redemptions = await cursor.to_list(length=100)
+    
+    response = []
+    for r in redemptions:
+        response.append({
+            "id": str(r["_id"]),
+            "reward_id": r["reward_id"],
+            "reward_name": r["reward_name"],
+            "voucher_code": r["voucher_code"],
+            "status": r["status"],
+            "created_at": r["created_at"].isoformat()
+        })
+    return response
 
 # --- Admin Endpoints --- #
 

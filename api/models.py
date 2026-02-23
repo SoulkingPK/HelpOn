@@ -75,6 +75,24 @@ class UserSettingsUpdate(BaseModel):
     notifications_enabled: bool
     privacy_mode: bool
 
+# --- Rewards & Redemptions Models --- #
+
+class RewardResponse(BaseModel):
+    id: str
+    name: str
+    description: str
+    points_cost: int
+    image_text: str
+    image_color: str
+
+class RedemptionResponse(BaseModel):
+    id: str
+    reward_id: str
+    reward_name: str
+    voucher_code: str
+    status: str
+    created_at: str
+
 # --- Support & Help Models --- #
 
 class HelpRequestCreate(BaseModel):

@@ -261,7 +261,7 @@
 
     <!-- Custom JavaScript -->
     <script>
-        const apiBase = 'https://help-on.vercel.app/api';
+        const apiBase = 'http://localhost:8000/api';
 
         function getUserKey() {
             const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
@@ -335,6 +335,10 @@
                         const data = await res.json();
                         this.userPoints = data.points || 0; // Live points from backend
                         localStorage.setItem(this.storage.points, String(this.userPoints));
+                        this.updatePointsDisplay();
+                        this.loadVouchers();
+                        this.loadDonations();
+                        this.loadBadges();
                     }
                 } catch (e) { console.error('Error fetching points', e); }
             }
@@ -361,89 +365,76 @@
                 });
             }
 
-            loadVouchers() {
-                const vouchers = [
-                    {
-                        id: 'amazon_500',
-                        name: '₹500 Amazon Voucher',
-                        description: 'Use for any purchase on Amazon',
-                        points: 1000,
-                        imageText: 'AMZN',
-                        imageColor: 'linear-gradient(135deg, #FF9900 0%, #FFD700 100%)'
-                    },
-                    {
-                        id: 'zomato_300',
-                        name: '₹300 Zomato Credit',
-                        description: 'Food delivery or dining',
-                        points: 600,
-                        imageText: 'ZOM',
-                        imageColor: 'linear-gradient(135deg, #E23744 0%, #FF6B6B 100%)'
-                    },
-                    {
-                        id: 'flipkart_200',
-                        name: '₹200 Flipkart Voucher',
-                        description: 'Apply at checkout',
-                        points: 400,
-                        imageText: 'FLP',
-                        imageColor: 'linear-gradient(135deg, #047BD5 0%, #00A8F0 100%)'
-                    },
-                    {
-                        id: 'paytm_100',
-                        name: '₹100 Paytm Cash',
-                        description: 'Direct wallet transfer',
-                        points: 200,
-                        imageText: 'PTM',
-                        imageColor: 'linear-gradient(135deg, #002E6E 0%, #0047AB 100%)'
-                    }
-                ];
+            async loadVouchers() {
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    if (!token) return;
 
-                const container = document.getElementById('vouchersContainer');
-                container.innerHTML = vouchers.map(voucher => {
-                    const isRedeemed = this.redeemedRewards.includes(voucher.id);
-                    const canAfford = this.userPoints >= voucher.points;
-                    const buttonClass = isRedeemed ? 'btn-success' : (canAfford ? 'btn-primary' : 'btn-secondary');
-                    const buttonText = isRedeemed ? 'Redeemed' : (canAfford ? 'Redeem' : 'Need More Points');
+                    const res = await fetch(`${apiBase}/rewards`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
 
-                    return `
-                        <div class="col-md-6">
-                            <div class="card reward-card h-100 ${isRedeemed ? 'border-success' : ''}">
-                                <div class="card-body">
-                                    <div class="d-flex">
-                                        <div class="reward-image me-3" style="background: ${voucher.imageColor}">
-                                            ${voucher.imageText}
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <h5>${voucher.name}</h5>
-                                            <p class="text-muted small">${voucher.description}</p>
-                                            <div class="d-flex justify-content-between align-items-center mt-3">
-                                                <span class="badge ${isRedeemed ? 'badge-earned' : 'bg-warning text-dark'}">
-                                                    <i class="bi bi-coin"></i> ${voucher.points}
-                                                </span>
-                                                <button class="btn btn-sm ${buttonClass} redeem-btn" 
-                                                        data-reward-id="${voucher.id}"
-                                                        data-reward-name="${voucher.name}"
-                                                        data-points-cost="${voucher.points}"
-                                                        ${isRedeemed || !canAfford ? 'disabled' : ''}>
-                                                    ${buttonText}
-                                                </button>
+                    if (res.ok) {
+                        const vouchers = await res.json();
+                        const container = document.getElementById('vouchersContainer');
+                        if (vouchers.length === 0) {
+                            container.innerHTML = '<div class="col-12 text-center text-muted col-py-5">No rewards currently available.</div>';
+                            return;
+                        }
+
+                        container.innerHTML = vouchers.map(voucher => {
+                            const isRedeemed = this.redeemedRewards.includes(voucher.id);
+                            const canAfford = this.userPoints >= voucher.points_cost;
+                            const buttonClass = isRedeemed ? 'btn-success' : (canAfford ? 'btn-primary' : 'btn-secondary');
+                            const buttonText = isRedeemed ? 'Redeemed' : (canAfford ? 'Redeem' : 'Need More Points');
+
+                            return `
+                                <div class="col-md-6">
+                                    <div class="card reward-card h-100 ${isRedeemed ? 'border-success' : ''}">
+                                        <div class="card-body">
+                                            <div class="d-flex">
+                                                <div class="reward-image me-3" style="background: ${voucher.image_color}">
+                                                    ${voucher.image_text}
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h5>${voucher.name}</h5>
+                                                    <p class="text-muted small">${voucher.description}</p>
+                                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                                        <span class="badge ${isRedeemed ? 'badge-earned' : 'bg-warning text-dark'}">
+                                                            <i class="bi bi-coin"></i> ${voucher.points_cost}
+                                                        </span>
+                                                        <button class="btn btn-sm ${buttonClass} redeem-btn" 
+                                                                data-reward-id="${voucher.id}"
+                                                                data-reward-name="${voucher.name}"
+                                                                data-points-cost="${voucher.points_cost}"
+                                                                ${isRedeemed || !canAfford ? 'disabled' : ''}>
+                                                            ${buttonText}
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                            `;
+                        }).join('');
 
-                // Add event listeners to redeem buttons
-                document.querySelectorAll('.redeem-btn').forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const rewardId = e.target.dataset.rewardId;
-                        const rewardName = e.target.dataset.rewardName;
-                        const pointsCost = e.target.dataset.pointsCost;
-                        this.showRedeemConfirmation(rewardId, rewardName, pointsCost);
-                    });
-                });
+                        // Add event listeners to redeem buttons
+                        document.querySelectorAll('.redeem-btn').forEach(button => {
+                            button.addEventListener('click', (e) => {
+                                const rewardId = e.target.dataset.rewardId;
+                                const rewardName = e.target.dataset.rewardName;
+                                const pointsCost = e.target.dataset.pointsCost;
+                                this.showRedeemConfirmation(rewardId, rewardName, pointsCost);
+                            });
+                        });
+                    } else {
+                        throw new Error('Failed to load rewards');
+                    }
+                } catch (e) {
+                    console.error('Error loading rewards', e);
+                    this.showToast('Could not load rewards at this time.', 'error');
+                }
             }
 
             loadDonations() {
@@ -617,45 +608,64 @@
                 this.currentRedemption = { rewardId, rewardName, pointsCost };
             }
 
-            confirmRedeem() {
+            async confirmRedeem() {
                 const { rewardId, rewardName, pointsCost } = this.currentRedemption;
 
-                if (this.userPoints >= pointsCost) {
-                    // Deduct points
-                    this.userPoints -= parseInt(pointsCost);
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    if (!token) return;
 
-                    // Add to redeemed rewards
-                    this.redeemedRewards.push(rewardId);
-
-                    // Add to points history
-                    this.pointsHistory.unshift({
-                        type: 'redeem',
-                        description: `Redeemed: ${rewardName}`,
-                        points: -parseInt(pointsCost),
-                        date: new Date().toISOString()
+                    const res = await fetch(`${apiBase}/rewards/${rewardId}/redeem`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
                     });
 
-                    // Save to localStorage
-                    this.saveData();
+                    if (res.ok) {
+                        const data = await res.json();
 
-                    // Update UI
-                    this.updatePointsDisplay();
-                    this.loadVouchers();
+                        // Deduct points locally for immediate UI update
+                        this.userPoints -= parseInt(pointsCost);
+                        this.redeemedRewards.push(rewardId);
 
-                    // Show success message
-                    this.showToast(`Successfully redeemed ${rewardName}!`, 'success');
+                        // Save to localStorage (points history is fetched from backend now)
+                        this.saveData();
 
-                    // Close modal
-                    const redeemModal = bootstrap.Modal.getInstance(document.getElementById('redeemModal'));
-                    redeemModal.hide();
+                        // Update UI
+                        this.updatePointsDisplay();
+                        this.loadVouchers();
+                        this.loadDonations();
+                        this.loadBadges();
 
-                    // Show voucher code (simulated)
-                    setTimeout(() => {
-                        window.location.href = 'redeem-success.html';
-                    }, 500);
+                        const redeemModal = bootstrap.Modal.getInstance(document.getElementById('redeemModal'));
+                        redeemModal.hide();
 
-                } else {
-                    this.showToast('Not enough points to redeem this reward', 'error');
+                        // Show success message with voucher code
+                        const voucherHtml = `
+                            <div>
+                                <strong>Successfully redeemed ${rewardName}!</strong><br>
+                                Your Voucher Code:<br>
+                                <span class="bg-dark text-white p-1 rounded font-monospace user-select-all me-2" id="voucherCodeSpan">${data.voucher_code}</span>
+                                <button class="btn btn-sm btn-outline-light mt-1" onclick="navigator.clipboard.writeText('${data.voucher_code}').then(() => { const t = document.querySelector('.toast-container').lastElementChild; if(t) { const tb = t.querySelector('.toast-body'); tb.innerHTML = '<i class=\\'bi bi-check-circle-fill me-2\\'></i>Code copied!'; } })">Copy Code</button>
+                            </div>
+                        `;
+                        this.showToast(voucherHtml, 'success');
+
+                        // Wait a bit to ensure server updated, then fetch Points again to make sure everything's in sync
+                        setTimeout(() => this.fetchPoints(), 1000);
+
+                    } else if (res.status === 400) {
+                        this.showToast('Not enough points to redeem this reward.', 'error');
+                        const redeemModal = bootstrap.Modal.getInstance(document.getElementById('redeemModal'));
+                        if (redeemModal) redeemModal.hide();
+                    } else {
+                        throw new Error('Failed to redeem reward');
+                    }
+                } catch (e) {
+                    console.error('Error redeeming reward', e);
+                    this.showToast('Could not redeem reward at this time.', 'error');
                 }
             }
 
@@ -673,7 +683,7 @@
             confirmDonation() {
                 const { donationId, donationName, pointsAmount } = this.currentDonation;
 
-                if (this.userPoints >= pointsAmount) {
+                if (this.userPoints >= parseInt(pointsAmount)) {
                     // Deduct points
                     this.userPoints -= parseInt(pointsAmount);
 
@@ -716,37 +726,70 @@
                 this.showToast(message, badge.earned ? 'success' : 'info');
             }
 
-            showPointsHistory() {
+            async showPointsHistory() {
                 const container = document.getElementById('pointsHistoryList');
-                container.innerHTML = '';
-
-                if (this.pointsHistory.length === 0) {
-                    container.innerHTML = '<p class="text-muted text-center">No points history yet</p>';
-                } else {
-                    this.pointsHistory.slice(0, 10).forEach(entry => {
-                        const item = document.createElement('div');
-                        item.className = 'list-group-item';
-
-                        const pointsClass = entry.points > 0 ? 'text-success' : 'text-danger';
-                        const pointsSign = entry.points > 0 ? '+' : '';
-                        const date = new Date(entry.date).toLocaleDateString();
-
-                        item.innerHTML = `
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h6 class="mb-1">${entry.description}</h6>
-                                    <small class="text-muted">${date}</small>
-                                </div>
-                                <span class="${pointsClass}">${pointsSign}${entry.points}</span>
-                            </div>
-                        `;
-
-                        container.appendChild(item);
-                    });
-                }
+                container.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>';
 
                 const historyModal = new bootstrap.Modal(document.getElementById('pointsHistoryModal'));
                 historyModal.show();
+
+                try {
+                    const token = localStorage.getItem('helpon_token');
+                    if (!token) return;
+
+                    const res = await fetch(`${apiBase}/user/redemptions`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+
+                    if (res.ok) {
+                        const redemptions = await res.json();
+                        container.innerHTML = '';
+
+                        if (redemptions.length === 0 && this.pointsHistory.length === 0) {
+                            container.innerHTML = '<p class="text-muted text-center py-3">No points history yet</p>';
+                        } else {
+                            // Combine backend redemptions with local non-redemption (e.g. donation) history for now
+                            const mixedHistory = [
+                                ...redemptions.map(r => ({
+                                    type: 'redeem',
+                                    description: `Redeemed: ${r.reward_name}`,
+                                    points: -r.points_cost, // Assuming points_cost is returned, or fallback to fixed amount if omitted by backend.
+                                    date: r.created_at,
+                                    code: r.voucher_code
+                                })),
+                                ...this.pointsHistory.filter(h => h.type !== 'redeem')
+                            ].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+                            mixedHistory.slice(0, 15).forEach(entry => {
+                                const item = document.createElement('div');
+                                item.className = 'list-group-item';
+
+                                const pointsClass = entry.points > 0 ? 'text-success' : 'text-danger';
+                                const pointsSign = entry.points > 0 ? '+' : '';
+                                const date = new Date(entry.date).toLocaleDateString();
+                                const codeHtml = entry.code ? `<div class="mt-1 small"><span class="bg-light px-2 py-1 rounded border font-monospace text-dark">${entry.code}</span></div>` : '';
+
+                                item.innerHTML = `
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="mb-1">${entry.description}</h6>
+                                            <small class="text-muted">${date}</small>
+                                            ${codeHtml}
+                                        </div>
+                                        <span class="${pointsClass}">${pointsSign}${entry.points || '...'}</span>
+                                    </div>
+                                `;
+
+                                container.appendChild(item);
+                            });
+                        }
+                    } else {
+                        throw new Error('Failed to fetch history');
+                    }
+                } catch (e) {
+                    console.error('Error fetching history', e);
+                    container.innerHTML = '<p class="text-danger text-center py-3">Could not load history.</p>';
+                }
             }
 
             updatePointsDisplay() {
