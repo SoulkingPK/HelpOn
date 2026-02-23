@@ -1,5 +1,5 @@
 [build]
-  publish = "."
+  publish = "client"
 
 # When testing locally, you can use Netlify Dev, which reads this.
 # For production, replace `to` with your Vercel URL, e.g., "https://your-project.vercel.app/api/:splat"
