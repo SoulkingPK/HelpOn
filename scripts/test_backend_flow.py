@@ -7,7 +7,7 @@ API_BASE = "http://localhost:8000/api"
 
 # 1. Login
 try:
-    login_payload = json.dumps({"username": "bharani2008india@gmail.com", "password": "@bharani2008"}).encode('utf-8')
+    login_payload = json.dumps({"username": "testuser@example.com", "password": "password123"}).encode('utf-8')
     req = urllib.request.Request(f"{API_BASE}/login", 
         data=login_payload, 
         headers={"Content-Type": "application/json"})

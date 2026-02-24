@@ -9,7 +9,7 @@ try:
     from api.models import (
         UserCreate, UserLogin, Token, UserInDB, LocationUpdate,
         EmergencyCreate, EmergencyResponse, NotificationResponse,
-        UserProfileResponse, UserSettingsUpdate,
+        UserProfileResponse, UserSettingsUpdate, UserProfileUpdate,
         HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest,
         RewardResponse, RedemptionResponse
     )
@@ -22,7 +22,7 @@ except ImportError:
     from models import (
         UserCreate, UserLogin, Token, UserInDB, LocationUpdate,
         EmergencyCreate, EmergencyResponse, NotificationResponse,
-        UserProfileResponse, UserSettingsUpdate,
+        UserProfileResponse, UserSettingsUpdate, UserProfileUpdate,
         HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest,
         RewardResponse, RedemptionResponse
     )
@@ -243,11 +243,34 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
     
     return UserProfileResponse(
         full_name=current_user.get("full_name", ""),
+        email=current_user.get("email"),
+        phone_number=current_user.get("phone_number", ""),
+        avatar=current_user.get("avatar"),
         points=points,
         helps_given=helps_given,
         local_rank=rank,
         verified=current_user.get("verified", False)
     )
+
+@app.put("/api/users/me/profile")
+async def update_profile(profile_data: UserProfileUpdate, current_user: dict = Depends(get_current_user)):
+    update_fields = {
+        "full_name": profile_data.full_name,
+        "phone_number": profile_data.phone_number
+    }
+    
+    if profile_data.email is not None:
+        update_fields["email"] = profile_data.email
+        
+    if profile_data.avatar is not None:
+        update_fields["avatar"] = profile_data.avatar
+        
+    await users_collection.update_one(
+        {"_id": current_user["_id"]},
+        {"$set": update_fields}
+    )
+    
+    return {"status": "Profile updated successfully"}
 
 @app.put("/api/users/me/settings")
 async def update_settings(settings: UserSettingsUpdate, current_user: dict = Depends(get_current_user)):

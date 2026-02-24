@@ -66,6 +66,9 @@ class NotificationResponse(BaseModel):
 
 class UserProfileResponse(BaseModel):
     full_name: str
+    email: Optional[str] = None
+    phone_number: str
+    avatar: Optional[str] = None
     points: int
     helps_given: int
     local_rank: int
@@ -74,6 +77,12 @@ class UserProfileResponse(BaseModel):
 class UserSettingsUpdate(BaseModel):
     notifications_enabled: bool
     privacy_mode: bool
+
+class UserProfileUpdate(BaseModel):
+    full_name: str
+    email: Optional[str] = None
+    phone_number: str
+    avatar: Optional[str] = None
 
 # --- Rewards & Redemptions Models --- #
 

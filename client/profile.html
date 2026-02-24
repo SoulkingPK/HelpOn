@@ -132,9 +132,12 @@
         <!-- Avatar Section -->
         <section class="avatar-upload text-center mb-4">
             <div class="d-flex justify-content-center">
-                <div class="avatar-preview rounded-circle bg-white overflow-hidden" id="avatarPreview">
-                    <img src="assets/images/user-avathar.jpg" alt="Profile"
-                        class="img-fluid w-100 h-100 object-fit-cover" id="avatarImage" loading="lazy">
+                <div class="avatar-preview rounded-circle bg-white overflow-hidden d-flex align-items-center justify-content-center"
+                    id="avatarPreview" style="background-color: #e9ecef !important;">
+                    <i class="bi bi-person-fill text-secondary" style="font-size: 4rem; display: none;"
+                        id="avatarPlaceholder"></i>
+                    <img src="" alt="Profile" class="img-fluid w-100 h-100 object-fit-cover" id="avatarImage"
+                        loading="lazy" style="display: none;">
                 </div>
                 <input type="file" id="avatarInput" accept="image/*" style="display: none;">
             </div>
@@ -326,6 +329,7 @@
             const avatarPreview = document.getElementById('avatarPreview');
             const avatarInput = document.getElementById('avatarInput');
             const avatarImage = document.getElementById('avatarImage');
+            const avatarPlaceholder = document.getElementById('avatarPlaceholder');
             const editProfileBtn = document.getElementById('editProfileBtn');
             const profileForm = document.getElementById('profileForm');
             const formInputs = profileForm.querySelectorAll('input');
@@ -350,6 +354,7 @@
             let isEditMode = false;
             let originalFormData = {};
             let hasUnsavedChanges = false;
+            let currentAvatarBase64 = null;
 
             function getUserKey() {
                 const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
@@ -456,6 +461,31 @@
                         const localRank = Number.isFinite(data.local_rank) ? data.local_rank : 0;
                         setRankUI(localRank);
 
+                        // Populate Form Data
+                        if (data.full_name) {
+                            const names = data.full_name.split(' ');
+                            document.getElementById('firstName').value = names[0] || '';
+                            document.getElementById('lastName').value = names.slice(1).join(' ') || '';
+                        }
+                        if (data.email) document.getElementById('email').value = data.email;
+                        if (data.phone_number) document.getElementById('phone').value = data.phone_number;
+
+                        // Populate avatar
+                        if (data.avatar) {
+                            avatarImage.src = data.avatar;
+                            avatarImage.style.display = 'block';
+                            avatarPlaceholder.style.display = 'none';
+                            currentAvatarBase64 = data.avatar;
+                        } else {
+                            avatarImage.style.display = 'none';
+                            avatarPlaceholder.style.display = 'block';
+                        }
+
+                        // Update original form data snapshot
+                        formInputs.forEach(input => {
+                            originalFormData[input.id] = input.value;
+                        });
+
                         // Handle verification badge
                         const verifyBadge = document.querySelector('.verification-badge');
                         const verifyStatusText = document.querySelector('.verification-status-text');
@@ -481,7 +511,10 @@
                     const reader = new FileReader();
 
                     reader.onload = function (e) {
-                        avatarImage.src = e.target.result;
+                        currentAvatarBase64 = e.target.result;
+                        avatarImage.src = currentAvatarBase64;
+                        avatarImage.style.display = 'block';
+                        avatarPlaceholder.style.display = 'none';
                         showSaveChangesBar();
                     };
 
@@ -552,29 +585,65 @@
             }
 
             // Save changes
-            saveChangesBtn.addEventListener('click', function () {
+            saveChangesBtn.addEventListener('click', async function () {
                 if (validateForm()) {
-                    // In a real app, you would send this data to the server
-                    const formData = new FormData();
-                    formInputs.forEach(input => {
-                        formData.append(input.id, input.value);
-                    });
+                    const firstName = document.getElementById('firstName').value.trim();
+                    const lastName = document.getElementById('lastName').value.trim();
+                    const email = document.getElementById('email').value.trim();
+                    const phone = document.getElementById('phone').value.trim();
+                    const fullName = `${firstName} ${lastName}`;
 
-                    // Update the user name display
-                    const firstName = document.getElementById('firstName').value;
-                    const lastName = document.getElementById('lastName').value;
-                    document.getElementById('userName').textContent = `${firstName} ${lastName}`;
+                    const payload = {
+                        full_name: fullName,
+                        email: email,
+                        phone_number: phone,
+                        avatar: currentAvatarBase64
+                    };
 
-                    // Update original data
-                    formInputs.forEach(input => {
-                        originalFormData[input.id] = input.value;
-                    });
+                    try {
+                        // Change button text to reflect saving state
+                        const originalBtnText = saveChangesBtn.innerHTML;
+                        saveChangesBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                        saveChangesBtn.disabled = true;
 
-                    // Show success message
-                    showToast('Profile updated successfully!', 'success');
+                        const token = localStorage.getItem('helpon_token');
+                        const res = await fetch(`${apiBase}/users/me/profile`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify(payload)
+                        });
 
-                    // Exit edit mode
-                    toggleEditMode();
+                        saveChangesBtn.innerHTML = originalBtnText;
+                        saveChangesBtn.disabled = false;
+
+                        if (res.ok) {
+                            // Update the user name display
+                            document.getElementById('userName').textContent = fullName;
+                            localStorage.setItem('helpon_user_name', fullName);
+
+                            // Update original data
+                            formInputs.forEach(input => {
+                                originalFormData[input.id] = input.value;
+                            });
+
+                            // Show success message
+                            showToast('Profile updated successfully!', 'success');
+
+                            // Exit edit mode
+                            toggleEditMode();
+                        } else {
+                            const errorData = await res.json();
+                            showToast(errorData.detail || 'Failed to update profile', 'error');
+                        }
+                    } catch (err) {
+                        saveChangesBtn.innerHTML = 'Save Changes';
+                        saveChangesBtn.disabled = false;
+                        showToast('A network error occurred while saving', 'error');
+                        console.error('Error updating profile:', err);
+                    }
                 }
             });
 
@@ -590,8 +659,8 @@
                     input.value = originalFormData[input.id];
                 });
 
-                // Also revert avatar if changed
-                avatarImage.src = 'assets/images/user-avathar.jpg';
+                // Re-fetch avatar logic from backend if we canceled
+                fetchProfileData();
             }
 
             // Form validation
