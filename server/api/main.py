@@ -6,8 +6,9 @@ from datetime import timedelta
 import sys
 import os
 
-# Add the current directory to sys.path so Vercel can resolve 'api.models'
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Add the 'server' directory to sys.path so Vercel can resolve 'api.models'
+# __file__ is server/api/main.py, so we need the parent of the parent
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import using absolute paths corresponding to the injected sys.path
 from api.models import (
