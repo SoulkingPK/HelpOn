@@ -91,6 +91,7 @@
             window.location.href = 'index.html';
         }
     </script>
+<script src="config.js"></script>
 </head>
 
 <body class="bg-light" style="padding-bottom: 72px;">
@@ -239,7 +240,7 @@
 
     <!-- Custom JavaScript -->
     <script>
-        const apiBase = 'http://localhost:8000/api';
+        const apiBase = CONFIG.API_BASE_URL;
 
         // History Manager Class
         class HistoryManager {

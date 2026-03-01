@@ -93,6 +93,7 @@
             border-color: #2563eb;
         }
     </style>
+<script src="config.js"></script>
 </head>
 
 <body>
@@ -404,7 +405,7 @@
                     offer_help: offerHelp
                 };
 
-                const apiBase = 'http://localhost:8000/api';
+                const apiBase = CONFIG.API_BASE_URL;
                 fetch(`${apiBase}/register`, {
                     method: 'POST',
                     headers: {

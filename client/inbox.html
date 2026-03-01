@@ -40,6 +40,7 @@
             window.location.href = 'index.html';
         }
     </script>
+<script src="config.js"></script>
 </head>
 
 <body class="bg-light" style="padding-bottom: 72px;">
@@ -126,7 +127,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const apiBase = 'http://localhost:8000/api';
+            const apiBase = CONFIG.API_BASE_URL;
             // Elements
             const searchInput = document.getElementById('searchInput');
             const categoryButtons = document.querySelectorAll('.btn-category');

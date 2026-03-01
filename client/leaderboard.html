@@ -146,6 +146,7 @@
             display: none;
         }
     </style>
+<script src="config.js"></script>
 </head>
 
 <body>
@@ -241,7 +242,7 @@
             }
 
             const token = localStorage.getItem('helpon_token');
-            const apiBase = 'http://localhost:8000/api';
+            const apiBase = CONFIG.API_BASE_URL;
 
             const listContainer = document.getElementById('leaderboardList');
             const myRankBanner = document.getElementById('myRankBanner');

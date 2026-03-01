@@ -222,6 +222,7 @@
             }
         });
     </script>
+<script src="config.js"></script>
 </head>
 
 <body class="bg-light" style="padding-bottom: 72px;">
@@ -1179,7 +1180,7 @@
         }
 
         // Rewards System
-        const apiBase = 'http://localhost:8000/api';
+        const apiBase = CONFIG.API_BASE_URL;
         const HELP_POINTS_PER_TASK = 20;
         const LOCATION_TTL_MS = 5 * 60 * 1000;
         const DEFAULT_LOCATION = { lat: 28.6139, lon: 77.2090 };

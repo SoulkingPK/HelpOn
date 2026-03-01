@@ -71,6 +71,7 @@
             border: none;
         }
     </style>
+<script src="config.js"></script>
 </head>
 
 <body>
@@ -221,7 +222,7 @@
                     password: passwordInput.value
                 };
 
-                const apiBase = 'http://localhost:8000/api';
+                const apiBase = CONFIG.API_BASE_URL;
                 fetch(`${apiBase}/login`, {
                     method: 'POST',
                     headers: {
