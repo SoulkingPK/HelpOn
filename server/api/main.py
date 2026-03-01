@@ -3,34 +3,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from passlib.context import CryptContext
 from datetime import timedelta
 
-# Relative imports assuming the current directory is 'api'
-# Since Vercel executes from the project root sometimes, we import via absolute paths or local
-try:
-    from api.models import (
-        UserCreate, UserLogin, Token, UserInDB, LocationUpdate,
-        EmergencyCreate, EmergencyResponse, NotificationResponse,
-        UserProfileResponse, UserSettingsUpdate, UserProfileUpdate,
-        HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest,
-        RewardResponse, RedemptionResponse
-    )
-    from api.database import (
-        users_collection, emergencies_collection, notifications_collection,
-        support_requests_collection, faqs_collection, rewards_collection, user_redemptions_collection
-    )
-    from api.auth import get_password_hash, verify_password, create_access_token, create_refresh_token, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, verify_token, verify_refresh_token
-except ImportError:
-    from models import (
-        UserCreate, UserLogin, Token, UserInDB, LocationUpdate,
-        EmergencyCreate, EmergencyResponse, NotificationResponse,
-        UserProfileResponse, UserSettingsUpdate, UserProfileUpdate,
-        HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest,
-        RewardResponse, RedemptionResponse
-    )
-    from database import (
-        users_collection, emergencies_collection, notifications_collection,
-        support_requests_collection, faqs_collection, rewards_collection, user_redemptions_collection
-    )
-    from auth import get_password_hash, verify_password, create_access_token, create_refresh_token, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, verify_token, verify_refresh_token
+import sys
+import os
+
+# Add the current directory to sys.path so Vercel can resolve 'api.models'
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Import using absolute paths corresponding to the injected sys.path
+from api.models import (
+    UserCreate, UserLogin, Token, UserInDB, LocationUpdate,
+    EmergencyCreate, EmergencyResponse, NotificationResponse,
+    UserProfileResponse, UserSettingsUpdate, UserProfileUpdate,
+    HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest,
+    RewardResponse, RedemptionResponse
+)
+from api.database import (
+    users_collection, emergencies_collection, notifications_collection,
+    support_requests_collection, faqs_collection, rewards_collection, user_redemptions_collection
+)
+from api.auth import get_password_hash, verify_password, create_access_token, create_refresh_token, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, verify_token, verify_refresh_token
 
 import traceback
 from fastapi.responses import JSONResponse
