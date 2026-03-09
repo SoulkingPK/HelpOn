@@ -4,12 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
     <title>Admin - Support Tickets - HelpOn</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script>
         // Temporary simplistic check - In production, backend strictly manages admin roles
-        if (!localStorage.getItem('helpon_token')) {
+        if (!isUserLoggedIn()) {
             window.location.href = 'index.html';
         }
     </script>
@@ -33,7 +35,7 @@
             padding: 0.35rem 0.65rem;
         }
     </style>
-<script src="config.js"></script>
+    <script src="config.js"></script>
 </head>
 
 <body>
@@ -47,7 +49,43 @@
         </div>
     </nav>
 
-    <div class="container py-5">
+    <div class="container py-4">
+        <!-- Stats Summary Row -->
+        <div class="row g-3 mb-4" id="statsRow">
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm text-center">
+                    <div class="card-body py-3">
+                        <h3 class="text-primary mb-1" id="statTotalUsers">—</h3>
+                        <p class="text-muted small mb-0">Total Users</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm text-center">
+                    <div class="card-body py-3">
+                        <h3 class="text-danger mb-1" id="statActiveSOS">—</h3>
+                        <p class="text-muted small mb-0">Active SOS</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm text-center">
+                    <div class="card-body py-3">
+                        <h3 class="text-success mb-1" id="statResolvedSOS">—</h3>
+                        <p class="text-muted small mb-0">Resolved SOS</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 shadow-sm text-center">
+                    <div class="card-body py-3">
+                        <h3 class="text-warning mb-1" id="statOpenTickets">—</h3>
+                        <p class="text-muted small mb-0">Open Tickets</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="fw-bold">Support Tickets</h2>
             <button class="btn btn-primary" id="refreshBtn">
@@ -119,7 +157,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-danger me-auto">Close Ticket</button>
+                    <button type="button" class="btn btn-outline-danger me-auto" id="closeTicketBtn">Close
+                        Ticket</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-primary" onclick="alert('Reply sent (Mock)')">Send
                         Reply</button>
@@ -139,7 +178,22 @@
             const refreshBtn = document.getElementById('refreshBtn');
 
             let allTickets = [];
+            let currentTicketId = null;
             const ticketModal = new bootstrap.Modal(document.getElementById('ticketModal'));
+
+            // Load Stats
+            const loadStats = async () => {
+                try {
+                    const res = await fetchWithAuth(`${apiBase}/admin/stats`);
+                    if (res.ok) {
+                        const s = await res.json();
+                        document.getElementById('statTotalUsers').textContent = s.total_users;
+                        document.getElementById('statActiveSOS').textContent = s.active_sos;
+                        document.getElementById('statResolvedSOS').textContent = s.resolved_sos;
+                        document.getElementById('statOpenTickets').textContent = s.open_tickets;
+                    }
+                } catch (e) { console.warn('Could not load stats:', e); }
+            };
 
             // Load Tickets
             const loadTickets = async () => {
@@ -148,10 +202,7 @@
                 loadingSpinner.style.display = 'block';
 
                 try {
-                    const token = localStorage.getItem('helpon_token');
-                    const res = await fetch(`${apiBase}/admin/support`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const res = await fetchWithAuth(`${apiBase}/admin/support`);
 
                     if (res.ok) {
                         allTickets = await res.json();
@@ -191,7 +242,7 @@
                     const card = document.createElement('div');
                     card.className = 'col-12';
                     card.innerHTML = `
-                        <div class="card shadow-sm border-0 ticket-card">
+                        <div class="card shadow-sm border-0 ticket-card" data-ticket-id="${ticket.id}">
                             <div class="card-body">
                                 <div class="row align-items-center">
                                     <div class="col-md-3 mb-2 mb-md-0">
@@ -214,6 +265,7 @@
                     `;
 
                     card.addEventListener('click', () => {
+                        currentTicketId = ticket.id;
                         document.getElementById('modalSubject').textContent = ticket.subject;
                         document.getElementById('modalName').textContent = ticket.name;
                         document.getElementById('modalEmail').textContent = ticket.email;
@@ -225,12 +277,40 @@
                         statusBadge.textContent = ticket.status.toUpperCase();
                         statusBadge.className = `badge ${statusColor} status-badge`;
 
+                        const closeBtn = document.getElementById('closeTicketBtn');
+                        closeBtn.disabled = ticket.status !== 'open';
+                        closeBtn.textContent = ticket.status === 'open' ? 'Close Ticket' : 'Already Closed';
+
                         ticketModal.show();
                     });
 
                     ticketsContainer.appendChild(card);
                 });
             };
+
+            // Close ticket handler
+            document.getElementById('closeTicketBtn').addEventListener('click', async () => {
+                if (!currentTicketId) return;
+                const btn = document.getElementById('closeTicketBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Closing...';
+                try {
+                    const res = await fetchWithAuth(`${apiBase}/admin/support/${currentTicketId}/close`, { method: 'PUT' });
+                    if (res.ok) {
+                        ticketModal.hide();
+                        await loadTickets();
+                        await loadStats();
+                    } else {
+                        alert('Failed to close ticket.');
+                        btn.disabled = false;
+                        btn.textContent = 'Close Ticket';
+                    }
+                } catch (e) {
+                    alert('Error: ' + e.message);
+                    btn.disabled = false;
+                    btn.textContent = 'Close Ticket';
+                }
+            });
 
             const filterTickets = () => {
                 const query = searchInput.value.toLowerCase();
@@ -249,13 +329,23 @@
                 renderTickets(filtered);
             };
 
-            refreshBtn.addEventListener('click', loadTickets);
+            refreshBtn.addEventListener('click', () => { loadStats(); loadTickets(); });
             searchInput.addEventListener('input', filterTickets);
             statusFilter.addEventListener('change', filterTickets);
 
             // Initial load
+            loadStats();
             loadTickets();
         });
+    </script>
+
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function () {
+                navigator.serviceWorker.register("service-worker.js")
+                    .catch(function (e) { console.warn("SW registration failed:", e); });
+            });
+        }
     </script>
 </body>
 

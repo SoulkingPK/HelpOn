@@ -1,10 +1,13 @@
 from fastapi import FastAPI, HTTPException, status, Depends
+from typing import Optional, List, Dict, Any
 from fastapi.middleware.cors import CORSMiddleware
 from passlib.context import CryptContext
 from datetime import timedelta
 
 import sys
 import os
+import cloudinary
+import cloudinary.uploader
 
 # Add the 'server' directory to sys.path so Vercel can resolve 'api.models'
 # __file__ is server/api/main.py, so we need the parent of the parent
@@ -16,7 +19,7 @@ from api.models import (
     EmergencyCreate, EmergencyResponse, NotificationResponse,
     UserProfileResponse, UserSettingsUpdate, UserProfileUpdate,
     HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest,
-    RewardResponse, RedemptionResponse
+    RewardResponse, RedemptionResponse, UserLocationResponse
 )
 from api.database import (
     users_collection, emergencies_collection, notifications_collection,
@@ -29,6 +32,29 @@ from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer
 from datetime import datetime
 from bson import ObjectId
+from fastapi import WebSocket, WebSocketDisconnect
+from typing import List, Dict
+
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: dict):
+        for connection in self.active_connections:
+            try:
+                await connection.send_json(message)
+            except Exception:
+                pass
+
+manager = ConnectionManager()
 
 app = FastAPI(title="HelpOn API")
 
@@ -41,9 +67,20 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/login", auto_error=False)
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(request: Request, token: Optional[str] = Depends(oauth2_scheme)):
+    # Try header first, then cookie
+    if not token:
+        token = request.cookies.get("helpon_access_token")
+        
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+        
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(
@@ -63,13 +100,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="User not found")
     return user
 
-from typing import Optional
-
-async def get_current_user_optional(token: Optional[str] = Depends(OAuth2PasswordBearer(tokenUrl="api/login", auto_error=False))):
+async def get_current_user_optional(request: Request, token: Optional[str] = Depends(oauth2_scheme)):
+    if not token:
+        token = request.cookies.get("helpon_access_token")
+        
     if not token:
         return None
     try:
-        user = await get_current_user(token)
+        user = await get_current_user(request, token)
         return user
     except:
         return None
@@ -100,8 +138,22 @@ app.add_middleware(
 async def root():
     return {"message": "HelpOn Backend is running!"}
 
-@app.post("/api/register", response_model=Token)
-async def register_user(user: UserCreate):
+@app.websocket("/api/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            # Can be used to handle incoming messages like "ping" to keep connection alive
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+
+from fastapi import Response
+
+@app.post("/api/register")
+async def register_user(user: UserCreate, response: Response):
     if users_collection is None:
         raise HTTPException(
             status_code=500,
@@ -135,10 +187,28 @@ async def register_user(user: UserCreate):
     )
     refresh_token = create_refresh_token(data={"sub": user.phone_number}, expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
     
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer", "full_name": user.full_name}
+    # Set cookies
+    response.set_cookie(
+        key="helpon_access_token",
+        value=access_token,
+        httponly=True,
+        secure=True, # Will only be sent over HTTPS
+        samesite="none", # Required for cross-site requests
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+    response.set_cookie(
+        key="helpon_refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+    )
+    
+    return {"token_type": "bearer", "full_name": user.full_name}
 
-@app.post("/api/login", response_model=Token)
-async def login_user(login_data: UserLogin):
+@app.post("/api/login")
+async def login_user(login_data: UserLogin, response: Response):
     if users_collection is None:
         raise HTTPException(
             status_code=500,
@@ -175,11 +245,43 @@ async def login_user(login_data: UserLogin):
         data={"sub": str(user.get("phone_number", user.get("email")))},
         expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     )
-    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer", "full_name": str(user.get("full_name", ""))}
+    
+    # Set cookies
+    response.set_cookie(
+        key="helpon_access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+    response.set_cookie(
+        key="helpon_refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+    )
+    
+    return {"token_type": "bearer", "full_name": str(user.get("full_name", ""))}
 
-@app.post("/api/refresh", response_model=Token)
-async def refresh_access_token(body: RefreshTokenRequest):
-    payload = verify_refresh_token(body.refresh_token)
+@app.post("/api/refresh")
+async def refresh_access_token(request: Request, response: Response):
+    # Determine where the refresh token is
+    ref_token = request.cookies.get("helpon_refresh_token")
+    if not ref_token:
+        # Fallback to reading from body if frontend still sends it
+        try:
+            body = await request.json()
+            ref_token = body.get("refresh_token")
+        except:
+            pass
+            
+    if not ref_token:
+        raise HTTPException(status_code=400, detail="No refresh token provided")
+
+    payload = verify_refresh_token(ref_token)
     if payload is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
@@ -197,17 +299,39 @@ async def refresh_access_token(body: RefreshTokenRequest):
     access_token = create_access_token(
         data={"sub": str(user.get("phone_number", user.get("email")))}, expires_delta=access_token_expires
     )
-    refresh_token = create_refresh_token(
+    new_refresh_token = create_refresh_token(
         data={"sub": str(user.get("phone_number", user.get("email")))},
         expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     )
 
+    # Set cookies
+    response.set_cookie(
+        key="helpon_access_token",
+        value=access_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+    response.set_cookie(
+        key="helpon_refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="none",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+    )
+
     return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
         "token_type": "bearer",
         "full_name": str(user.get("full_name", ""))
     }
+    
+@app.post("/api/logout")
+async def logout(response: Response):
+    response.delete_cookie(key="helpon_access_token", secure=True, httponly=True, samesite="none")
+    response.delete_cookie(key="helpon_refresh_token", secure=True, httponly=True, samesite="none")
+    return {"status": "Logged out successfully"}
 
 # --- Real-World Tracking APIs --- #
 
@@ -244,6 +368,27 @@ async def get_profile(current_user: dict = Depends(get_current_user)):
         verified=current_user.get("verified", False)
     )
 
+from fastapi import UploadFile, File
+
+@app.post("/api/users/me/avatar")
+async def upload_avatar(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    if not os.getenv("CLOUDINARY_URL"):
+        raise HTTPException(status_code=500, detail="Cloudinary is not configured. Please add CLOUDINARY_URL to .env")
+        
+    try:
+        # Upload to cloudinary
+        result = cloudinary.uploader.upload(file.file, folder="helpon_avatars")
+        url = result.get("secure_url")
+        
+        # Save URL to MongoDB
+        await users_collection.update_one(
+            {"_id": current_user["_id"]},
+            {"$set": {"avatar": url}}
+        )
+        return {"status": "Avatar updated successfully", "url": url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+
 @app.put("/api/users/me/profile")
 async def update_profile(profile_data: UserProfileUpdate, current_user: dict = Depends(get_current_user)):
     update_fields = {
@@ -263,6 +408,58 @@ async def update_profile(profile_data: UserProfileUpdate, current_user: dict = D
     )
     
     return {"status": "Profile updated successfully"}
+
+@app.put("/api/users/me/location")
+async def update_location(location: LocationUpdate, current_user: dict = Depends(get_current_user)):
+    try:
+        await users_collection.update_one(
+            {"_id": current_user["_id"]},
+            {
+                "$set": {
+                    "last_location": {
+                        "type": "Point",
+                        "coordinates": [location.lon, location.lat]
+                    },
+                    "last_location_time": datetime.utcnow()
+                }
+            }
+        )
+        return {"status": "Location updated"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/users/active", response_model=List[UserLocationResponse])
+async def get_active_users():
+    # Fetch users updated in the last 15 minutes
+    fifteen_mins_ago = datetime.utcnow() - timedelta(minutes=15)
+    
+    cursor = users_collection.find({
+        "last_location_time": {"$gte": fifteen_mins_ago},
+        "last_location": {"$exists": True}
+    })
+    
+    users = await cursor.to_list(length=100)
+    
+    active_users = []
+    for user in users:
+        coords = user.get("last_location", {}).get("coordinates", [0, 0])
+        lon, lat = coords if len(coords) == 2 else (0, 0)
+        
+        last_updated = user.get("last_location_time")
+        if last_updated:
+            last_updated_str = last_updated.isoformat() + "Z"
+        else:
+            last_updated_str = datetime.utcnow().isoformat() + "Z"
+            
+        active_users.append(UserLocationResponse(
+            id=str(user["_id"]),
+            full_name=user.get("full_name", "Anonymous Helper") or "Anonymous Helper",
+            lat=lat,
+            lon=lon,
+            last_updated=last_updated_str
+        ))
+        
+    return active_users
 
 @app.put("/api/users/me/settings")
 async def update_settings(settings: UserSettingsUpdate, current_user: dict = Depends(get_current_user)):
@@ -387,6 +584,24 @@ async def create_emergency(emergency: EmergencyCreate, current_user: dict = Depe
             "created_at": datetime.utcnow()
         })
         
+    # Broadcast to websockets
+    try:
+        await manager.broadcast({
+            "type": "new_sos",
+            "data": {
+                "id": str(result.inserted_id),
+                "type": new_emergency["type"],
+                "description": new_emergency["description"],
+                "lat": emergency.lat,
+                "lon": emergency.lon,
+                "created_by": new_emergency["created_name"],
+                "status": new_emergency["status"],
+                "created_at": new_emergency["created_at"].isoformat()
+            }
+        })
+    except Exception as e:
+        print(f"WebSocket broadcast error: {e}")
+        
     return {"status": "Emergency broadcasted", "id": str(result.inserted_id)}
 
 @app.get("/api/emergency/nearby")
@@ -425,6 +640,20 @@ async def accept_emergency(id: str, current_user: dict = Depends(get_current_use
     if result.modified_count == 0:
         raise HTTPException(status_code=400, detail="Emergency not found or already accepted.")
         
+    # Broadcast update
+    try:
+        await manager.broadcast({
+            "type": "update_sos",
+            "data": {
+                "id": id,
+                "status": "accepted",
+                "helper_id": str(current_user["_id"]),
+                "helper_name": current_user.get("full_name")
+            }
+        })
+    except Exception as e:
+        print(f"WebSocket broadcast error: {e}")
+        
     return {"status": "Emergency accepted"}
 
 @app.put("/api/emergency/{id}/complete")
@@ -461,6 +690,18 @@ async def complete_emergency(id: str, current_user: dict = Depends(get_current_u
             "created_at": datetime.utcnow()
         })
         
+    # Broadcast update
+    try:
+        await manager.broadcast({
+            "type": "update_sos",
+            "data": {
+                "id": id,
+                "status": "resolved"
+            }
+        })
+    except Exception as e:
+        print(f"WebSocket broadcast error: {e}")
+        
     return {"status": "Emergency resolved and 50 Points awarded."}
 
 @app.get("/api/inbox")
@@ -488,71 +729,8 @@ async def read_notification(notif_id: str, current_user: dict = Depends(get_curr
     )
     return {"status": "Read"}
 
-# --- Support & Help Endpoints --- #
-
-@app.post("/api/support", response_description="Submit a help request")
-async def submit_support_request(request: HelpRequestCreate, current_user: Optional[dict] = Depends(get_current_user_optional)):
-    user_id = str(current_user["_id"]) if current_user else None
-    
-    new_request = {
-        "name": request.name,
-        "email": request.email,
-        "subject": request.subject,
-        "message": request.message,
-        "user_id": user_id,
-        "status": "open",
-        "created_at": datetime.utcnow()
-    }
-    
-    result = await support_requests_collection.insert_one(new_request)
-    
-    # In a real app, send an email to the user here using SMTP or SendGrid
-    print(f"Mock Email Sent: 'We received your request ({request.subject}) and will respond shortly!' to {request.email}")
-    
-    return {"status": "success", "message": "Your request has been submitted successfully. We will email you shortly.", "id": str(result.inserted_id)}
-
-@app.get("/api/faqs", response_description="Get Frequently Asked Questions")
-async def get_faqs():
-    # If DB is empty, provide default FAQs
-    count = await faqs_collection.count_documents({})
-    if count == 0:
-        default_faqs = [
-            {"question": "How do I become a verified helper?", "answer": "You can request verification from your profile page. You will need to upload a valid government ID.", "category": "account"},
-            {"question": "How do HelpPoints work?", "answer": "You earn HelpPoints by assisting others during emergencies. These points can be redeemed in the Rewards section.", "category": "rewards"},
-            {"question": "Is my location always tracked?", "answer": "No. Your location is only shared when you actively have the app open or when you broadcast an SOS.", "category": "privacy"}
-        ]
-        await faqs_collection.insert_many(default_faqs)
-        
-    cursor = faqs_collection.find({})
-    faqs = await cursor.to_list(length=100)
-    
-    response = []
-    for faq in faqs:
-        response.append({
-            "id": str(faq["_id"]),
-            "question": faq["question"],
-            "answer": faq["answer"],
-            "category": faq.get("category", "general")
-        })
-    return response
-
-@app.post("/api/chatbot", response_description="AI Chatbot Assistant")
-async def ai_chatbot(query: ChatbotQuery):
-    # This is a mock AI response. In production, connect this to OpenAI/Gemini/Claude
-    user_msg = query.prompt.lower()
-    bot_response = "I am the HelpOn AI assistant. How can I help you today?"
-    
-    if "point" in user_msg or "reward" in user_msg:
-        bot_response = "You can earn HelpPoints by completing SOS assists. Navigate to the Rewards tab to see what you can redeem them for!"
-    elif "verify" in user_msg or "id" in user_msg:
-        bot_response = "To get verified, go to your Profile and click 'Complete Verification' under the Verification Status section."
-    elif "location" in user_msg or "tracking" in user_msg:
-        bot_response = "HelpOn only tracks your location when the app is active to preserve your privacy."
-        
-    return {"response": bot_response}
 
 # --- Support & Help Endpoints --- #
-
 @app.post("/api/support", response_description="Submit a help request")
 @limiter.limit("5/minute")
 async def submit_support_request(request: Request, body: HelpRequestCreate, current_user: Optional[dict] = Depends(get_current_user_optional)):
@@ -754,9 +932,86 @@ async def get_user_redemptions(current_user: dict = Depends(get_current_user)):
 
 # --- Admin Endpoints --- #
 
-@app.get("/api/admin/support", response_description="Get all support requests")
+def check_admin(user: dict):
+    """Simple admin check. In production, check user role from DB."""
+    # For now, allow any authenticated user to access admin (protected by auth cookie).
+    # TODO: Add role-based access: if not user.get("is_admin"): raise HTTPException(403, ...)
+    return True
+
+@app.get("/api/admin/stats", response_description="Get admin dashboard statistics")
+async def get_admin_stats(current_user: dict = Depends(get_current_user)):
+    check_admin(current_user)
+    
+    total_users = await users_collection.count_documents({})
+    total_sos = await emergencies_collection.count_documents({})
+    active_sos = await emergencies_collection.count_documents({"status": "active"})
+    resolved_sos = await emergencies_collection.count_documents({"status": "resolved"})
+    open_tickets = await support_requests_collection.count_documents({"status": "open"})
+    total_tickets = await support_requests_collection.count_documents({})
+    
+    # Active users in last 24 hours
+    active_users_24h = await users_collection.count_documents({
+        "last_active": {"$gte": datetime.utcnow() - timedelta(hours=24)}
+    })
+    
+    return {
+        "total_users": total_users,
+        "active_users_24h": active_users_24h,
+        "total_sos": total_sos,
+        "active_sos": active_sos,
+        "resolved_sos": resolved_sos,
+        "open_tickets": open_tickets,
+        "total_tickets": total_tickets,
+    }
+
+@app.get("/api/admin/users", response_description="Get all users (admin)")
+async def get_all_users(current_user: dict = Depends(get_current_user)):
+    check_admin(current_user)
+    
+    cursor = users_collection.find({}, {
+        "_id": 1, "full_name": 1, "email": 1, "phone_number": 1, 
+        "points": 1, "helps_given": 1, "verified": 1, "last_active": 1
+    }).sort("points", -1).limit(100)
+    users = await cursor.to_list(length=100)
+    
+    response = []
+    for u in users:
+        response.append({
+            "id": str(u["_id"]),
+            "full_name": u.get("full_name", "Unknown"),
+            "email": u.get("email", ""),
+            "phone_number": u.get("phone_number", ""),
+            "points": u.get("points", 0),
+            "helps_given": u.get("helps_given", 0),
+            "verified": u.get("verified", False),
+            "last_active": u["last_active"].isoformat() if u.get("last_active") else None
+        })
+    return response
+
+@app.get("/api/admin/sos", response_description="Get all SOS requests (admin)")
+async def get_all_sos(current_user: dict = Depends(get_current_user)):
+    check_admin(current_user)
+    
+    cursor = emergencies_collection.find({}).sort("created_at", -1).limit(100)
+    emergencies = await cursor.to_list(length=100)
+    
+    response = []
+    for e in emergencies:
+        response.append({
+            "id": str(e["_id"]),
+            "type": e.get("type", "other"),
+            "description": e.get("description", ""),
+            "status": e.get("status", "active"),
+            "created_by": e.get("created_name", "Unknown"),
+            "lat": e["location"]["coordinates"][1] if e.get("location") else None,
+            "lon": e["location"]["coordinates"][0] if e.get("location") else None,
+            "created_at": e["created_at"].isoformat() if e.get("created_at") else None
+        })
+    return response
+
+@app.get("/api/admin/support", response_description="Get all support requests (admin)")
 async def get_all_support_requests(current_user: dict = Depends(get_current_user)):
-    # In a real app, verify the user is an admin here
+    check_admin(current_user)
     
     cursor = support_requests_collection.find({}).sort("created_at", -1)
     requests = await cursor.to_list(length=100)
@@ -773,3 +1028,15 @@ async def get_all_support_requests(current_user: dict = Depends(get_current_user
             "created_at": req["created_at"].isoformat() if "created_at" in req else None
         })
     return response
+
+@app.put("/api/admin/support/{ticket_id}/close", response_description="Close a support ticket")
+async def close_support_ticket(ticket_id: str, current_user: dict = Depends(get_current_user)):
+    check_admin(current_user)
+    
+    result = await support_requests_collection.update_one(
+        {"_id": ObjectId(ticket_id)},
+        {"$set": {"status": "closed", "closed_at": datetime.utcnow(), "closed_by": str(current_user["_id"])}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    return {"status": "Ticket closed"}

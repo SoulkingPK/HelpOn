@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
     <title>My Profile - HelpOn</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
@@ -87,7 +89,7 @@
     </style>
     <script>
         // Authentication check
-        if (!localStorage.getItem('helpon_token')) {
+        if (!isUserLoggedIn()) {
             window.location.href = 'index.html';
         }
 
@@ -110,7 +112,7 @@
             }
         });
     </script>
-<script src="config.js"></script>
+    <script src="config.js"></script>
 </head>
 
 <body class="bg-light">
@@ -355,13 +357,13 @@
             let isEditMode = false;
             let originalFormData = {};
             let hasUnsavedChanges = false;
-            let currentAvatarBase64 = null;
+            let currentAvatarUrl = null;
+            let currentAvatarFile = null;
 
             function getUserKey() {
                 const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
                 if (name) return name.replace(/\s+/g, '_');
-                const token = localStorage.getItem('helpon_token');
-                return token ? token.slice(-12) : 'guest';
+                return 'guest';
             }
 
             function getPointsStorageKey() {
@@ -445,12 +447,9 @@
             // Load Real Data from Backend
             async function fetchProfileData() {
                 try {
-                    const token = localStorage.getItem('helpon_token');
-                    if (!token) return;
+                    if (!isUserLoggedIn()) return;
 
-                    const res = await fetch(`${apiBase}/users/me/profile`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const res = await fetchWithAuth(`${apiBase}/users/me/profile`);
 
                     if (res.ok) {
                         const data = await res.json();
@@ -476,7 +475,8 @@
                             avatarImage.src = data.avatar;
                             avatarImage.style.display = 'block';
                             avatarPlaceholder.style.display = 'none';
-                            currentAvatarBase64 = data.avatar;
+                            currentAvatarUrl = data.avatar;
+                            currentAvatarFile = null;
                         } else {
                             avatarImage.style.display = 'none';
                             avatarPlaceholder.style.display = 'block';
@@ -509,17 +509,17 @@
 
             avatarInput.addEventListener('change', function (e) {
                 if (e.target.files && e.target.files[0]) {
+                    currentAvatarFile = e.target.files[0];
                     const reader = new FileReader();
 
-                    reader.onload = function (e) {
-                        currentAvatarBase64 = e.target.result;
-                        avatarImage.src = currentAvatarBase64;
+                    reader.onload = function (event) {
+                        avatarImage.src = event.target.result;
                         avatarImage.style.display = 'block';
                         avatarPlaceholder.style.display = 'none';
                         showSaveChangesBar();
                     };
 
-                    reader.readAsDataURL(e.target.files[0]);
+                    reader.readAsDataURL(currentAvatarFile);
                 }
             });
 
@@ -594,25 +594,45 @@
                     const phone = document.getElementById('phone').value.trim();
                     const fullName = `${firstName} ${lastName}`;
 
-                    const payload = {
-                        full_name: fullName,
-                        email: email,
-                        phone_number: phone,
-                        avatar: currentAvatarBase64
-                    };
-
                     try {
+
                         // Change button text to reflect saving state
                         const originalBtnText = saveChangesBtn.innerHTML;
                         saveChangesBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
                         saveChangesBtn.disabled = true;
 
-                        const token = localStorage.getItem('helpon_token');
-                        const res = await fetch(`${apiBase}/users/me/profile`, {
+                        let finalAvatarUrl = currentAvatarUrl;
+
+                        if (currentAvatarFile) {
+                            const formData = new FormData();
+                            formData.append('file', currentAvatarFile);
+
+                            const uploadRes = await fetchWithAuth(`${apiBase}/users/me/avatar`, {
+                                method: 'POST',
+                                headers: {
+                                },
+                                body: formData
+                            });
+
+                            if (uploadRes.ok) {
+                                const uploadData = await uploadRes.json();
+                                finalAvatarUrl = uploadData.url;
+                            } else {
+                                const errData = await uploadRes.json();
+                                throw new Error(errData.detail || 'Failed to upload avatar');
+                            }
+                        }
+
+                        const payload = {
+                            full_name: fullName,
+                            email: email,
+                            phone_number: phone,
+                            avatar: finalAvatarUrl
+                        };
+                        const res = await fetchWithAuth(`${apiBase}/users/me/profile`, {
                             method: 'PUT',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
                             },
                             body: JSON.stringify(payload)
                         });
@@ -717,12 +737,10 @@
                 e.preventDefault();
                 const isOn = confirm('Do you want to enable push notifications?');
                 try {
-                    const token = localStorage.getItem('helpon_token');
-                    await fetch(`${apiBase}/users/me/settings`, {
+                    await fetchWithAuth(`${apiBase}/users/me/settings`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
                         },
                         body: JSON.stringify({ notifications: isOn, privacy: "standard" })
                     });
@@ -762,10 +780,10 @@
                     }
                 }
 
-                // Perform logout
-                localStorage.removeItem('helpon_token');
-                localStorage.removeItem('helpon_refresh_token');
-                window.location.href = 'index.html';
+                // Perform logout - clears HTTP-only cookies server-side
+                setLoggedInState(false);
+                localStorage.removeItem('helpon_user_name');
+                handleAuthFailure();
             });
 
             // Toast notification function
@@ -812,6 +830,15 @@
                 }
             });
         });
+    </script>
+
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function() {
+                navigator.serviceWorker.register("service-worker.js")
+                    .catch(function(e) { console.warn("SW registration failed:", e); });
+            });
+        }
     </script>
 </body>
 

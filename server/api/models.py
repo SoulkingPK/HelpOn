@@ -39,6 +39,13 @@ class LocationUpdate(BaseModel):
     lat: float
     lon: float
 
+class UserLocationResponse(BaseModel):
+    id: str
+    full_name: str
+    lat: float
+    lon: float
+    last_updated: str
+
 class EmergencyCreate(BaseModel):
     type: str
     description: str

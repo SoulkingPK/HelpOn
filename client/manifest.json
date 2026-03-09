@@ -1,0 +1,56 @@
+{
+    "name": "HelpOn - Emergency Support Platform",
+    "short_name": "HelpOn",
+    "description": "Connect with nearby helpers during emergencies. Save and be saved.",
+    "start_url": "/client/home.html",
+    "scope": "/client/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#f8fafc",
+    "theme_color": "#2563eb",
+    "icons": [
+        {
+            "src": "assets/images/logo.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "assets/images/logo.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "utilities",
+        "social",
+        "health"
+    ],
+    "shortcuts": [
+        {
+            "name": "SOS Emergency",
+            "short_name": "SOS",
+            "description": "Quickly access emergency services",
+            "url": "/client/home.html#sos",
+            "icons": [
+                {
+                    "src": "assets/images/logo.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Map View",
+            "short_name": "Map",
+            "description": "View nearby helpers and emergencies",
+            "url": "/client/map.html",
+            "icons": [
+                {
+                    "src": "assets/images/logo.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ]
+}

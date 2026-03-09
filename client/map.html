@@ -4,6 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
     <title>Map View - HelpOn</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
@@ -17,7 +19,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <script>
-        if (!localStorage.getItem('helpon_token') && !localStorage.getItem('helpon_refresh_token')) {
+        if (!isUserLoggedIn()) {
             window.location.href = 'index.html';
         }
     </script>
@@ -293,7 +295,7 @@
             }
         }
     </style>
-<script src="config.js"></script>
+    <script src="config.js"></script>
 </head>
 
 <body>
@@ -520,7 +522,6 @@
         function getUserKey() {
             const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
             if (name) return name.replace(/\s+/g, '_');
-            const token = localStorage.getItem('helpon_token');
             return token ? token.slice(-12) : 'guest';
         }
 
@@ -548,64 +549,16 @@
             return `helpon_last_sos_alert_${getUserKey()}`;
         }
 
-        function getAuthToken() {
-            return localStorage.getItem('helpon_token');
-        }
 
-        async function refreshAccessToken() {
-            const refreshToken = localStorage.getItem('helpon_refresh_token');
-            if (!refreshToken) return null;
-            try {
-                const res = await fetch(`${apiBase}/refresh`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ refresh_token: refreshToken })
-                });
-                if (!res.ok) return null;
-                const data = await res.json();
-                if (data.access_token) {
-                    localStorage.setItem('helpon_token', data.access_token);
-                }
-                if (data.refresh_token) {
-                    localStorage.setItem('helpon_refresh_token', data.refresh_token);
-                }
-                return data.access_token || null;
-            } catch (e) {
-                console.error('Refresh token failed:', e);
-                return null;
-            }
-        }
-
-        async function fetchWithAuth(url, options = {}) {
-            const accessToken = getAuthToken();
-            if (!accessToken) {
-                return { res: null, authError: true };
-            }
-
-            const merged = {
-                ...options,
-                headers: {
-                    ...(options.headers || {}),
-                    Authorization: `Bearer ${accessToken}`
-                }
-            };
-
-            let res = await fetch(url, merged);
-            if (res.status === 401 || res.status === 403) {
-                const newToken = await refreshAccessToken();
-                if (!newToken) {
-                    return { res, authError: true };
-                }
-                merged.headers.Authorization = `Bearer ${newToken}`;
-                res = await fetch(url, merged);
-            }
-            return { res, authError: false };
-        }
 
         function handleAuthFailure() {
-            localStorage.removeItem('helpon_token');
-            localStorage.removeItem('helpon_refresh_token');
-            window.location.href = 'index.html';
+            setLoggedInState(false);
+            localStorage.removeItem('helpon_user_name');
+            // Call backend logout to clear HTTP-only cookies, then redirect
+            fetch(`${apiBase}/logout`, { method: 'POST', credentials: 'include' })
+                .finally(() => {
+                    window.location.href = 'index.html';
+                });
         }
 
         function loadAlertedSOS() {
@@ -862,6 +815,7 @@
                 this.map = null;
                 this.userMarker = null;
                 this.emergencyMarkers = L.layerGroup();
+                this.activeUserMarkers = L.layerGroup();
                 this.serviceClusters = {
                     hospital: L.markerClusterGroup({ chunkedLoading: true }),
                     police: L.markerClusterGroup({ chunkedLoading: true }),
@@ -880,6 +834,43 @@
             init() {
                 this.setupEventListeners();
                 this.initMap();
+                this.initWebSocket();
+            }
+
+            initWebSocket() {
+                const wsUrl = typeof CONFIG !== 'undefined' && CONFIG.WS_BASE_URL
+                    ? CONFIG.WS_BASE_URL
+                    : apiBase.replace('http', 'ws') + '/ws';
+
+                this.ws = new WebSocket(wsUrl);
+
+                this.ws.onopen = () => {
+                    console.log('WebSocket connected');
+                    // Ping every 30 seconds to keep connection alive
+                    this.wsPingInterval = setInterval(() => {
+                        if (this.ws.readyState === WebSocket.OPEN) {
+                            this.ws.send('ping');
+                        }
+                    }, 30000);
+                };
+
+                this.ws.onmessage = (event) => {
+                    if (event.data === 'pong') return;
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'new_sos' || data.type === 'update_sos' || data.type === 'cancel_sos') {
+                            this.fetchEmergencies();
+                        }
+                    } catch (e) {
+                        console.error('WebSocket message error:', e);
+                    }
+                };
+
+                this.ws.onclose = () => {
+                    console.log('WebSocket disconnected, attempting to reconnect...');
+                    clearInterval(this.wsPingInterval);
+                    setTimeout(() => this.initWebSocket(), 5000);
+                };
             }
 
             initMap() {
@@ -897,6 +888,7 @@
                 }).addTo(this.map);
 
                 this.map.addLayer(this.emergencyMarkers);
+                this.map.addLayer(this.activeUserMarkers);
 
                 this.currentLocation = { lat: initialLat, lon: initialLon };
                 this.setUserMarker(initialLat, initialLon);
@@ -930,6 +922,76 @@
                     );
                 } else if (!navigator.geolocation && !savedLocation) {
                     this.showToast('Location not supported. Using default map.', 'warning');
+                }
+
+                // Start tracking live location and fetching active users
+                this.startLocationTracking();
+            }
+
+            async sendLocationUpdate(lat, lon) {
+                try {
+                    const token = getAuthToken();
+                    if (!token) return;
+                    await fetchWithAuth(`${apiBase}/users/me/location`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lat, lon })
+                    });
+                } catch (err) {
+                    console.error('Failed to update live location:', err);
+                }
+            }
+
+            async fetchActiveUsers() {
+                try {
+                    const token = getAuthToken();
+                    if (!token) return;
+                    const res = await fetchWithAuth(`${apiBase}/users/active`);
+                    if (!res || !res.ok) return;
+                    const users = await res.json();
+
+                    this.activeUserMarkers.clearLayers();
+                    users.forEach(u => {
+                        // Very rough heuristic to avoid drawing a marker right on top of our own user marker
+                        if (Math.abs(u.lat - this.currentLocation.lat) < 0.0001 && Math.abs(u.lon - this.currentLocation.lon) < 0.0001) return;
+
+                        const iconHtml = `<div style="background-color:var(--secondary); width:16px; height:16px; border-radius:50%; border:2px solid white; box-shadow:0 0 4px rgba(0,0,0,0.4);"></div>`;
+                        const uIcon = L.divIcon({ className: '', html: iconHtml, iconSize: [16, 16], iconAnchor: [8, 8] });
+                        const marker = L.marker([u.lat, u.lon], { icon: uIcon }).bindPopup(`<b>${u.full_name}</b><br><small>Active Helper</small>`);
+                        this.activeUserMarkers.addLayer(marker);
+                    });
+                } catch (err) {
+                    console.error('Failed fetching active users:', err);
+                }
+            }
+
+            startLocationTracking() {
+                if (navigator.geolocation) {
+                    this.locationWatchId = navigator.geolocation.watchPosition(
+                        (position) => {
+                            const lat = position.coords.latitude;
+                            const lon = position.coords.longitude;
+
+                            this.currentLocation = { lat, lon };
+                            this.setUserMarker(lat, lon);
+                            saveLocation(lat, lon);
+
+                            // Throttle updates to backend (e.g. max once per 30 seconds)
+                            const now = Date.now();
+                            if (!this.lastLocationUpdate || now - this.lastLocationUpdate > 30000) {
+                                this.sendLocationUpdate(lat, lon);
+                                this.lastLocationUpdate = now;
+                            }
+                        },
+                        (error) => {
+                            console.warn("Watch position error:", error);
+                        },
+                        { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+                    );
+
+                    // fetch active users periodically
+                    this.fetchActiveUsers();
+                    setInterval(() => this.fetchActiveUsers(), 60000);
                 }
             }
 
@@ -1101,18 +1163,12 @@
 
             async fetchEmergencies() {
                 try {
-                    const token = getAuthToken();
-                    if (!token) {
+                    if (!isUserLoggedIn()) {
                         this.showToast('Please log in to view emergencies.', 'warning');
                         handleAuthFailure();
                         return;
                     }
-                    const { res, authError } = await fetchWithAuth(`${apiBase}/emergencies/nearby`);
-                    if (authError) {
-                        this.showToast('Session expired. Please log in again.', 'warning');
-                        handleAuthFailure();
-                        return;
-                    }
+                    const res = await fetchWithAuth(`${apiBase}/emergencies/nearby`);
                     if (!res || !res.ok) {
                         throw new Error('Failed to load emergencies');
                     }
@@ -1234,27 +1290,18 @@
                 } catch (err) {
                     console.error("Failed fetching live emergencies", err);
                 }
-
-                // Poll every 2 seconds for real-time responsiveness
-                setTimeout(() => this.fetchEmergencies(), 2000);
             }
 
             async acceptEmergency(id) {
                 try {
-                    const token = getAuthToken();
-                    if (!token) {
+                    if (!isUserLoggedIn()) {
                         this.showToast('Please log in to respond.', 'warning');
                         handleAuthFailure();
                         return;
                     }
-                    const { res, authError } = await fetchWithAuth(`${apiBase}/emergencies/${id}/accept`, {
+                    const res = await fetchWithAuth(`${apiBase}/emergencies/${id}/accept`, {
                         method: 'POST'
                     });
-                    if (authError) {
-                        this.showToast('Session expired. Please log in again.', 'warning');
-                        handleAuthFailure();
-                        return;
-                    }
                     if (res.ok) {
                         this.showToast('Emergency Request Accepted!', 'success');
                         this.map.closePopup();
@@ -1270,20 +1317,14 @@
 
             async completeEmergency(id) {
                 try {
-                    const token = getAuthToken();
-                    if (!token) {
+                    if (!isUserLoggedIn()) {
                         this.showToast('Please log in to complete SOS.', 'warning');
                         handleAuthFailure();
                         return;
                     }
-                    const { res, authError } = await fetchWithAuth(`${apiBase}/emergencies/${id}/complete`, {
+                    const res = await fetchWithAuth(`${apiBase}/emergencies/${id}/complete`, {
                         method: 'POST'
                     });
-                    if (authError) {
-                        this.showToast('Session expired. Please log in again.', 'warning');
-                        handleAuthFailure();
-                        return;
-                    }
                     if (res.ok) {
                         awardPoints(HELP_POINTS_PER_TASK);
                         incrementHelpsCount();
@@ -1371,6 +1412,13 @@
                     this.map.removeLayer(this.emergencyMarkers);
                 }
 
+                const helpersToggle = document.getElementById('helpersToggle');
+                if (helpersToggle && helpersToggle.checked) {
+                    this.map.addLayer(this.activeUserMarkers);
+                } else {
+                    this.map.removeLayer(this.activeUserMarkers);
+                }
+
                 if (!silent) {
                     this.toggleFilter(); // Hide after applying
                     this.showToast('Map layers updated', 'success');
@@ -1383,12 +1431,14 @@
                 const fireToggle = document.getElementById('fireToggle');
                 const pharmacyToggle = document.getElementById('pharmacyToggle');
                 const emergenciesToggle = document.getElementById('emergenciesToggle');
+                const helpersToggle = document.getElementById('helpersToggle');
 
                 if (hospitalsToggle) hospitalsToggle.checked = false;
                 if (policeToggle) policeToggle.checked = false;
                 if (fireToggle) fireToggle.checked = false;
                 if (pharmacyToggle) pharmacyToggle.checked = false;
                 if (emergenciesToggle) emergenciesToggle.checked = true;
+                if (helpersToggle) helpersToggle.checked = true;
 
                 this.applyFilters();
             }
@@ -1445,6 +1495,15 @@
                 }
             }
         });
+    </script>
+
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", function() {
+                navigator.serviceWorker.register("service-worker.js")
+                    .catch(function(e) { console.warn("SW registration failed:", e); });
+            });
+        }
     </script>
 </body>
 

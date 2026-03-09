@@ -208,7 +208,7 @@
     </style>
     <script>
         // Authentication check
-        if (!localStorage.getItem('helpon_token')) {
+        if (!isUserLoggedIn()) {
             window.location.href = 'index.html';
         }
     </script>
