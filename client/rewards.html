@@ -79,7 +79,7 @@
             window.location.href = 'index.html';
         }
     </script>
-<script src="config.js"></script>
+    <script src="config.js"></script>
 </head>
 
 <body class="bg-light" style="padding-bottom: 80px;">
@@ -269,7 +269,7 @@
         function getUserKey() {
             const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
             if (name) return name.replace(/\s+/g, '_');
-            return token ? token.slice(-12) : 'guest';
+            return 'guest';
         }
 
         function makeStorageKey(suffix) {
@@ -328,10 +328,8 @@
 
             async fetchPoints() {
                 try {
-                    if (!token) return;
-                    const res = await fetchWithAuth(`${apiBase}/users/me/profile`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    if (!isUserLoggedIn()) return;
+                    const res = await fetchWithAuth(`${apiBase}/users/me/profile`);
                     if (res.ok) {
                         const data = await res.json();
                         this.userPoints = data.points || 0; // Live points from backend
@@ -368,11 +366,9 @@
 
             async loadVouchers() {
                 try {
-                    if (!token) return;
+                    if (!isUserLoggedIn()) return;
 
-                    const res = await fetchWithAuth(`${apiBase}/rewards`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const res = await fetchWithAuth(`${apiBase}/rewards`);
 
                     if (res.ok) {
                         const vouchers = await res.json();
@@ -612,7 +608,7 @@
                 const { rewardId, rewardName, pointsCost } = this.currentRedemption;
 
                 try {
-                    if (!token) return;
+                    if (!isUserLoggedIn()) return;
 
                     const res = await fetchWithAuth(`${apiBase}/rewards/${rewardId}/redeem`, {
                         method: 'POST',
@@ -732,11 +728,9 @@
                 historyModal.show();
 
                 try {
-                    if (!token) return;
+                    if (!isUserLoggedIn()) return;
 
-                    const res = await fetchWithAuth(`${apiBase}/user/redemptions`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const res = await fetchWithAuth(`${apiBase}/user/redemptions`);
 
                     if (res.ok) {
                         const redemptions = await res.json();
@@ -869,9 +863,9 @@
 
     <script>
         if ("serviceWorker" in navigator) {
-            window.addEventListener("load", function() {
+            window.addEventListener("load", function () {
                 navigator.serviceWorker.register("service-worker.js")
-                    .catch(function(e) { console.warn("SW registration failed:", e); });
+                    .catch(function (e) { console.warn("SW registration failed:", e); });
             });
         }
     </script>

@@ -148,7 +148,7 @@
             display: none;
         }
     </style>
-<script src="config.js"></script>
+    <script src="config.js"></script>
 </head>
 
 <body>
@@ -267,17 +267,13 @@
             // First load profile to know who "we" are
             let myProfileData = null;
             try {
-                const profRes = await fetchWithAuth(`${apiBase}/users/me/profile`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const profRes = await fetchWithAuth(`${apiBase}/users/me/profile`);
                 if (profRes.ok) myProfileData = await profRes.json();
             } catch (e) { }
 
             // Load Leaderboard
             try {
-                const res = await fetchWithAuth(`${apiBase}/leaderboard`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const res = await fetchWithAuth(`${apiBase}/leaderboard`);
 
                 if (!res.ok) throw new Error('Failed to fetch leaderboard');
                 const leaderboard = await res.json();
@@ -339,9 +335,9 @@
 
     <script>
         if ("serviceWorker" in navigator) {
-            window.addEventListener("load", function() {
+            window.addEventListener("load", function () {
                 navigator.serviceWorker.register("service-worker.js")
-                    .catch(function(e) { console.warn("SW registration failed:", e); });
+                    .catch(function (e) { console.warn("SW registration failed:", e); });
             });
         }
     </script>

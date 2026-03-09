@@ -42,7 +42,7 @@
             window.location.href = 'index.html';
         }
     </script>
-<script src="config.js"></script>
+    <script src="config.js"></script>
 </head>
 
 <body class="bg-light" style="padding-bottom: 72px;">
@@ -172,11 +172,9 @@
 
             async function fetchNotifications() {
                 try {
-                    if (!token) return;
+                    if (!isUserLoggedIn()) return;
 
-                    const res = await fetchWithAuth(`${apiBase}/inbox`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const res = await fetchWithAuth(`${apiBase}/inbox`);
 
                     if (res.ok) {
                         const notifications = await res.json();
@@ -228,8 +226,7 @@
                             // Call API to mark read
                             try {
                                 await fetchWithAuth(`${apiBase}/inbox/${n.id}/read`, {
-                                    method: 'POST',
-                                    headers: { 'Authorization': `Bearer ${token}` }
+                                    method: 'POST'
                                 });
                             } catch (err) { }
 
@@ -329,9 +326,9 @@
 
     <script>
         if ("serviceWorker" in navigator) {
-            window.addEventListener("load", function() {
+            window.addEventListener("load", function () {
                 navigator.serviceWorker.register("service-worker.js")
-                    .catch(function(e) { console.warn("SW registration failed:", e); });
+                    .catch(function (e) { console.warn("SW registration failed:", e); });
             });
         }
     </script>

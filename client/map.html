@@ -931,7 +931,7 @@
             async sendLocationUpdate(lat, lon) {
                 try {
                     const token = getAuthToken();
-                    if (!token) return;
+                    if (!isUserLoggedIn()) return;
                     await fetchWithAuth(`${apiBase}/users/me/location`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
@@ -945,7 +945,7 @@
             async fetchActiveUsers() {
                 try {
                     const token = getAuthToken();
-                    if (!token) return;
+                    if (!isUserLoggedIn()) return;
                     const res = await fetchWithAuth(`${apiBase}/users/active`);
                     if (!res || !res.ok) return;
                     const users = await res.json();
