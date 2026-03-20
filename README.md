@@ -22,8 +22,9 @@ It’s like a “Zomato of nearby helpers” — but for emergencies, not food.
 
 > Anyone can sign up as a User, Helper, or both.
 
-> Verified users can opt into “available to help nearby” mode (like Uber drivers going online).
+> Verified users (KYC approved) receive a blue checkmark badge and can opt into “available to help nearby” mode.
 
+![Verification Status](docs/assets/verify_status.png)
 2. 🆘 Triggering an Emergency
 
 > A user can press a 1-tap SOS button from the app.
@@ -79,3 +80,23 @@ It’s like a “Zomato of nearby helpers” — but for emergencies, not food.
 > Leaderboard for helpful users (gamification).
 
 > Daily opt-in mode (e.g., “I’m available to help today”).
+
+## 🛡️ Trust & Security (KYC)
+
+To ensure a safe community, HelpOn implements a rigorous Know Your Customer (KYC) and Anti-Cheat system:
+
+### 1. Identity Verification (KYC)
+- **Submission**: Users upload government ID (Aadhar, PAN, etc.) via the profile section.
+- **Moderation**: Admins manually review documents to verify identities.
+- **Badges**: Verified helpers are clearly marked on the map with a blue checkmark.
+
+### 2. Anti-Cheat & Fraud Prevention
+- **GPS Spoofing Detection**: The system detects impossible travel speeds (>300 km/h) and ignores fake location updates.
+- **Redemption Limits**: Daily cap of 3 reward redemptions per user to prevent point abuse.
+- **Device Fingerprinting**: Basic tracking to prevent multiple account creations for fraud.
+
+### 🎬 Demo: How it Works
+
+![HelpOn Trust & Security Demo](docs/assets/demo.webp)
+
+*Identity verification and secure helper tracking in action.*
