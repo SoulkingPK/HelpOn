@@ -25,6 +25,7 @@ It’s like a “Zomato of nearby helpers” — but for emergencies, not food.
 > Verified users (KYC approved) receive a blue checkmark badge and can opt into “available to help nearby” mode.
 
 ![Verification Status](docs/assets/verify_status.png)
+
 2. 🆘 Triggering an Emergency
 
 > A user can press a 1-tap SOS button from the app.
@@ -97,6 +98,10 @@ To ensure a safe community, HelpOn implements a rigorous Know Your Customer (KYC
 
 ### 🎬 Demo: How it Works
 
-![HelpOn Trust & Security Demo](docs/assets/demo.webp)
+![HelpOn KYC Submission Process](docs/assets/kyc_demo.webp)
 
-*Identity verification and secure helper tracking in action.*
+*Step-by-step: Identity document submission for identity verification.*
+
+![KYC Pending Status](docs/assets/kyc_status.png)
+
+*Verification pending state after successful submission.*
