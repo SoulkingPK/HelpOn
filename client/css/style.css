@@ -1,4 +1,4 @@
-Small overrides to complement Bootstrap
+/* Small overrides to complement Bootstrap */
 :root {
     --bs-body-font-family: 'Segoe UI', system-ui, sans-serif;
 }
@@ -30,4 +30,23 @@ Small overrides to complement Bootstrap
 /* SOS button shadow */
 .btn-sos {
     box-shadow: 0 4px 20px rgba(220, 53, 69, 0.3);
+}
+
+/* Custom Toast Styles */
+.custom-toast {
+    min-width: 300px;
+    border-radius: 12px !important;
+    animation: slideInDown 0.3s ease-out;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+}
+
+@keyframes slideInDown {
+    from {
+        transform: translate(-50%, -100%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
 }

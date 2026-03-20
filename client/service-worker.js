@@ -1,22 +1,23 @@
 // HelpOn Service Worker
 // Provides offline support for static assets with a network-first strategy for API calls
 
-const CACHE_NAME = 'helpon-v1';
+const CACHE_NAME = 'helpon-v2';
 const STATIC_ASSETS = [
-    '/client/index.html',
-    '/client/register.html',
-    '/client/home.html',
-    '/client/map.html',
-    '/client/profile.html',
-    '/client/rewards.html',
-    '/client/inbox.html',
-    '/client/history.html',
-    '/client/leaderboard.html',
-    '/client/help.html',
-    '/client/admin.html',
-    '/client/config.js',
-    '/client/manifest.json',
-    '/client/assets/images/logo.png'
+    'index.html',
+    'register.html',
+    'home.html',
+    'map.html',
+    'profile.html',
+    'rewards.html',
+    'inbox.html',
+    'history.html',
+    'leaderboard.html',
+    'help.html',
+    'admin.html',
+    'config.js',
+    'manifest.json',
+    'css/style.css',
+    'js/utils.js'
 ];
 
 // Install: cache all static assets

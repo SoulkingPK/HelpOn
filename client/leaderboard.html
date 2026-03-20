@@ -149,6 +149,7 @@
         }
     </style>
     <script src="config.js"></script>
+    <script src="js/utils.js"></script>
 </head>
 
 <body>
@@ -333,14 +334,7 @@
         });
     </script>
 
-    <script>
-        if ("serviceWorker" in navigator) {
-            window.addEventListener("load", function () {
-                navigator.serviceWorker.register("service-worker.js")
-                    .catch(function (e) { console.warn("SW registration failed:", e); });
-            });
-        }
-    </script>
+    
 </body>
 
 </html>

@@ -10,6 +10,7 @@
     <!-- Bootstrap 5 CSS + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
 
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -207,10 +208,6 @@
         }
     </style>
     <script>
-        // Authentication check
-        if (!isUserLoggedIn()) {
-            window.location.href = 'index.html';
-        }
 
         // Set username dynamically
         document.addEventListener('DOMContentLoaded', () => {
@@ -225,6 +222,13 @@
         });
     </script>
     <script src="config.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        // Authentication check - must be after config.js is loaded
+        if (!isUserLoggedIn()) {
+            window.location.href = 'index.html';
+        }
+    </script>
 </head>
 
 <body class="bg-light" style="padding-bottom: 72px;">
@@ -458,45 +462,6 @@
 
     <!-- Custom JavaScript -->
     <script>
-        // Dark Mode Manager
-        class DarkModeManager {
-            constructor() {
-                this.isDarkMode = localStorage.getItem('darkMode') === 'true';
-                this.init();
-            }
-
-            init() {
-                // Apply saved mode on page load
-                this.applyDarkMode(this.isDarkMode);
-
-                // Set toggle state
-                const darkModeToggle = document.getElementById('darkModeToggle');
-                if (darkModeToggle) {
-                    darkModeToggle.checked = this.isDarkMode;
-                }
-            }
-
-            applyDarkMode(enable) {
-                const body = document.body;
-                const html = document.documentElement;
-
-                if (enable) {
-                    body.classList.add('dark-mode');
-                    html.setAttribute('data-bs-theme', 'dark');
-                } else {
-                    body.classList.remove('dark-mode');
-                    html.setAttribute('data-bs-theme', 'light');
-                }
-
-                this.isDarkMode = enable;
-                localStorage.setItem('darkMode', enable);
-            }
-
-            toggle() {
-                this.applyDarkMode(!this.isDarkMode);
-                return this.isDarkMode;
-            }
-        }
 
         // Help Requests Manager with Cancellation
         class HelpRequestsManager {
@@ -970,7 +935,6 @@
             initRewardsSystem();
             initMapSimulation();
             initNavigation();
-            initToastSystem();
 
             // Show welcome message
             const welcomeName = (localStorage.getItem('helpon_user_name') || '').split(' ')[0];
@@ -1630,37 +1594,7 @@
             });
         }
 
-        // Toast Notification System
-        function initToastSystem() {
-            // Function is defined below
-        }
 
-        function showToast(message, type = 'info') {
-            const toastContainer = document.querySelector('.toast-container');
-            const toastId = 'toast-' + Date.now();
-
-            const toastHtml = `
-                <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            ${message}
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                    </div>
-                </div>
-            `;
-
-            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-
-            const toastElement = document.getElementById(toastId);
-            const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
-            toast.show();
-
-            // Remove toast from DOM after it's hidden
-            toastElement.addEventListener('hidden.bs.toast', function () {
-                toastElement.remove();
-            });
-        }
 
         function updateHelpersCount(change) {
             const helpersCount = document.getElementById('helpersCount');
@@ -1752,14 +1686,7 @@
         }, 2000);
     </script>
 
-    <script>
-        if ("serviceWorker" in navigator) {
-            window.addEventListener("load", function () {
-                navigator.serviceWorker.register("service-worker.js")
-                    .catch(function (e) { console.warn("SW registration failed:", e); });
-            });
-        }
-    </script>
+    
 </body>
 
 </html>

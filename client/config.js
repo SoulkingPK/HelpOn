@@ -9,18 +9,27 @@ const CONFIG = {
     // WS_BASE_URL: 'ws://localhost:8000/api/ws'
 };
 
-const apiBase = CONFIG.API_BASE_URL;
+// Helper to get a cookie value
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
 
 // --- Authentication Utilities ---
 
-// We are transitioning to HttpOnly cookies, so we don't need to manually attach tokens to Authorization headers.
-// However, we still need to send credentials (cookies) with every request.
 async function fetchWithAuth(url, options = {}) {
     options.credentials = 'include'; // Ensure cookies are sent
 
     // Add default headers if not provided
     if (!options.headers) {
         options.headers = {};
+    }
+
+    // Add CSRF token from cookie if available
+    const csrfToken = getCookie('helpon_csrf_token');
+    if (csrfToken) {
+        options.headers['X-CSRF-Token'] = csrfToken;
     }
 
     // If we're not uploading a file (FormData), set Content-Type to application/json
@@ -34,7 +43,7 @@ async function fetchWithAuth(url, options = {}) {
         // If the token is expired (401), try to refresh it
         if (response.status === 401) {
             console.log('Access token expired, attempting to refresh...');
-            const refreshResponse = await fetch(`${apiBase}/refresh`, {
+            const refreshResponse = await fetch(`${CONFIG.API_BASE_URL}/refresh`, {
                 method: 'POST',
                 credentials: 'include' // Send refresh token cookie
             });
@@ -63,7 +72,7 @@ function handleAuthFailure() {
     localStorage.removeItem('helpon_refresh_token');
 
     // Call the logout endpoint to clear cookies
-    fetch(`${apiBase}/logout`, { method: 'POST', credentials: 'include' })
+    fetch(`${CONFIG.API_BASE_URL}/logout`, { method: 'POST', credentials: 'include' })
         .finally(() => {
             if (window.location.pathname.indexOf('index.html') === -1 &&
                 window.location.pathname.indexOf('register.html') === -1) {

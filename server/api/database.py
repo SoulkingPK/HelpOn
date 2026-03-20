@@ -20,6 +20,7 @@ support_requests_collection = None
 faqs_collection = None
 rewards_collection = None
 user_redemptions_collection = None
+kyc_collection = None
 
 if not MONGODB_URL:
     logger.error("CRITICAL: MONGODB_URL not found in environment. Database connection impossible.")
@@ -35,6 +36,7 @@ else:
         faqs_collection = db.get_collection("faqs")
         rewards_collection = db.get_collection("rewards")
         user_redemptions_collection = db.get_collection("redemptions")
+        kyc_collection = db.get_collection("kyc")
     except Exception as e:
         logger.error(f"Failed to connect to MongoDB: {e}")
         client = None
@@ -46,3 +48,4 @@ else:
         faqs_collection = None
         rewards_collection = None
         user_redemptions_collection = None
+        kyc_collection = None

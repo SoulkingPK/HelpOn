@@ -9,6 +9,7 @@
     <title>My Profile - HelpOn</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
     <style>
         .profile-header {
             background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
@@ -88,10 +89,6 @@
         }
     </style>
     <script>
-        // Authentication check
-        if (!isUserLoggedIn()) {
-            window.location.href = 'index.html';
-        }
 
         // Set username dynamically
         document.addEventListener('DOMContentLoaded', () => {
@@ -113,6 +110,13 @@
         });
     </script>
     <script src="config.js"></script>
+    <script src="js/utils.js"></script>
+    <script>
+        // Authentication check - must be after config.js is loaded
+        if (!isUserLoggedIn()) {
+            window.location.href = 'index.html';
+        }
+    </script>
 </head>
 
 <body class="bg-light">
@@ -243,8 +247,8 @@
                     </div>
                     <div class="flex-grow-1 ms-3">
                         <h6 class="mb-0">ID Verification</h6>
-                        <small class="text-muted">Pending - Upload documents to verify</small>
-                        <a href="#" class="d-block small mt-1" id="verifyIdBtn">Complete Verification</a>
+                        <small class="text-muted" id="idVerifyStatus">Status unknown</small>
+                        <a href="kyc.html" class="d-block small mt-1" id="verifyIdBtn">Complete Verification</a>
                     </div>
                 </div>
             </div>
@@ -490,11 +494,28 @@
                         // Handle verification badge
                         const verifyBadge = document.querySelector('.verification-badge');
                         const verifyStatusText = document.querySelector('.verification-status-text');
-                        if (data.verified && verifyBadge) {
-                            verifyBadge.className = 'verification-badge bg-success text-white me-2';
-                            verifyBadge.innerHTML = '<i class="bi bi-shield-check"></i>';
-                            if (verifyStatusText) verifyStatusText.textContent = 'Verified Identity';
-                            verifyIdBtn.style.display = 'none';
+                        const idVerifyStatusElem = document.getElementById('idVerifyStatus');
+                        
+                        if (data.kyc_status) {
+                            if (data.kyc_status === 'approved') {
+                                idVerifyStatusElem.textContent = 'Verified';
+                                idVerifyStatusElem.className = 'text-success small';
+                                if (verifyIdBtn) verifyIdBtn.style.display = 'none';
+                                
+                                // Add verification badge to name
+                                document.getElementById('userName').innerHTML += ' <i class="bi bi-patch-check-fill text-primary ms-1" title="Verified"></i>';
+                            } else if (data.kyc_status === 'pending') {
+                                idVerifyStatusElem.textContent = 'Verification Pending';
+                                idVerifyStatusElem.className = 'text-warning small';
+                                if (verifyIdBtn) verifyIdBtn.textContent = 'Check Status';
+                            } else if (data.kyc_status === 'rejected') {
+                                idVerifyStatusElem.textContent = 'Verification Rejected';
+                                idVerifyStatusElem.className = 'text-danger small';
+                                if (verifyIdBtn) verifyIdBtn.textContent = 'Try Again';
+                            } else {
+                                idVerifyStatusElem.textContent = 'Not Verified';
+                                if (verifyIdBtn) verifyIdBtn.textContent = 'Complete Verification';
+                            }
                         }
                     }
                 } catch (e) { console.error("Error fetching profile", e); }
@@ -786,41 +807,6 @@
                 handleAuthFailure();
             });
 
-            // Toast notification function
-            function showToast(message, type = 'info') {
-                // Remove existing toasts
-                const existingToasts = document.querySelectorAll('.custom-toast');
-                existingToasts.forEach(toast => toast.remove());
-
-                // Create toast element
-                const toast = document.createElement('div');
-                toast.className = `custom-toast position-fixed top-0 start-50 translate-middle-x mt-3 p-3 rounded shadow-sm border-0 text-white`;
-
-                // Set background color based on type
-                if (type === 'success') {
-                    toast.style.backgroundColor = '#198754';
-                } else if (type === 'error') {
-                    toast.style.backgroundColor = '#dc3545';
-                } else {
-                    toast.style.backgroundColor = '#0d6efd';
-                }
-
-                toast.style.zIndex = '1060';
-                toast.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <i class="bi ${type === 'success' ? 'bi-check-circle' : type === 'error' ? 'bi-exclamation-circle' : 'bi-info-circle'} me-2"></i>
-                        <span>${message}</span>
-                    </div>
-                `;
-
-                // Add to page
-                document.body.appendChild(toast);
-
-                // Remove after 3 seconds
-                setTimeout(() => {
-                    toast.remove();
-                }, 3000);
-            }
 
             // Prevent accidental navigation when there are unsaved changes
             window.addEventListener('beforeunload', function (e) {
@@ -832,14 +818,7 @@
         });
     </script>
 
-    <script>
-        if ("serviceWorker" in navigator) {
-            window.addEventListener("load", function() {
-                navigator.serviceWorker.register("service-worker.js")
-                    .catch(function(e) { console.warn("SW registration failed:", e); });
-            });
-        }
-    </script>
+    
 </body>
 
 </html>

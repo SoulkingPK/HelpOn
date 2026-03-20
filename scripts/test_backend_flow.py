@@ -1,49 +1,82 @@
-import urllib.request
-import urllib.error
-import json
+import requests
+from pymongo import MongoClient
 import os
+from dotenv import load_dotenv
+
+load_dotenv("d:/HelpOn/.env")
+client = MongoClient(os.getenv("MONGODB_URL"))
+db = client["helpon_db"]
 
 API_BASE = "http://localhost:8000/api"
 
-# 1. Login
-try:
-    login_payload = json.dumps({"username": "testuser@example.com", "password": "password123"}).encode('utf-8')
-    req = urllib.request.Request(f"{API_BASE}/login", 
-        data=login_payload, 
-        headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req) as resp:
-        token = json.loads(resp.read())["access_token"]
-except urllib.error.HTTPError as e:
-    print(f"Login HTTP Error {e.code}: {e.read().decode('utf-8')}")
-    exit(1)
-
-headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+def print_step(msg):
+    print(f"\n--- {msg} ---")
 
 try:
-    # 2. Create SOS
-    sos_data = json.dumps({
-        "type": "health",
-        "description": "Test Backend Flow",
-        "lat": 28.6139,
-        "lon": 77.209
-    }).encode('utf-8')
-    req = urllib.request.Request(f"{API_BASE}/emergency/sos", data=sos_data, headers=headers)
-    with urllib.request.urlopen(req) as resp:
-        sos_id = json.loads(resp.read())["id"]
-        print(f"Created SOS: {sos_id}")
+    session = requests.Session()
 
-    # 3. Accept SOS
-    req = urllib.request.Request(f"{API_BASE}/emergency/{sos_id}/accept", data=b'', headers=headers)
-    with urllib.request.urlopen(req) as resp:
-        print(f"Accepted SOS: {resp.status}")
+    print_step("1. Registering/Logging in User 1 (Requester)")
+    user1_email = "requester@helpon.com"
+    r = session.post(f"{API_BASE}/register", json={
+        "full_name": "Requester Flow", "email": user1_email, 
+        "password": "Password123!", "phone_number": "0000000001"
+    })
+    if r.status_code == 400:
+        r = session.post(f"{API_BASE}/login", json={"username": user1_email, "password": "Password123!"})
+    
+    assert r.status_code == 200, f"Login failed for {user1_email}: {r.status_code} {r.text}"
+    cookies1 = session.cookies.get_dict()
 
-    # 4. Complete SOS
-    req = urllib.request.Request(f"{API_BASE}/emergency/{sos_id}/complete", data=b'', headers=headers, method="PUT")
-    with urllib.request.urlopen(req) as resp:
-        print(f"Completed SOS: {json.loads(resp.read())}")
+    print_step("2. Creating SOS (User 1)")
+    r = session.post(f"{API_BASE}/emergency/sos", json={
+        "type": "health", "description": "Needs immediate medical help",
+        "lat": 28.6139, "lon": 77.209
+    }, cookies=cookies1)
+    if r.status_code != 200:
+        print("SOS creation failed!", r.status_code, r.text)
+        exit(1)
+        
+    sos_id = r.json()["id"]
+    print(f"Created SOS: {sos_id}")
 
-    # 5. Check points using the test_points script
-    os.system("python test_points.py")
+    print_step("3. Registering/Logging in User 2 (Helper)")
+    session2 = requests.Session()
+    user2_email = "helper@helpon.com"
+    r = session2.post(f"{API_BASE}/register", json={
+        "full_name": "Helper Flow", "email": user2_email, 
+        "password": "Password123!", "phone_number": "0000000002"
+    })
+    if r.status_code == 400:
+        r = session2.post(f"{API_BASE}/login", json={"username": user2_email, "password": "Password123!"})
+    
+    assert r.status_code == 200, f"Login failed for {user2_email}: {r.status_code} {r.text}"
+    cookies2 = session2.cookies.get_dict()
+    
+    # Check baseline points for User 2
+    user2_doc = db.users.find_one({"email": user2_email})
+    baseline_points = user2_doc.get("points", 0)
+    baseline_helps = user2_doc.get("helps_given", 0)
 
-except urllib.error.HTTPError as e:
-    print(f"HTTP Error {e.code}: {e.read().decode('utf-8')}")
+    print_step("4. Accepting SOS (User 2)")
+    r = session2.post(f"{API_BASE}/emergency/{sos_id}/accept", cookies=cookies2)
+    print("Accept Status:", r.status_code, r.text)
+
+    print_step("5. Completing SOS (User 1)")
+    r = session.put(f"{API_BASE}/emergency/{sos_id}/complete", cookies=cookies1)
+    print("Complete Status:", r.status_code, r.text)
+
+    print_step("6. Verifying points (User 2)")
+    user2_doc_after = db.users.find_one({"email": user2_email})
+    new_points = user2_doc_after.get("points", 0)
+    new_helps = user2_doc_after.get("helps_given", 0)
+    
+    print(f"Baseline: Points={baseline_points}, Helps={baseline_helps}")
+    print(f"Current:  Points={new_points}, Helps={new_helps}")
+    
+    if new_points - baseline_points == 50 and new_helps - baseline_helps == 1:
+        print("✅ Gamification logic verified successfully!")
+    else:
+        print("❌ Gamification logic failed. Mismatch detected.")
+
+except Exception as e:
+    print(f"Error: {e}")
