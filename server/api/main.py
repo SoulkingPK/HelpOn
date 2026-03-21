@@ -30,17 +30,7 @@ from api.dependencies import get_current_user, get_current_user_optional, manage
 
 app = FastAPI(title="HelpOn API")
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    # Log the full error internally if a logging system is available
-    # For now, we print to stderr or use a placeholder for a logging service
-    print(f"ERROR: {exc}")
-    
-    # Hide traceback in production to prevent information leakage
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "An unexpected error occurred. Please contact support if the problem persists."}
-    )
+
 
 # Setup CORS
 app.add_middleware(

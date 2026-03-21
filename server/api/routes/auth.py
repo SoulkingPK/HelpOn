@@ -17,7 +17,7 @@ router = APIRouter(tags=["Auth"])
 @router.post("/register")
 @limiter.limit("5/hour")
 async def register_user(user: UserCreate, request: Request, response: Response):
-    if not users_collection:
+    if users_collection is None:
         raise HTTPException(status_code=500, detail="Database connection failed")
         
     existing_user = await users_collection.find_one({
@@ -40,7 +40,7 @@ async def register_user(user: UserCreate, request: Request, response: Response):
         "helps_given": 0,
         "verified": False,
         "is_admin": False,
-        "last_ip": request.client.host,
+        "last_ip": request.client.host if request.client else request.headers.get("x-forwarded-for", "Unknown"),
         "last_ua": request.headers.get("user-agent", "Unknown")
     }
     
@@ -140,7 +140,7 @@ async def login_user(login_data: UserLogin, request: Request, response: Response
     await users_collection.update_one(
         {"_id": user["_id"]},
         {"$set": {
-            "last_ip": request.client.host,
+            "last_ip": request.client.host if request.client else request.headers.get("x-forwarded-for", "Unknown"),
             "last_ua": request.headers.get("user-agent", "Unknown"),
             "last_active": datetime.utcnow()
         }}
