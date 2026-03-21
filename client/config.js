@@ -6,21 +6,24 @@ const CONFIG = {
 };
 
 // Initialize Supabase Client
-// Note: This requires the Supabase JS script to be loaded in the HTML file:
-// <script src="js/supabase-sdk.js"></script>
 let supabase;
 try {
+    // Proactive validation: help the user catch if they used a Stripe key by mistake
+    if (CONFIG.SUPABASE_ANON_KEY.startsWith('sb_')) {
+        console.error("CRITICAL ERROR: Your SUPABASE_ANON_KEY looks like a STRIPE key! This will not work with Supabase.");
+        alert("CRITICAL ERROR: Your SUPABASE_ANON_KEY looks like a STRIPE key! \n\nPlease get the 'anon (public)' key from your Supabase Dashboard -> Project Settings -> API.");
+    }
+
     if (window.supabase && typeof window.supabase.createClient === 'function') {
-        // Use a local variable for the library to avoid collision with our intended global 'supabase'
         const supabaseLib = window.supabase;
         supabase = supabaseLib.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-        // Expose the initialized client globally for all other scripts
         window.supabase = supabase;
-        console.log("Supabase client initialized successfully.");
-    } else if (window.supabase && window.supabase.auth) {
-        // Already initialized? Just use it
-        supabase = window.supabase;
-        console.log("Supabase client already initialized.");
+        
+        if (!supabase.auth) {
+            console.error("Supabase Auth failed to initialize. This is usually due to an invalid Anon Key.");
+        } else {
+            console.log("Supabase client initialized successfully.");
+        }
     } else {
         console.error("Supabase SDK not found or incorrectly loaded.");
     }
