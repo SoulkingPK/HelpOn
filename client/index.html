@@ -65,6 +65,7 @@
             font-weight: 700;
             background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -73,6 +74,7 @@
             border: none;
         }
     </style>
+    <script src="js/supabase-sdk.js"></script>
     <script src="config.js"></script>
     <script src="js/utils.js"></script>
 </head>
@@ -137,7 +139,7 @@
                             </div>
 
                             <div class="d-grid gap-2">
-                                <button type="button" class="btn btn-outline-danger social-btn">
+                                <button type="button" class="btn btn-outline-danger social-btn" id="googleLoginBtn">
                                     <i class="bi bi-google me-2"></i> Continue with Google
                                 </button>
                             </div>
@@ -226,23 +228,20 @@
                 };
 
                 const apiBase = CONFIG.API_BASE_URL;
-                fetch(`${apiBase}/login`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(loginData),
-                    credentials: 'include'
+                // Supabase Login
+                supabase.auth.signInWithPassword({
+                    email: usernameInput.value.trim(),
+                    password: passwordInput.value
                 })
-                    .then(async response => {
-                        const data = await response.json();
-                        if (!response.ok) {
-                            throw new Error(data.detail || 'Login failed');
+                    .then(({ data, error }) => {
+                        if (error) {
+                            throw error;
                         }
+
                         // Set logged in state
                         setLoggedInState(true);
-                        if (data.full_name) {
-                            localStorage.setItem('helpon_user_name', data.full_name);
+                        if (data.user?.user_metadata?.full_name) {
+                            localStorage.setItem('helpon_user_name', data.user.user_metadata.full_name);
                         }
                         window.location.href = 'home.html';
                     })
@@ -268,6 +267,25 @@
                 loginAlert.classList.remove('d-none');
                 alertMessage.textContent = `Password reset instructions will be sent to ${usernameInput.value}`;
             });
+
+            // Google Login handler
+            const googleBtn = document.getElementById('googleLoginBtn');
+            if (googleBtn) {
+                googleBtn.addEventListener('click', async function () {
+                    try {
+                        const { data, error } = await supabase.auth.signInWithOAuth({
+                            provider: 'google',
+                            options: {
+                                redirectTo: window.location.origin + '/home.html'
+                            }
+                        });
+                        if (error) throw error;
+                    } catch (error) {
+                        loginAlert.classList.remove('d-none');
+                        alertMessage.textContent = "Google Login Error: " + error.message;
+                    }
+                });
+            }
         });
     </script>
 

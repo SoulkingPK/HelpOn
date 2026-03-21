@@ -73,6 +73,7 @@
             font-weight: bold;
         }
     </style>
+    <script src="js/supabase-sdk.js"></script>
     <script src="config.js"></script>
     <script src="js/utils.js"></script>
     <script>
@@ -329,16 +330,21 @@
 
             async fetchPoints() {
                 try {
-                    if (!isUserLoggedIn()) return;
-                    const res = await fetchWithAuth(`${apiBase}/users/me/profile`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        this.userPoints = data.points || 0; // Live points from backend
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
+
+                    const { data, error } = await supabase
+                        .from('profiles')
+                        .select('points')
+                        .eq('id', user.id)
+                        .single();
+
+                    if (error) throw error;
+
+                    if (data) {
+                        this.userPoints = data.points || 0;
                         localStorage.setItem(this.storage.points, String(this.userPoints));
                         this.updatePointsDisplay();
-                        this.loadVouchers();
-                        this.loadDonations();
-                        this.loadBadges();
                     }
                 } catch (e) { console.error('Error fetching points', e); }
             }
@@ -369,10 +375,12 @@
                 try {
                     if (!isUserLoggedIn()) return;
 
-                    const res = await fetchWithAuth(`${apiBase}/rewards`);
+                    const { data: vouchers, error } = await supabase
+                        .from('rewards')
+                        .select('*');
 
-                    if (res.ok) {
-                        const vouchers = await res.json();
+                    if (error) throw error;
+                    if (vouchers) {
                         const container = document.getElementById('vouchersContainer');
                         if (vouchers.length === 0) {
                             container.innerHTML = '<div class="col-12 text-center text-muted col-py-5">No rewards currently available.</div>';
@@ -611,15 +619,34 @@
                 try {
                     if (!isUserLoggedIn()) return;
 
-                    const res = await fetchWithAuth(`${apiBase}/rewards/${rewardId}/redeem`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
 
-                    if (res.ok) {
-                        const data = await res.json();
+                    // 1. Create redemption record
+                    const voucherCode = 'REDEEM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
+                    const { data, error: redeemError } = await supabase
+                        .from('redemptions')
+                        .insert([
+                            {
+                                user_id: user.id,
+                                reward_id: rewardId,
+                                voucher_code: voucherCode
+                            }
+                        ])
+                        .select()
+                        .single();
+
+                    if (redeemError) throw redeemError;
+
+                    // 2. Deduct points from profile
+                    const { error: updateError } = await supabase
+                        .from('profiles')
+                        .update({ points: this.userPoints - parseInt(pointsCost) })
+                        .eq('id', user.id);
+
+                    if (updateError) throw updateError;
+
+                    if (data) {
 
                         // Deduct points locally for immediate UI update
                         this.userPoints -= parseInt(pointsCost);
@@ -729,23 +756,26 @@
                 historyModal.show();
 
                 try {
-                    if (!isUserLoggedIn()) return;
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
 
-                    const res = await fetchWithAuth(`${apiBase}/user/redemptions`);
+                    const { data: redemptions, error } = await supabase
+                        .from('redemptions')
+                        .select('*, rewards(name)')
+                        .eq('user_id', user.id);
 
-                    if (res.ok) {
-                        const redemptions = await res.json();
+                    if (error) throw error;
+                    if (redemptions) {
                         container.innerHTML = '';
 
                         if (redemptions.length === 0 && this.pointsHistory.length === 0) {
                             container.innerHTML = '<p class="text-muted text-center py-3">No points history yet</p>';
                         } else {
-                            // Combine backend redemptions with local non-redemption (e.g. donation) history for now
                             const mixedHistory = [
                                 ...redemptions.map(r => ({
                                     type: 'redeem',
-                                    description: `Redeemed: ${r.reward_name}`,
-                                    points: -r.points_cost, // Assuming points_cost is returned, or fallback to fixed amount if omitted by backend.
+                                    description: `Redeemed: ${r.rewards?.name || 'Unknown Reward'}`,
+                                    points: 0, // Points are deducted at redemption
                                     date: r.created_at,
                                     code: r.voucher_code
                                 })),

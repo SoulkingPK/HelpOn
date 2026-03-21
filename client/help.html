@@ -440,6 +440,7 @@
         </div>
     </div>
 
+    <script src="js/supabase-sdk.js"></script>
     <script src="config.js"></script>
     <script src="js/utils.js"></script>
     <script>
@@ -498,12 +499,15 @@
 
             const loadFaqs = async () => {
                 try {
-                    const res = await fetchWithAuth(`${apiBase}/faqs`);
-                    if (res.ok) {
-                        allFaqs = await res.json();
+                    const { data: faqs, error } = await supabase
+                        .from('faqs')
+                        .select('*')
+                        .order('created_at', { ascending: true });
+
+                    if (error) throw error;
+                    if (faqs) {
+                        allFaqs = faqs;
                         renderFaqs(allFaqs);
-                    } else {
-                        throw new Error('Failed to fetch');
                     }
                 } catch (e) {
                     faqContainer.innerHTML = `<p class="text-danger text-center">Failed to load FAQs. Please try again later.</p>`;
@@ -629,8 +633,18 @@
 
                 try {
                     await new Promise(resolve => setTimeout(resolve, minDelayMs));
-                    // TODO: Replace 'YOUR_SERVICE_ID' and 'YOUR_TEMPLATE_ID' with actual EmailJS IDs
+                    // 1. Send via EmailJS
                     await emailjs.sendForm('service_2751qpq', 'template_nze4o9m', supportForm);
+
+                    // 2. Save to Supabase support_tickets
+                    const { data: { user } } = await supabase.auth.getUser();
+                    await supabase.from('support_tickets').insert([{
+                        user_id: user ? user.id : null,
+                        name: document.getElementById('supportName').value,
+                        email: document.getElementById('supportEmail').value,
+                        subject: document.getElementById('supportSubject').value,
+                        message: document.getElementById('supportMessage').value
+                    }]);
 
                     showToast('Request sent successfully! We will email you soon.', 'success');
                     showStatus('success', 'Request sent successfully! We will email you soon.', true);
@@ -681,20 +695,20 @@
                 scrollChat();
 
                 try {
-                    const res = await fetchWithAuth(`${apiBase}/chatbot`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ prompt: msg })
-                    });
+                    // Simple local response logic since we've removed the backend
+                    const userMsg = msg.toLowerCase();
+                    let botResponse = "I am the HelpOn AI assistant. How can I help you today?";
+
+                    if (userMsg.includes("point") || userMsg.includes("reward")) {
+                        botResponse = "You can earn HelpPoints by completing SOS assists. Navigate to the Rewards tab to see what you can redeem them for!";
+                    } else if (userMsg.includes("verify") || userMsg.includes("id")) {
+                        botResponse = "To get verified, go to your Profile and click 'Complete Verification' under the Verification Status section.";
+                    } else if (userMsg.includes("location") || userMsg.includes("tracking")) {
+                        botResponse = "HelpOn only tracks your location when the app is active to preserve your privacy.";
+                    }
 
                     document.getElementById(typingId).remove();
-
-                    if (res.ok) {
-                        const data = await res.json();
-                        chatMsgs.innerHTML += `<div class="chat-bubble chat-bot">${data.response}</div>`;
-                    } else {
-                        chatMsgs.innerHTML += `<div class="chat-bubble chat-bot text-danger">Sorry, I'm having trouble connecting right now.</div>`;
-                    }
+                    chatMsgs.innerHTML += `<div class="chat-bubble chat-bot">${botResponse}</div>`;
                 } catch (e) {
                     document.getElementById(typingId).remove();
                     chatMsgs.innerHTML += `<div class="chat-bubble chat-bot text-danger">Connection error.</div>`;

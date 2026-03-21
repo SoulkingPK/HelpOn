@@ -59,6 +59,7 @@
             font-weight: 700;
             background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -95,6 +96,7 @@
             border-color: #2563eb;
         }
     </style>
+    <script src="js/supabase-sdk.js"></script>
     <script src="config.js"></script>
     <script src="js/utils.js"></script>
 </head>
@@ -200,9 +202,16 @@
                                 </button>
                             </div>
 
-                            <div class="alert alert-info d-flex align-items-center">
-                                <i class="bi bi-info-circle-fill me-2"></i>
-                                <div>HelpOn works best with location access</div>
+                            <div class="d-flex align-items-center my-4">
+                                <hr class="flex-grow-1">
+                                <span class="px-2 text-muted">OR</span>
+                                <hr class="flex-grow-1">
+                            </div>
+
+                            <div class="d-grid gap-2 mb-3">
+                                <button type="button" class="btn btn-outline-danger social-btn" id="googleLoginBtn">
+                                    <i class="bi bi-google me-2"></i> Continue with Google
+                                </button>
                             </div>
 
                             <div class="text-center mt-3">
@@ -409,25 +418,63 @@
                 };
 
                 const apiBase = CONFIG.API_BASE_URL;
-                fetch(`${apiBase}/register`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(userData),
-                    credentials: 'include'
-                })
-                    .then(async response => {
-                        const data = await response.json();
-                        if (!response.ok) {
-                            throw new Error(data.detail || 'Registration failed');
+                // Supabase Registration
+                const email = emailInput.value.trim();
+                const password = passwordInput.value;
+                const fullName = fullNameInput.value.trim();
+                const phoneNumber = phoneInput.value.trim();
+
+                supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: fullName,
+                            phone_number: phoneNumber
                         }
+                    }
+                })
+                    .then(async ({ data, error }) => {
+                        if (error) throw error;
+
+                        const user = data.user;
+                        if (!user) throw new Error("Registration failed - no user returned");
+
+                        // Insert into profiles table
+                        const { error: profileError } = await supabase
+                            .from('profiles')
+                            .insert([
+                                {
+                                    id: user.id,
+                                    username: email || phoneNumber,
+                                    email: email,
+                                    full_name: fullName,
+                                    phone_number: phoneNumber,
+                                    role: 'user'
+                                }
+                            ]);
+
+                        if (profileError) {
+                            console.error("Profile creation error:", profileError);
+                            // We don't block here as auth succeeded, but it's an issue
+                        }
+
                         // Set logged in state
                         setLoggedInState(true);
-                        if (data.full_name) {
-                            localStorage.setItem('helpon_user_name', data.full_name);
+                        localStorage.setItem('helpon_user_name', fullName);
+                        
+                        // Check if email confirmation is required
+                        if (data.session) {
+                            window.location.href = 'home.html';
+                        } else {
+                            registerAlert.classList.remove('d-none');
+                            registerAlert.classList.remove('alert-danger');
+                            registerAlert.classList.add('alert-success');
+                            alertMessage.textContent = "Registration successful! Please check your email for a confirmation link.";
+                            registerBtn.disabled = false;
+                            registerSpinner.classList.add('d-none');
+                            registerText.textContent = 'Create Account';
                         }
-                        window.location.href = 'home.html';
                     })
                     .catch(error => {
                         registerAlert.classList.remove('d-none');
@@ -437,6 +484,25 @@
                         registerText.textContent = 'Create Account';
                     });
             });
+
+            // Google Login handler
+            const googleBtn = document.getElementById('googleLoginBtn');
+            if (googleBtn) {
+                googleBtn.addEventListener('click', async function () {
+                    try {
+                        const { data, error } = await supabase.auth.signInWithOAuth({
+                            provider: 'google',
+                            options: {
+                                redirectTo: window.location.origin + '/home.html'
+                            }
+                        });
+                        if (error) throw error;
+                    } catch (error) {
+                        registerAlert.classList.remove('d-none');
+                        alertMessage.textContent = "Google Login Error: " + error.message;
+                    }
+                });
+            }
         });
     </script>
 

@@ -88,6 +88,7 @@
             }
         }
     </style>
+    <script src="js/supabase-sdk.js"></script>
     <script src="config.js"></script>
     <script src="js/utils.js"></script>
     <script>
@@ -269,26 +270,32 @@
 
             async loadHistoryData() {
                 try {
-                    const res = await fetchWithAuth(`${apiBase}/users/me/history`);
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) throw new Error("Not authenticated");
 
-                    if (!res.ok) throw new Error('Failed to fetch history');
+                    // Fetch emergencies where I am either the creator (user_id) or the helper (helper_id)
+                    const { data, error } = await supabase
+                        .from('emergencies')
+                        .select('*')
+                        .or(`user_id.eq.${user.id},helper_id.eq.${user.id}`)
+                        .order('created_at', { ascending: false });
 
-                    const data = await res.json();
+                    if (error) throw error;
 
                     this.historyData = data.map(item => ({
                         id: item.id,
-                        type: item.type,
-                        emergencyType: item.emergencyType,
-                        title: item.title,
+                        type: item.user_id === user.id ? 'requested' : 'responded',
+                        emergencyType: item.type,
+                        title: item.title || (item.user_id === user.id ? 'Help Requested' : 'Rescue Assistance'),
                         description: item.description,
-                        person: item.person,
-                        date: new Date(item.date),
-                        points: item.points,
-                        rating: item.rating,
-                        duration: item.duration,
-                        location: item.location,
+                        person: item.user_id === user.id ? 'Nearby Helpers' : 'User in Distress',
+                        date: new Date(item.created_at),
+                        points: item.points || 0,
+                        rating: item.rating || 0,
+                        duration: item.duration || 'N/A',
+                        location: item.location_name || `${item.latitude}, ${item.longitude}`,
                         status: item.status,
-                        helper: item.helper
+                        helper: item.helper_id ? 'Assigned Helper' : null
                     }));
                 } catch (e) {
                     console.error('Error loading history:', e);

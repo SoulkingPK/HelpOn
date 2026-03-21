@@ -148,6 +148,7 @@
             display: none;
         }
     </style>
+    <script src="js/supabase-sdk.js"></script>
     <script src="config.js"></script>
     <script src="js/utils.js"></script>
 </head>
@@ -244,8 +245,6 @@
                 return;
             }
 
-            const apiBase = CONFIG.API_BASE_URL;
-
             const listContainer = document.getElementById('leaderboardList');
             const myRankBanner = document.getElementById('myRankBanner');
             const myRankDisplay = document.getElementById('myRankDisplay');
@@ -265,19 +264,25 @@
                 return 'rank-other';
             };
 
-            // First load profile to know who "we" are
-            let myProfileData = null;
             try {
-                const profRes = await fetchWithAuth(`${apiBase}/users/me/profile`);
-                if (profRes.ok) myProfileData = await profRes.json();
-            } catch (e) { }
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error("Not authenticated");
 
-            // Load Leaderboard
-            try {
-                const res = await fetchWithAuth(`${apiBase}/leaderboard`);
+                // 1. Load Top 50 Helpers
+                const { data: leaderboard, error } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, points, kyc_status')
+                    .order('points', { ascending: false })
+                    .limit(50);
 
-                if (!res.ok) throw new Error('Failed to fetch leaderboard');
-                const leaderboard = await res.json();
+                if (error) throw error;
+
+                // 2. Load my profile for personal rank comparison
+                const { data: myProfile, error: profError } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, points')
+                    .eq('id', user.id)
+                    .single();
 
                 listContainer.innerHTML = '';
 
@@ -288,41 +293,43 @@
 
                 let foundMyRank = false;
 
-                leaderboard.forEach((user) => {
-                    const rankClass = getRankClass(user.rank);
-                    const verifiedIcon = user.verified ? '<i class="bi bi-patch-check-fill verified-badge" title="Verified Responder"></i>' : '';
+                leaderboard.forEach((p, index) => {
+                    const rank = index + 1;
+                    const rankClass = getRankClass(rank);
+                    const isVerified = p.kyc_status === 'approved';
+                    const verifiedIcon = isVerified ? '<i class="bi bi-patch-check-fill verified-badge" title="Verified Responder"></i>' : '';
 
                     // Identify if this is me
-                    const isMe = myProfileData && (user.name === myProfileData.full_name && user.points === myProfileData.points);
+                    const isMe = user.id === p.id;
                     if (isMe) {
                         foundMyRank = true;
-                        myRankDisplay.innerText = `#${user.rank}`;
-                        myPointsDisplay.innerText = `${user.points} pts`;
+                        myRankDisplay.innerText = `#${rank}`;
+                        myPointsDisplay.innerText = `${p.points} pts`;
                         myRankBanner.style.display = 'flex';
                     }
 
                     const card = document.createElement('div');
                     card.className = `rank-card ${rankClass} ${isMe ? 'border border-primary border-2' : ''}`;
                     card.innerHTML = `
-                        <div class="rank-number">${user.rank}</div>
+                        <div class="rank-number">${rank}</div>
                         <div class="user-avatar">
                             <i class="bi bi-person-fill"></i>
                         </div>
                         <div class="rank-info">
-                            <h6 class="mb-0 fw-bold">${user.name} ${isMe ? '(You)' : ''} ${verifiedIcon}</h6>
-                            <small class="text-muted">${user.helps} helps given</small>
+                            <h6 class="mb-0 fw-bold">${p.full_name || 'Anonymous'} ${isMe ? '(You)' : ''} ${verifiedIcon}</h6>
+                            <small class="text-muted">Top Helper</small>
                         </div>
                         <div class="rank-points">
-                            ${user.points} <span style="font-size: 0.8rem; color:#64748b;">pts</span>
+                            ${p.points || 0} <span style="font-size: 0.8rem; color:#64748b;">pts</span>
                         </div>
                     `;
                     listContainer.appendChild(card);
                 });
 
-                // If the user isn't in the top 50, fake it for the banner at bottom
-                if (!foundMyRank && myProfileData) {
-                    myRankDisplay.innerText = `#${myProfileData.local_rank}`; // Assuming local_rank is passed from profile
-                    myPointsDisplay.innerText = `${myProfileData.points} pts`;
+                // Show my rank if not in Top 50
+                if (!foundMyRank && myProfile) {
+                    myRankDisplay.innerText = `#--`;
+                    myPointsDisplay.innerText = `${myProfile.points} pts`;
                     myRankBanner.style.display = 'flex';
                 }
 

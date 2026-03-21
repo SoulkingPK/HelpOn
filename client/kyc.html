@@ -35,6 +35,7 @@
             object-fit: contain;
         }
     </style>
+    <script src="js/supabase-sdk.js"></script>
     <script src="config.js"></script>
     <script src="js/utils.js"></script>
 </head>
@@ -188,21 +189,31 @@
                     const mockImageUrl = "https://res.cloudinary.com/dummy/image/upload/v1/kyc/" + file.name;
 
                     // 2. Submit KYC data
-                    const response = await fetchWithAuth(CONFIG.API_BASE_URL + '/kyc/submit', {
-                        method: 'POST',
-                        body: JSON.stringify({
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
+
+                    // 2. Submit KYC data to Supabase
+                    const { error: dbError } = await supabase
+                        .from('kyc_submissions')
+                        .insert([{
+                            user_id: user.id,
                             document_type: document.getElementById('docType').value,
                             document_number: document.getElementById('docNumber').value,
-                            document_image_url: mockImageUrl
-                        })
-                    });
+                            document_image_url: mockImageUrl,
+                            status: 'pending'
+                        }]);
 
-                    if (response.ok) {
+                    if (!dbError) {
+                        // Also update profile status
+                        await supabase
+                            .from('profiles')
+                            .update({ kyc_status: 'pending' })
+                            .eq('id', user.id);
+
                         showToast('KYC submitted successfully!', 'success');
                         await loadKYCStatus();
                     } else {
-                        const data = await response.json();
-                        showToast(data.detail || 'Failed to submit KYC', 'error');
+                        showToast(dbError.message || 'Failed to submit KYC', 'error');
                     }
                 } catch (error) {
                     showToast('An error occurred during submission', 'error');
@@ -215,9 +226,18 @@
 
             async function loadKYCStatus() {
                 try {
-                    const response = await fetchWithAuth(CONFIG.API_BASE_URL + '/kyc/status');
-                    if (response.ok) {
-                        const data = await response.json();
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
+
+                    const { data, error } = await supabase
+                        .from('kyc_submissions')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .single();
+
+                    if (!error && data) {
                         displayStatus(data);
                     }
                 } catch (error) {

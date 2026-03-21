@@ -9,6 +9,7 @@
     <title>Admin - Support Tickets - HelpOn</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <script src="js/supabase-sdk.js"></script>
     <script src="config.js"></script>
     <script src="js/utils.js"></script>
     <script>
@@ -185,19 +186,15 @@
             // Load Stats
             const loadStats = async () => {
                 try {
-                    const res = await fetchWithAuth(`${apiBase}/admin/stats`);
-                    if (res.status === 401 || res.status === 403) {
-                        alert("Unauthorized: You do not have administration privileges.");
-                        window.location.href = 'home.html';
-                        return;
-                    }
-                    if (res.ok) {
-                        const s = await res.json();
-                        document.getElementById('statTotalUsers').textContent = s.total_users;
-                        document.getElementById('statActiveSOS').textContent = s.active_sos;
-                        document.getElementById('statResolvedSOS').textContent = s.resolved_sos;
-                        document.getElementById('statOpenTickets').textContent = s.open_tickets;
-                    }
+                    const { count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+                    const { count: activeSos } = await supabase.from('emergencies').select('*', { count: 'exact', head: true }).eq('status', 'active');
+                    const { count: resolvedSos } = await supabase.from('emergencies').select('*', { count: 'exact', head: true }).eq('status', 'resolved');
+                    const { count: openTickets } = await supabase.from('support_tickets').select('*', { count: 'exact', head: true }).eq('status', 'open');
+
+                    document.getElementById('statTotalUsers').textContent = totalUsers || 0;
+                    document.getElementById('statActiveSOS').textContent = activeSos || 0;
+                    document.getElementById('statResolvedSOS').textContent = resolvedSos || 0;
+                    document.getElementById('statOpenTickets').textContent = openTickets || 0;
                 } catch (e) { console.warn('Could not load stats:', e); }
             };
 
@@ -208,23 +205,21 @@
                 loadingSpinner.style.display = 'block';
 
                 try {
-                    const res = await fetchWithAuth(`${apiBase}/admin/support`);
+                    const { data: tickets, error } = await supabase
+                        .from('support_tickets')
+                        .select('*')
+                        .order('created_at', { ascending: false });
 
-                    if (res.status === 401 || res.status === 403) {
-                        throw new Error('Unauthorized Access. Admin privileges required.');
-                    }
-
-                    if (res.ok) {
-                        allTickets = await res.json();
+                    if (error) throw error;
+                    if (tickets) {
+                        allTickets = tickets;
                         renderTickets(allTickets);
-                    } else {
-                        throw new Error('Failed to load tickets');
                     }
                 } catch (e) {
                     ticketsContainer.innerHTML = `
                         <div class="col-12">
                             <div class="alert alert-danger" role="alert">
-                                ${e.message.includes('Unauthorized') ? e.message : 'Failed to load support tickets. Please ensure backend is running.'}
+                                Failed to load support tickets. ${e.message}
                             </div>
                         </div>`;
                 } finally {
@@ -305,13 +300,17 @@
                 btn.disabled = true;
                 btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Closing...';
                 try {
-                    const res = await fetchWithAuth(`${apiBase}/admin/support/${currentTicketId}/close`, { method: 'PUT' });
-                    if (res.ok) {
+                    const { error } = await supabase
+                        .from('support_tickets')
+                        .update({ status: 'closed' })
+                        .eq('id', currentTicketId);
+
+                    if (!error) {
                         ticketModal.hide();
                         await loadTickets();
                         await loadStats();
                     } else {
-                        alert('Failed to close ticket.');
+                        alert('Failed to close ticket: ' + error.message);
                         btn.disabled = false;
                         btn.textContent = 'Close Ticket';
                     }

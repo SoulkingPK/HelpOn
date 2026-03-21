@@ -67,8 +67,8 @@ self.addEventListener('fetch', event => {
     // Skip websocket and chrome-extension requests
     if (url.protocol === 'ws:' || url.protocol === 'wss:' || url.protocol === 'chrome-extension:') return;
 
-    // API calls: always go to network, never cache
-    if (url.pathname.startsWith('/api/')) {
+    // API calls (Legacy & Supabase): always go to network, never cache
+    if (url.pathname.startsWith('/api/') || url.hostname.includes('supabase.co')) {
         event.respondWith(fetch(event.request));
         return;
     }

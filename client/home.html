@@ -221,6 +221,7 @@
             }
         });
     </script>
+    <script src="js/supabase-sdk.js"></script>
     <script src="config.js"></script>
     <script src="js/utils.js"></script>
     <script>
@@ -477,88 +478,77 @@
             }
 
             initWebSocket() {
-                const wsUrl = typeof CONFIG !== 'undefined' && CONFIG.WS_BASE_URL
-                    ? CONFIG.WS_BASE_URL
-                    : apiBase.replace('http', 'ws') + '/ws';
-
-                this.ws = new WebSocket(wsUrl);
-
-                this.ws.onopen = () => {
-                    console.log('WebSocket connected');
-                    // Ping every 30 seconds to keep connection alive
-                    this.wsPingInterval = setInterval(() => {
-                        if (this.ws.readyState === WebSocket.OPEN) {
-                            this.ws.send('ping');
-                        }
-                    }, 30000);
-                };
-
-                this.ws.onmessage = (event) => {
-                    if (event.data === 'pong') return;
-                    try {
-                        const data = JSON.parse(event.data);
-                        if (data.type === 'new_sos' || data.type === 'update_sos' || data.type === 'cancel_sos') {
+                // Supabase Realtime setup
+                const channel = supabase
+                    .channel('emergencies-db-changes')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'emergencies'
+                        },
+                        (payload) => {
+                            console.log('Change received!', payload);
                             this.loadHelpRequests();
                         }
-                    } catch (e) {
-                        console.error('WebSocket message error:', e);
-                    }
-                };
-
-                this.ws.onclose = () => {
-                    console.log('WebSocket disconnected, attempting to reconnect...');
-                    clearInterval(this.wsPingInterval);
-                    setTimeout(() => this.initWebSocket(), 5000);
-                };
+                    )
+                    .subscribe();
+                
+                this.supabaseChannel = channel;
             }
 
             async loadHelpRequests() {
                 try {
                     if (!isUserLoggedIn()) return;
 
-                    const res = await fetchWithAuth(`${apiBase}/emergency/nearby`);
+                    // Fetch active emergencies from Supabase
+                    const { data, error } = await supabase
+                        .from('emergencies')
+                        .select('*, profiles(full_name)')
+                        .eq('status', 'active');
 
-                    if (res.ok) {
-                        const data = await res.json();
-                        this.availableRequests = data.emergencies.map(e => {
-                            let distanceStr = 'Unknown distance';
-                            if (window.userLat && window.userLon) {
-                                const R = 6371;
-                                const dLat = (e.lat - window.userLat) * Math.PI / 180;
-                                const dLon = (e.lon - window.userLon) * Math.PI / 180;
-                                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                                    Math.cos(window.userLat * Math.PI / 180) * Math.cos(e.lat * Math.PI / 180) *
-                                    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-                                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                                const d = R * c;
-                                if (d < 1) {
-                                    distanceStr = Math.round(d * 1000) + 'm away';
-                                } else {
-                                    distanceStr = d.toFixed(1) + 'km away';
-                                }
+                    if (error) throw error;
+
+                    this.availableRequests = data.map(e => {
+                        let distanceStr = 'Unknown distance';
+                        if (window.userLat && window.userLon) {
+                            const R = 6371;
+                            const dLat = (e.latitude - window.userLat) * Math.PI / 180;
+                            const dLon = (e.longitude - window.userLon) * Math.PI / 180;
+                            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                Math.cos(window.userLat * Math.PI / 180) * Math.cos(e.latitude * Math.PI / 180) *
+                                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                            const d = R * c;
+                            if (d < 1) {
+                                distanceStr = Math.round(d * 1000) + 'm away';
+                            } else {
+                                distanceStr = d.toFixed(1) + 'km away';
                             }
+                        }
 
-                            let badgeClass = 'bg-primary';
-                            if (e.type.toLowerCase().includes('health')) badgeClass = 'bg-danger';
-                            if (e.type.toLowerCase().includes('danger') || e.type.toLowerCase() === 'sos') badgeClass = 'bg-warning text-dark';
-                            if (e.type.toLowerCase().includes('lost')) badgeClass = 'bg-info';
+                        let badgeClass = 'bg-primary';
+                        const typeLower = (e.type || '').toLowerCase();
+                        if (typeLower.includes('health')) badgeClass = 'bg-danger';
+                        if (typeLower.includes('danger') || typeLower === 'sos') badgeClass = 'bg-warning text-dark';
+                        if (typeLower.includes('lost')) badgeClass = 'bg-info';
 
-                            return {
-                                id: e.id,
-                                type: e.type,
-                                distance: distanceStr,
-                                badgeClass: badgeClass,
-                                status: e.status,
-                                userName: e.created_by,
-                                phone: 'Not provided',
-                                lat: e.lat,
-                                lon: e.lon,
-                                location: `Lat: ${e.lat.toFixed(4)}, Lon: ${e.lon.toFixed(4)}`,
-                                timestamp: e.created_at
-                            };
-                        });
-                        this.renderHelpRequests();
-                    }
+                        return {
+                            id: e.id,
+                            type: e.type,
+                            distance: distanceStr,
+                            badgeClass: badgeClass,
+                            status: e.status,
+                            userName: e.profiles?.full_name || 'Anonymous',
+                            phone: 'Not provided',
+                            lat: e.latitude,
+                            lon: e.longitude,
+                            location: `Lat: ${e.latitude.toFixed(4)}, Lon: ${e.longitude.toFixed(4)}`,
+                            timestamp: e.created_at
+                        };
+                    });
+                    this.renderHelpRequests();
                 } catch (e) { console.error('Error fetching help requests', e); }
             }
 
@@ -620,14 +610,12 @@
                 acceptBtn.disabled = true;
 
                 try {
-                    const res = await fetchWithAuth(`${apiBase}/emergency/${requestId}/accept`, {
-                        method: 'POST'
-                    });
+                    const { error } = await supabase
+                        .from('emergencies')
+                        .update({ status: 'accepted' })
+                        .eq('id', requestId);
 
-                    if (!res.ok) {
-                        const err = await res.json();
-                        throw new Error(err.detail || 'Failed to accept');
-                    }
+                    if (error) throw error;
 
                     // Find the request data
                     const requestIndex = this.availableRequests.findIndex(req => req.id === requestId);
@@ -835,11 +823,12 @@
                     completeBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
                     completeBtn.disabled = true;
 
-                    const res = await fetchWithAuth(`${apiBase}/emergency/${requestId}/complete`, {
-                        method: 'PUT'
-                    });
+                    const { error } = await supabase
+                        .from('emergencies')
+                        .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+                        .eq('id', requestId);
 
-                    if (!res.ok) throw new Error('Failed to complete');
+                    if (error) throw error;
 
                     // Clear timer
                     if (acceptedRequest.timerInterval) {
@@ -1062,10 +1051,12 @@
                     sosBtn.disabled = true;
                     if (activeEmergencyId) {
                         try {
-                            const res = await fetchWithAuth(`${apiBase}/emergency/${activeEmergencyId}/complete`, {
-                                method: 'PUT'
-                            });
-                            if (!res.ok) throw new Error('Failed to resolve SOS');
+                            const { error } = await supabase
+                                .from('emergencies')
+                                .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+                                .eq('id', activeEmergencyId);
+
+                            if (error) throw error;
                             activeEmergencyId = null;
                             showToast('Emergency Resolved! Your helper has been awarded points.', 'success');
                         } catch (e) {
@@ -1358,18 +1349,22 @@
             setPointsUI(storedPoints);
 
             try {
-                if (!isUserLoggedIn()) return;
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
 
-                const res = await fetchWithAuth(`${apiBase}/users/me/profile`);
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('points')
+                    .eq('id', user.id)
+                    .single();
 
-                if (res.ok) {
-                    const data = await res.json();
+                if (error) throw error;
 
+                if (data) {
                     const points = saveUserPoints(data.points || 0);
                     setPointsUI(points);
-
-                    const rank = Number.isFinite(data.local_rank) ? data.local_rank : 0;
-                    document.getElementById('userRank').textContent = rank > 0 ? `${rank}th` : '—';
+                    // Rank fetching would need a more complex query or edge function
+                    document.getElementById('userRank').textContent = '—';
                 }
             } catch (e) {
                 console.error("Error fetching points", e);
@@ -1453,13 +1448,16 @@
 
         async function syncLocationLoop() {
             try {
-                const res = await fetchWithAuth(`${apiBase}/users/me/location`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lat: userLat, lon: userLon })
-                });
-                if (res && !res.ok) {
-                    console.warn('Location sync failed with status', res.status);
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await supabase
+                        .from('profiles')
+                        .update({ 
+                            latitude: userLat, 
+                            longitude: userLon,
+                            last_active: new Date().toISOString()
+                        })
+                        .eq('id', user.id);
                 }
             } catch (err) { console.error("Location sync failed"); }
 
@@ -1605,38 +1603,30 @@
         }
 
         async function sendSOSAlert(payload) {
-            if (!isUserLoggedIn()) {
-                showToast('Please log in to send SOS.', 'danger');
-                console.error('Missing auth token for SOS');
-                return null;
-            }
-
             try {
-                // Post live emergency to backend
-                const res = await fetchWithAuth(`${apiBase}/emergency/sos`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        type: payload.type,
-                        description: payload.message || 'Emergency requested via Quick SOS',
-                        lat: payload.lat,
-                        lon: payload.lon
-                    })
-                });
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) throw new Error("Not logged in");
 
-                if (!res) {
-                    setLoggedInState(false);
-                    showToast('Session expired. Please log in again.', 'warning');
-                    handleAuthFailure();
-                    return null;
-                }
+                const { data, error } = await supabase
+                    .from('emergencies')
+                    .insert([
+                        {
+                            user_id: user.id,
+                            type: payload.type,
+                            description: payload.message || 'Emergency requested via Quick SOS',
+                            latitude: payload.lat,
+                            longitude: payload.lon,
+                            status: 'active'
+                        }
+                    ])
+                    .select()
+                    .single();
 
-                if (res.ok) {
-                    const data = await res.json();
+                if (error) throw error;
+
+                if (data) {
                     storeSOSRequest({
-                        id: data.id || null,
+                        id: data.id,
                         type: payload.type,
                         message: payload.message,
                         lat: payload.lat,
@@ -1645,35 +1635,12 @@
                         timestamp: payload.timestamp
                     });
                     showToast('Emergency Broadcasted to nearby users!', 'success');
-                    // Notification hits everyone, update local counts as visual feedback
                     setTimeout(() => updateHelpersCount(1), 2000);
                     return data.id;
-                } else {
-                    const errText = await res.text();
-                    console.error('SOS API Error:', errText);
-                    storeSOSRequest({
-                        id: null,
-                        type: payload.type,
-                        message: payload.message,
-                        lat: payload.lat,
-                        lon: payload.lon,
-                        status: 'pending',
-                        timestamp: payload.timestamp
-                    });
-                    showToast('Failed to broadcast SOS. Retrying offline...', 'warning');
-                    return null;
                 }
             } catch (e) {
                 console.error('SOS Error:', e);
-                storeSOSRequest({
-                    id: null,
-                    type: payload.type,
-                    message: payload.message,
-                    lat: payload.lat,
-                    lon: payload.lon,
-                    status: 'pending',
-                    timestamp: payload.timestamp
-                });
+                showToast('Failed to broadcast SOS: ' + e.message, 'danger');
                 return null;
             }
         }

@@ -36,6 +36,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important;
         }
     </style>
+    <script src="js/supabase-sdk.js"></script>
     <script src="config.js"></script>
     <script src="js/utils.js"></script>
     <script>
@@ -173,12 +174,17 @@
 
             async function fetchNotifications() {
                 try {
-                    if (!isUserLoggedIn()) return;
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
 
-                    const res = await fetchWithAuth(`${apiBase}/inbox`);
+                    const { data: notifications, error } = await supabase
+                        .from('inbox')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false });
 
-                    if (res.ok) {
-                        const notifications = await res.json();
+                    if (error) throw error;
+                    if (notifications) {
                         renderNotifications(notifications);
                     }
                 } catch (e) { console.error("Error fetching inbox", e); }
@@ -226,9 +232,10 @@
 
                             // Call API to mark read
                             try {
-                                await fetchWithAuth(`${apiBase}/inbox/${n.id}/read`, {
-                                    method: 'POST'
-                                });
+                                await supabase
+                                    .from('inbox')
+                                    .update({ is_read: true })
+                                    .eq('id', n.id);
                             } catch (err) { }
 
                             updateUnreadCount();

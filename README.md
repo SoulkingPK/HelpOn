@@ -1,5 +1,5 @@
 🔰 Project Name: HelpOn
-🔎 One-Liner:
+🔎 One-Liner: A serverless, real-time app powered by Supabase that connects people in danger to nearby helpers.
 
 A real-time app that connects people in danger or distress to nearby helpers — faster than waiting for official services.
 
@@ -105,3 +105,24 @@ To ensure a safe community, HelpOn implements a rigorous Know Your Customer (KYC
 ![KYC Pending Status](docs/assets/kyc_status.png)
 
 *Verification pending state after successful submission.*
+
+## 🚀 Tech Stack Refresh (Migration to Supabase)
+
+HelpOn has recently migrated from a Python/MongoDB/Vercel architecture to a modern, serverless **Supabase** backend.
+
+- **Frontend**: HTML5, Bootstrap 5, Leaflet.js (Maps)
+- **Backend-as-a-Service**: [Supabase](https://supabase.com/)
+  - **Auth**: Secure user registration and login.
+  - **Database**: PostgreSQL for profiles, emergencies, rewards, and support.
+  - **Realtime**: Instant SOS alerts and helper location tracking via Postgres Changes.
+  - **Storage**: (Planned) User avatars and KYC document uploads.
+
+### Initial Setup for Developers
+
+1. Clone the repository.
+2. Create a Supabase project.
+3. Run the SQL schema provided in `implementation_plan.md` in your Supabase SQL Editor.
+4. Enable **Replication (Realtime)** for the `emergencies` and `profiles` tables.
+5. Update `client/config.js` with your Supabase URL and Anon Key.
+6. Serve the `client/` folder using any static web server (e.g., `npx serve client`).
+

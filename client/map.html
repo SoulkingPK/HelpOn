@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="js/supabase-sdk.js"></script>
     <script src="config.js"></script>
     <script src="js/utils.js"></script>
     <script>
@@ -835,43 +836,19 @@
             init() {
                 this.setupEventListeners();
                 this.initMap();
-                this.initWebSocket();
+                this.initRealtime();
             }
 
-            initWebSocket() {
-                const wsUrl = typeof CONFIG !== 'undefined' && CONFIG.WS_BASE_URL
-                    ? CONFIG.WS_BASE_URL
-                    : apiBase.replace('http', 'ws') + '/ws';
-
-                this.ws = new WebSocket(wsUrl);
-
-                this.ws.onopen = () => {
-                    console.log('WebSocket connected');
-                    // Ping every 30 seconds to keep connection alive
-                    this.wsPingInterval = setInterval(() => {
-                        if (this.ws.readyState === WebSocket.OPEN) {
-                            this.ws.send('ping');
-                        }
-                    }, 30000);
-                };
-
-                this.ws.onmessage = (event) => {
-                    if (event.data === 'pong') return;
-                    try {
-                        const data = JSON.parse(event.data);
-                        if (data.type === 'new_sos' || data.type === 'update_sos' || data.type === 'cancel_sos') {
-                            this.fetchEmergencies();
-                        }
-                    } catch (e) {
-                        console.error('WebSocket message error:', e);
-                    }
-                };
-
-                this.ws.onclose = () => {
-                    console.log('WebSocket disconnected, attempting to reconnect...');
-                    clearInterval(this.wsPingInterval);
-                    setTimeout(() => this.initWebSocket(), 5000);
-                };
+            initRealtime() {
+                this.supabaseChannel = supabase
+                    .channel('map-emergencies')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'emergencies' }, () => {
+                        this.fetchEmergencies();
+                    })
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+                        this.fetchActiveUsers();
+                    })
+                    .subscribe();
             }
 
             initMap() {
@@ -931,13 +908,16 @@
 
             async sendLocationUpdate(lat, lon) {
                 try {
-                    const token = getAuthToken();
-                    if (!isUserLoggedIn()) return;
-                    await fetchWithAuth(`${apiBase}/users/me/location`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ lat, lon })
-                    });
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
+                    await supabase
+                        .from('profiles')
+                        .update({
+                            latitude: lat,
+                            longitude: lon,
+                            last_active: new Date().toISOString()
+                        })
+                        .eq('id', user.id);
                 } catch (err) {
                     console.error('Failed to update live location:', err);
                 }
@@ -945,11 +925,14 @@
 
             async fetchActiveUsers() {
                 try {
-                    const token = getAuthToken();
-                    if (!isUserLoggedIn()) return;
-                    const res = await fetchWithAuth(`${apiBase}/users/active`);
-                    if (!res || !res.ok) return;
-                    const users = await res.json();
+                    const { data: users, error } = await supabase
+                        .from('profiles')
+                        .select('id, full_name, latitude, longitude, kyc_status')
+                        .not('latitude', 'is', null)
+                        .gt('last_active', new Date(Date.now() - 10 * 60000).toISOString()); // Last 10 mins
+
+                    if (error) throw error;
+                    if (!users) return;
 
                     this.activeUserMarkers.clearLayers();
                     users.forEach(u => {
@@ -966,7 +949,7 @@
                         `;
                         const uIcon = L.divIcon({ className: '', html: iconHtml, iconSize: [16, 16], iconAnchor: [8, 8] });
                         const verifiedText = isVerified ? ' <i class="bi bi-patch-check-fill text-primary" title="Verified"></i>' : '';
-                        const marker = L.marker([u.lat, u.lon], { icon: uIcon }).bindPopup(`<b>${u.full_name}${verifiedText}</b><br><small>Active Helper</small>`);
+                        const marker = L.marker([u.latitude, u.longitude], { icon: uIcon }).bindPopup(`<b>${u.full_name}${verifiedText}</b><br><small>Active Helper</small>`);
                         this.activeUserMarkers.addLayer(marker);
                     });
                 } catch (err) {
@@ -1177,11 +1160,13 @@
                         handleAuthFailure();
                         return;
                     }
-                    const res = await fetchWithAuth(`${apiBase}/emergencies/nearby`);
-                    if (!res || !res.ok) {
-                        throw new Error('Failed to load emergencies');
-                    }
-                    const data = await res.json();
+                    const { data: emergencies, error } = await supabase
+                        .from('emergencies')
+                        .select('*')
+                        .eq('status', 'active');
+
+                    if (error) throw error;
+                    if (!emergencies) return;
 
                     this.emergencyMarkers.clearLayers();
                     const list = document.getElementById('emergencyList');
@@ -1189,7 +1174,7 @@
                     if (list) list.innerHTML = '';
 
                     const now = Date.now();
-                    const emergencies = (data.emergencies || [])
+                    const filteredEmergencies = (emergencies || [])
                         .map(e => ({
                             ...e,
                             created_at: e.created_at || new Date().toISOString()
@@ -1206,7 +1191,7 @@
                     const newAlerts = [];
                     const missedAlerts = [];
 
-                    emergencies.forEach(e => {
+                    filteredEmergencies.forEach(e => {
                         const distanceKm = getDistanceKm(this.currentLocation.lat, this.currentLocation.lon, e.lat, e.lon);
                         const distanceText = formatDistance(distanceKm);
                         const timeText = formatTimeAgo(e.created_at);
@@ -1292,7 +1277,7 @@
                     this.initialFetch = false;
 
                     if (emptyState) {
-                        emptyState.classList.toggle('d-none', emergencies.length > 0);
+                        emptyState.classList.toggle('d-none', filteredEmergencies.length > 0);
                     }
 
                     this.applyFilters({ silent: true });
@@ -1308,16 +1293,23 @@
                         handleAuthFailure();
                         return;
                     }
-                    const res = await fetchWithAuth(`${apiBase}/emergencies/${id}/accept`, {
-                        method: 'POST'
-                    });
-                    if (res.ok) {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) return;
+
+                    const { error } = await supabase
+                        .from('emergencies')
+                        .update({
+                            status: 'accepted',
+                            helper_id: user.id
+                        })
+                        .eq('id', id);
+
+                    if (!error) {
                         this.showToast('Emergency Request Accepted!', 'success');
                         this.map.closePopup();
                         this.fetchEmergencies();
                     } else {
-                        const err = await res.json();
-                        this.showToast(err.detail || 'Failed to accept', 'error');
+                        this.showToast(error.message || 'Failed to accept', 'error');
                     }
                 } catch (err) {
                     this.showToast('Network error', 'error');
@@ -1331,10 +1323,16 @@
                         handleAuthFailure();
                         return;
                     }
-                    const res = await fetchWithAuth(`${apiBase}/emergencies/${id}/complete`, {
-                        method: 'POST'
-                    });
-                    if (res.ok) {
+                    const { name } = await supabase.auth.getUser(); // dummy just to check auth
+                    const { error } = await supabase
+                        .from('emergencies')
+                        .update({
+                            status: 'resolved',
+                            resolved_at: new Date().toISOString()
+                        })
+                        .eq('id', id);
+
+                    if (!error) {
                         awardPoints(HELP_POINTS_PER_TASK);
                         incrementHelpsCount();
                         this.showToast('+20 HelpPoints Awarded! Emergency Completed.', 'success');
