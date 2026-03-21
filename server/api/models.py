@@ -141,6 +141,13 @@ class HelpRequestCreate(BaseModel):
     def sanitize_support_fields(cls, v):
         return sanitize_string(v)
 
+class ChatbotQuery(BaseModel):
+    prompt: str = Field(..., min_length=1, max_length=1000)
+
+    @validator("prompt", pre=True)
+    def sanitize_prompt(cls, v):
+        return sanitize_string(v)
+
 class HelpRequestResponse(BaseModel):
     id: str
     name: str

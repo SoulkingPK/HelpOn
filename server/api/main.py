@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi import FastAPI, HTTPException, status, Depends, Request
 from typing import Optional, List, Dict, Any
 from fastapi.middleware.cors import CORSMiddleware
 from passlib.context import CryptContext
@@ -13,17 +13,8 @@ import cloudinary.uploader
 # __file__ is server/api/main.py, so we need the parent of the parent
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import using absolute paths corresponding to the injected sys.path
-from api.models import (
-    UserCreate, UserLogin, Token, UserInDB, LocationUpdate,
-    EmergencyCreate, EmergencyResponse, NotificationResponse,
-    UserProfileResponse, UserSettingsUpdate, UserProfileUpdate,
-    HelpRequestCreate, HelpRequestResponse, ChatbotQuery, RefreshTokenRequest,
-    RewardResponse, RedemptionResponse, UserLocationResponse
-)
 from api.database import (
-    users_collection, emergencies_collection, notifications_collection,
-    support_requests_collection, faqs_collection, rewards_collection, user_redemptions_collection
+    users_collection, emergencies_collection
 )
 from api.auth import get_password_hash, verify_password, create_access_token, create_refresh_token, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, verify_token, verify_refresh_token
 
