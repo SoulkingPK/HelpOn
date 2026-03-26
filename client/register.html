@@ -447,18 +447,20 @@
                     localStorage.setItem('helpon_user_name', fullName);
 
                     if (data.session) {
-                        // Auto-confirmed â€” go straight to home
-                        setLoggedInState(true);
-                        window.location.href = 'home.html';
-                    } else {
-                        // Email confirmation required
-                        registerAlert.classList.remove('d-none', 'alert-danger');
-                        registerAlert.classList.add('alert-success');
-                        alertMessage.textContent = 'Account created! Please check your email and click the confirmation link to activate your account.';
-                        registerBtn.disabled = false;
-                        registerSpinner.classList.add('d-none');
-                        registerText.textContent = 'Create Account';
+                        // Sign out the session so the user can manually log in
+                        await window.supabase.auth.signOut();
                     }
+                    
+                    registerAlert.classList.remove('d-none', 'alert-danger');
+                    registerAlert.classList.add('alert-success');
+                    alertMessage.textContent = 'Account created successfully! Redirecting to login...';
+                    registerBtn.disabled = true;
+                    registerSpinner.classList.add('d-none');
+                    registerText.textContent = 'Redirecting...';
+                    
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
                 } catch (err) {
                     registerAlert.classList.remove('d-none', 'alert-success');
                     registerAlert.classList.add('alert-danger');
