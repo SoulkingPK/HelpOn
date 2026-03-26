@@ -755,26 +755,17 @@
                 // e.preventDefault();
             });
 
-            // ID verification
-            verifyIdBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                showToast('Opening ID verification process', 'info');
-                // In a real app, you would navigate to the verification page
-            });
+            // ID verification - link navigates to kyc.html naturally
 
             // Logout confirmation
-            logoutBtn.addEventListener('click', function (e) {
-                e.preventDefault(); // Prevent default link navigation
+            logoutBtn.addEventListener('click', async function (e) {
+                e.preventDefault();
                 if (hasUnsavedChanges) {
                     if (!confirm('You have unsaved changes. Are you sure you want to logout?')) {
-                        return; // Cancel logout
+                        return;
                     }
                 }
-
-                // Perform logout - clears HTTP-only cookies server-side
-                setLoggedInState(false);
-                localStorage.removeItem('helpon_user_name');
-                handleAuthFailure();
+                await handleLogout();
             });
 
 

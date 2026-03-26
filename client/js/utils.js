@@ -71,16 +71,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (btn.dataset.logoutBound) return;
         btn.dataset.logoutBound = "true";
 
-        btn.addEventListener('click', function (e) {
+        btn.addEventListener('click', async function (e) {
             e.preventDefault();
             if (typeof window.hasUnsavedChanges !== 'undefined' && window.hasUnsavedChanges) {
                 if (!confirm('You have unsaved changes. Are you sure you want to logout?')) {
                     return;
                 }
             }
-            if (typeof setLoggedInState === 'function') setLoggedInState(false);
-            localStorage.removeItem('helpon_user_name');
-            if (typeof handleAuthFailure === 'function') handleAuthFailure();
+            if (typeof handleLogout === 'function') {
+                await handleLogout();
+            } else {
+                if (typeof setLoggedInState === 'function') setLoggedInState(false);
+                localStorage.removeItem('helpon_user_name');
+                window.location.href = 'index.html';
+            }
         });
     });
 });
