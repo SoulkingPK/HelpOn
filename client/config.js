@@ -6,29 +6,23 @@ const CONFIG = {
 };
 
 // Initialize Supabase Client
+// The CDN UMD build exposes window.supabase = { createClient, ... }
 let supabase;
 try {
-    // Proactive validation: help the user catch if they used a Stripe key by mistake
-    if (CONFIG.SUPABASE_ANON_KEY.startsWith('sb_')) {
-        console.error("CRITICAL ERROR: Your SUPABASE_ANON_KEY looks like a STRIPE key! This will not work with Supabase.");
-        alert("CRITICAL ERROR: Your SUPABASE_ANON_KEY looks like a STRIPE key! \n\nPlease get the 'anon (public)' key from your Supabase Dashboard -> Project Settings -> API.");
-    }
-
-    if (window.supabase && typeof window.supabase.createClient === 'function') {
-        const supabaseLib = window.supabase;
-        supabase = supabaseLib.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+    const _lib = window.supabase;
+    if (_lib && typeof _lib.createClient === 'function') {
+        supabase = _lib.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
         window.supabase = supabase;
-        
         if (!supabase.auth) {
-            console.error("Supabase Auth failed to initialize. This is usually due to an invalid Anon Key.");
+            console.error('Supabase Auth module missing — check your Anon Key.');
         } else {
-            console.log("Supabase client initialized successfully.");
+            console.log('Supabase client initialized successfully.');
         }
     } else {
-        console.error("Supabase SDK not found or incorrectly loaded.");
+        console.error('Supabase SDK not loaded correctly. window.supabase.createClient not found.');
     }
 } catch (e) {
-    console.error("Error initializing Supabase:", e);
+    console.error('Error initializing Supabase client:', e);
 }
 
 
