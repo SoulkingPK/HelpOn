@@ -226,6 +226,17 @@
     </div>
 
     <script>
+        // Ensure we have a valid Supabase client regardless of config.js state
+        let supabase = window.supabase;
+        if (supabase && typeof supabase.createClient === 'function') {
+            // window.supabase is still the library — create the client now
+            supabase = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+            window.supabase = supabase;
+        } else if (!supabase || !supabase.auth) {
+            // Neither the library nor a ready client is available
+            console.error('Supabase not initialized. Check CDN and config.js.');
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             // Elements
             const registerForm = document.getElementById('registerForm');

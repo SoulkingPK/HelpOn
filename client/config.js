@@ -6,24 +6,33 @@ const CONFIG = {
 };
 
 // Initialize Supabase Client
-// The CDN UMD build exposes window.supabase = { createClient, ... }
+// The CDN UMD build exposes: window.supabase = { createClient, ... }
+// We call createClient here and replace window.supabase with the live client.
 let supabase;
-try {
-    const _lib = window.supabase;
-    if (_lib && typeof _lib.createClient === 'function') {
-        supabase = _lib.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-        window.supabase = supabase;
-        if (!supabase.auth) {
-            console.error('Supabase Auth module missing — check your Anon Key.');
-        } else {
-            console.log('Supabase client initialized successfully.');
+(function () {
+    try {
+        const lib = window.supabase;
+        if (!lib) {
+            console.error('[HelpOn] Supabase CDN script not loaded — window.supabase is undefined.');
+            return;
         }
-    } else {
-        console.error('Supabase SDK not loaded correctly. window.supabase.createClient not found.');
+        if (typeof lib.createClient !== 'function') {
+            console.error('[HelpOn] window.supabase exists but has no createClient(). CDN may have loaded the wrong build.', lib);
+            return;
+        }
+        const client = lib.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
+        if (!client || !client.auth) {
+            console.error('[HelpOn] createClient() returned an object without .auth — check your Supabase URL and anon key.');
+            return;
+        }
+        supabase = client;
+        window.supabase = client;
+        console.log('[HelpOn] Supabase client initialized successfully.');
+    } catch (err) {
+        console.error('[HelpOn] Exception during Supabase initialization:', err);
     }
-} catch (e) {
-    console.error('Error initializing Supabase client:', e);
-}
+})();
+
 
 
 // Helper to check if user is nominally logged in via localStorage as a quick check
