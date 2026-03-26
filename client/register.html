@@ -226,17 +226,6 @@
     </div>
 
     <script>
-        // Ensure we have a valid Supabase client regardless of config.js state
-        let supabase = window.supabase;
-        if (supabase && typeof supabase.createClient === 'function') {
-            // window.supabase is still the library — create the client now
-            supabase = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-            window.supabase = supabase;
-        } else if (!supabase || !supabase.auth) {
-            // Neither the library nor a ready client is available
-            console.error('Supabase not initialized. Check CDN and config.js.');
-        }
-
         document.addEventListener('DOMContentLoaded', function () {
             // Elements
             const registerForm = document.getElementById('registerForm');
@@ -425,7 +414,7 @@
                 const phoneNumber = phoneInput.value.trim();
 
                 try {
-                    const { data, error } = await supabase.auth.signUp({
+                    const { data, error } = await window.supabase.auth.signUp({
                         email: email,
                         password: password,
                         options: {
@@ -442,7 +431,7 @@
                     if (!user) throw new Error('Registration failed â€” no user returned. Please try again.');
 
                     // Insert into profiles table (ignore RLS errors â€” profile may already exist via trigger)
-                    const { error: profileError } = await supabase
+                    const { error: profileError } = await window.supabase
                         .from('profiles')
                         .upsert([{
                             id: user.id,
@@ -485,7 +474,7 @@
             if (googleBtn) {
                 googleBtn.addEventListener('click', async function () {
                     try {
-                        const { data, error } = await supabase.auth.signInWithOAuth({
+                        const { data, error } = await window.supabase.auth.signInWithOAuth({
                             provider: 'google',
                             options: {
                                 redirectTo: window.location.origin + '/home.html'
