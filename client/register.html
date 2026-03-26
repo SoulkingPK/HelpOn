@@ -464,7 +464,13 @@
                 } catch (err) {
                     registerAlert.classList.remove('d-none', 'alert-success');
                     registerAlert.classList.add('alert-danger');
-                    alertMessage.textContent = err.message || 'Registration failed. Please try again.';
+                    
+                    let errorMsg = err.message || 'Registration failed. Please try again.';
+                    if (errorMsg.toLowerCase().includes('rate limit')) {
+                        errorMsg = 'Email rate limit exceeded! To fix this while testing, go to your Supabase Dashboard -> Authentication -> Providers -> Email, and turn OFF "Confirm email".';
+                    }
+                    
+                    alertMessage.textContent = errorMsg;
                     registerBtn.disabled = false;
                     registerSpinner.classList.add('d-none');
                     registerText.textContent = 'Create Account';
