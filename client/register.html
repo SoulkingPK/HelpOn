@@ -134,8 +134,8 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label">Email (recommended)</label>
-                                <input type="email" class="form-control form-control-lg" id="email"
+                                <label class="form-label">Email <span class="text-danger">*</span></label>
+                                <input type="email" class="form-control form-control-lg" id="email" required
                                     placeholder="Enter your email">
                                 <div class="invalid-feedback" id="emailFeedback"></div>
                             </div>
@@ -333,7 +333,7 @@
             });
 
             // Form validation
-            registerForm.addEventListener('submit', function (e) {
+            registerForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
 
                 // Reset validation
@@ -365,8 +365,12 @@
                     isValid = false;
                 }
 
-                // Validate email if provided
-                if (emailInput.value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value)) {
+                // Validate email (required for Supabase)
+                if (!emailInput.value.trim()) {
+                    emailInput.classList.add('is-invalid');
+                    document.getElementById('emailFeedback').textContent = 'Email is required to create an account';
+                    isValid = false;
+                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value)) {
                     emailInput.classList.add('is-invalid');
                     document.getElementById('emailFeedback').textContent = 'Please enter a valid email address';
                     isValid = false;
@@ -399,90 +403,70 @@
 
                 if (!isValid) return;
 
-                // Simulate registration process
+                // Start registration
                 registerBtn.disabled = true;
                 registerSpinner.classList.remove('d-none');
                 registerText.textContent = 'Creating account...';
 
-                // Real API call
-                const getHelp = document.getElementById('getHelp').checked;
-                const offerHelp = document.getElementById('offerHelp').checked;
-
-                const userData = {
-                    full_name: fullNameInput.value.trim(),
-                    phone_number: phoneInput.value.trim(),
-                    email: emailInput.value.trim() || null,
-                    password: passwordInput.value,
-                    get_help: getHelp,
-                    offer_help: offerHelp
-                };
-
-                const apiBase = CONFIG.API_BASE_URL;
-                // Supabase Registration
                 const email = emailInput.value.trim();
                 const password = passwordInput.value;
                 const fullName = fullNameInput.value.trim();
                 const phoneNumber = phoneInput.value.trim();
 
-                supabase.auth.signUp({
-                    email: email,
-                    password: password,
-                    options: {
-                        data: {
+                try {
+                    const { data, error } = await supabase.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            data: {
+                                full_name: fullName,
+                                phone_number: phoneNumber
+                            }
+                        }
+                    });
+
+                    if (error) throw error;
+
+                    const user = data.user;
+                    if (!user) throw new Error('Registration failed — no user returned. Please try again.');
+
+                    // Insert into profiles table (ignore RLS errors — profile may already exist via trigger)
+                    const { error: profileError } = await supabase
+                        .from('profiles')
+                        .upsert([{
+                            id: user.id,
+                            email: email,
                             full_name: fullName,
                             phone_number: phoneNumber
-                        }
+                        }], { onConflict: 'id' });
+
+                    if (profileError) {
+                        console.warn('Profile upsert warning:', profileError.message);
                     }
-                })
-                    .then(async ({ data, error }) => {
-                        if (error) throw error;
 
-                        const user = data.user;
-                        if (!user) throw new Error("Registration failed - no user returned");
+                    localStorage.setItem('helpon_user_name', fullName);
 
-                        // Insert into profiles table
-                        const { error: profileError } = await supabase
-                            .from('profiles')
-                            .insert([
-                                {
-                                    id: user.id,
-                                    username: email || phoneNumber,
-                                    email: email,
-                                    full_name: fullName,
-                                    phone_number: phoneNumber,
-                                    role: 'user'
-                                }
-                            ]);
-
-                        if (profileError) {
-                            console.error("Profile creation error:", profileError);
-                            // We don't block here as auth succeeded, but it's an issue
-                        }
-
-                        // Set logged in state
+                    if (data.session) {
+                        // Auto-confirmed — go straight to home
                         setLoggedInState(true);
-                        localStorage.setItem('helpon_user_name', fullName);
-                        
-                        // Check if email confirmation is required
-                        if (data.session) {
-                            window.location.href = 'home.html';
-                        } else {
-                            registerAlert.classList.remove('d-none');
-                            registerAlert.classList.remove('alert-danger');
-                            registerAlert.classList.add('alert-success');
-                            alertMessage.textContent = "Registration successful! Please check your email for a confirmation link.";
-                            registerBtn.disabled = false;
-                            registerSpinner.classList.add('d-none');
-                            registerText.textContent = 'Create Account';
-                        }
-                    })
-                    .catch(error => {
-                        registerAlert.classList.remove('d-none');
-                        alertMessage.textContent = error.message;
+                        window.location.href = 'home.html';
+                    } else {
+                        // Email confirmation required
+                        registerAlert.classList.remove('d-none', 'alert-danger');
+                        registerAlert.classList.add('alert-success');
+                        alertMessage.textContent = 'Account created! Please check your email and click the confirmation link to activate your account.';
                         registerBtn.disabled = false;
                         registerSpinner.classList.add('d-none');
                         registerText.textContent = 'Create Account';
-                    });
+                    }
+                } catch (err) {
+                    registerAlert.classList.remove('d-none', 'alert-success');
+                    registerAlert.classList.add('alert-danger');
+                    alertMessage.textContent = err.message || 'Registration failed. Please try again.';
+                    registerBtn.disabled = false;
+                    registerSpinner.classList.add('d-none');
+                    registerText.textContent = 'Create Account';
+                }
             });
 
             // Google Login handler
