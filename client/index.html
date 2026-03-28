@@ -265,7 +265,7 @@
             if (googleBtn) {
                 googleBtn.addEventListener('click', async function () {
                     try {
-                        const { data, error } = await supabase.auth.signInWithOAuth({
+                        const { data, error } = await window.supabase.auth.signInWithOAuth({
                             provider: 'google',
                             options: {
                                 redirectTo: window.location.origin + '/home.html'
