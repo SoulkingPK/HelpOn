@@ -53,6 +53,12 @@ const CONFIG = {
 
 // Helper to check if user is nominally logged in via localStorage
 function isUserLoggedIn() {
+    // If returning from an OAuth flow (like Google login), the URL contains an access_token.
+    // We must return true here so the page doesn't instantly redirect us back to login 
+    // before Supabase has a chance to process the token!
+    if (window.location.hash && window.location.hash.includes('access_token=')) {
+        return true;
+    }
     return localStorage.getItem('is_logged_in') === 'true';
 }
 
