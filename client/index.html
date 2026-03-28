@@ -98,9 +98,9 @@
 
                         <form id="loginForm">
                             <div class="mb-3">
-                                <label class="form-label">Phone or Email</label>
-                                <input type="text" class="form-control form-control-lg" id="username" name="username"
-                                    required placeholder="Enter your phone number or email">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control form-control-lg" id="username" name="username"
+                                    required placeholder="Enter your email address">
                                 <div class="invalid-feedback" id="usernameFeedback"></div>
                             </div>
 
@@ -186,7 +186,7 @@
             });
 
             // Form validation
-            loginForm.addEventListener('submit', function (e) {
+            loginForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
 
                 // Reset validation
@@ -197,9 +197,9 @@
                 let isValid = true;
 
                 // Validate username
-                if (!usernameInput.value.trim()) {
+                if (!usernameInput.value.trim() || !usernameInput.value.includes('@')) {
                     usernameInput.classList.add('is-invalid');
-                    document.getElementById('usernameFeedback').textContent = 'Please enter your phone number or email';
+                    document.getElementById('usernameFeedback').textContent = 'Please enter a valid email address';
                     isValid = false;
                 }
 
@@ -221,37 +221,29 @@
                 loginSpinner.classList.remove('d-none');
                 loginText.textContent = 'Logging in...';
 
-                // Real API call
-                const loginData = {
-                    username: usernameInput.value.trim(),
-                    password: passwordInput.value
-                };
-
-                const apiBase = CONFIG.API_BASE_URL;
-                // Supabase Login
-                supabase.auth.signInWithPassword({
-                    email: usernameInput.value.trim(),
-                    password: passwordInput.value
-                })
-                    .then(({ data, error }) => {
-                        if (error) {
-                            throw error;
-                        }
-
-                        // Set logged in state
-                        setLoggedInState(true);
-                        if (data.user?.user_metadata?.full_name) {
-                            localStorage.setItem('helpon_user_name', data.user.user_metadata.full_name);
-                        }
-                        window.location.href = 'home.html';
-                    })
-                    .catch(error => {
-                        loginAlert.classList.remove('d-none');
-                        alertMessage.textContent = error.message;
-                        loginBtn.disabled = false;
-                        loginSpinner.classList.add('d-none');
-                        loginText.textContent = 'Login';
+                try {
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: usernameInput.value.trim(),
+                        password: passwordInput.value
                     });
+
+                    if (error) {
+                        throw error;
+                    }
+
+                    // Set logged in state
+                    setLoggedInState(true);
+                    if (data.user?.user_metadata?.full_name) {
+                        localStorage.setItem('helpon_user_name', data.user.user_metadata.full_name);
+                    }
+                    window.location.href = 'home.html';
+                } catch (error) {
+                    loginAlert.classList.remove('d-none');
+                    alertMessage.textContent = error.message;
+                    loginBtn.disabled = false;
+                    loginSpinner.classList.add('d-none');
+                    loginText.textContent = 'Login';
+                }
             });
 
             // Forgot password handler
@@ -260,7 +252,7 @@
 
                 if (!usernameInput.value.trim()) {
                     loginAlert.classList.remove('d-none');
-                    alertMessage.textContent = 'Please enter your phone number or email first';
+                    alertMessage.textContent = 'Please enter your email address first';
                     return;
                 }
 
