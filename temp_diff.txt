@@ -1,0 +1,196 @@
+﻿diff --git a/client/config.js b/client/config.js
+index 805d360..b786288 100644
+--- a/client/config.js
++++ b/client/config.js
+@@ -1,7 +1,8 @@
+ // Global configuration for the HelpOn frontend using Supabase
+ const CONFIG = {
+     SUPABASE_URL: 'https://yatmmbytwhpngzofiukt.supabase.co',
+-    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhdG1tYnl0d2hwbmd6b2ZpdWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODc2MjgsImV4cCI6MjA4OTY2MzYyOH0.aPm4Bk-302CVfacQPkfdyABhB0-EvL4q5hFQiDnfP34'
++    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhdG1tYnl0d2hwbmd6b2ZpdWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODc2MjgsImV4cCI6MjA4OTY2MzYyOH0.aPm4Bk-302CVfacQPkfdyABhB0-EvL4q5hFQiDnfP34',
++    API_BASE_URL: '/api'
+ };
+ 
+ // Initialize Supabase Client
+@@ -81,6 +82,19 @@ async function handleLogout() {
+ 
+ // Legacy stub
+ async function fetchWithAuth(url, options = {}) {
+-    console.error('fetchWithAuth is deprecated! Use the supabase client directly.');
+-    throw new Error('Please migrate this API call to Supabase.');
++    try {
++        const headers = new Headers(options.headers || {});
++        const { data: { session } } = await window.supabase.auth.getSession();
++        if (session?.access_token && !headers.has('Authorization')) {
++            headers.set('Authorization', `Bearer ${session.access_token}`);
++        }
++        return fetch(url, {
++            ...options,
++            headers,
++            credentials: options.credentials || 'include'
++        });
++    } catch (err) {
++        console.error('fetchWithAuth fallback failed:', err);
++        throw err;
++    }
+ }
+diff --git a/client/home.html b/client/home.html
+index 263ff01..ba93b14 100644
+--- a/client/home.html
++++ b/client/home.html
+@@ -1177,7 +1177,7 @@
+         function getUserKey() {
+             const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
+             if (name) return name.replace(/\s+/g, '_');
+-            return token ? token.slice(-12) : 'guest';
++            return 'guest';
+         }
+ 
+         function getPointsStorageKey() {
+@@ -1467,16 +1467,39 @@
+ 
+         async function fetchNearbyUsers() {
+             try {
+-                const res = await fetchWithAuth(`${apiBase}/emergency/nearby`);
+-                if (!res || !res.ok) throw new Error('Failed to load nearby');
+-                const data = await res.json();
++                const { data: { user } } = await supabase.auth.getUser();
++                if (!user) return;
++
++                const activeSince = new Date(Date.now() - 10 * 60 * 1000).toISOString();
++                const { data: users, error } = await supabase
++                    .from('profiles')
++                    .select('id, latitude, longitude')
++                    .not('latitude', 'is', null)
++                    .not('longitude', 'is', null)
++                    .gt('last_active', activeSince);
++
++                if (error) throw error;
++
++                let nearbyCount = 0;
++                (users || []).forEach(u => {
++                    if (u.id === user.id) return;
++                    const dLat = (u.latitude - userLat) * Math.PI / 180;
++                    const dLon = (u.longitude - userLon) * Math.PI / 180;
++                    const a = Math.sin(dLat / 2) ** 2 +
++                        Math.cos(userLat * Math.PI / 180) * Math.cos(u.latitude * Math.PI / 180) *
++                        Math.sin(dLon / 2) ** 2;
++                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
++                    const distanceKm = 6371 * c;
++                    if (distanceKm <= 5) nearbyCount += 1;
++                });
+ 
+-                // Update helpers count metric to reflect active users over mocked values
+                 const helpersCount = document.getElementById('helpersCount');
+-                if (helpersCount && data.active_helpers !== undefined) {
+-                    helpersCount.textContent = data.active_helpers; // Raw real users
++                if (helpersCount) {
++                    helpersCount.textContent = nearbyCount;
+                 }
+-            } catch (e) { }
++            } catch (e) {
++                console.error('Failed loading nearby helpers', e);
++            }
+             setTimeout(fetchNearbyUsers, 15000);
+         }
+ 
+diff --git a/client/map.html b/client/map.html
+index ad5aa93..b00bea6 100644
+--- a/client/map.html
++++ b/client/map.html
+@@ -524,7 +524,7 @@
+         function getUserKey() {
+             const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
+             if (name) return name.replace(/\s+/g, '_');
+-            return token ? token.slice(-12) : 'guest';
++            return 'guest';
+         }
+ 
+         function getPointsStorageKey() {
+@@ -937,7 +937,7 @@
+                     this.activeUserMarkers.clearLayers();
+                     users.forEach(u => {
+                         // Very rough heuristic to avoid drawing a marker right on top of our own user marker
+-                        if (Math.abs(u.lat - this.currentLocation.lat) < 0.0001 && Math.abs(u.lon - this.currentLocation.lon) < 0.0001) return;
++                        if (Math.abs(u.latitude - this.currentLocation.lat) < 0.0001 && Math.abs(u.longitude - this.currentLocation.lon) < 0.0001) return;
+ 
+                         const isVerified = u.verified || u.kyc_status === 'approved';
+                         const verifiedBadge = isVerified ? `<div style="position:absolute; top:-5px; right:-5px; background:white; border-radius:50%; width:12px; height:12px; display:flex; align-items:center; justify-content:center;"><i class="bi bi-patch-check-fill" style="color:#2563eb; font-size:10px;"></i></div>` : '';
+@@ -1177,11 +1177,14 @@
+                     const filteredEmergencies = (emergencies || [])
+                         .map(e => ({
+                             ...e,
++                            lat: Number.parseFloat(e.latitude ?? e.lat),
++                            lon: Number.parseFloat(e.longitude ?? e.lon),
+                             created_at: e.created_at || new Date().toISOString()
+                         }))
+                         .filter(e => {
+                             const createdTime = new Date(e.created_at).getTime();
+                             if (Number.isNaN(createdTime)) return false;
++                            if (!Number.isFinite(e.lat) || !Number.isFinite(e.lon)) return false;
+                             if (now - createdTime > EMERGENCY_TTL_MS) return false;
+                             const distance = getDistanceKm(this.currentLocation.lat, this.currentLocation.lon, e.lat, e.lon);
+                             return distance <= MAX_EMERGENCY_DISTANCE_KM;
+@@ -1323,7 +1326,12 @@
+                         handleAuthFailure();
+                         return;
+                     }
+-                    const { name } = await supabase.auth.getUser(); // dummy just to check auth
++                    const { data: { user } } = await supabase.auth.getUser();
++                    if (!user) {
++                        this.showToast('Session expired. Please login again.', 'warning');
++                        handleAuthFailure();
++                        return;
++                    }
+                     const { error } = await supabase
+                         .from('emergencies')
+                         .update({
+@@ -1339,8 +1347,7 @@
+                         this.map.closePopup();
+                         this.fetchEmergencies();
+                     } else {
+-                        const err = await res.json();
+-                        this.showToast(err.detail || 'Failed to complete', 'error');
++                        this.showToast(error.message || 'Failed to complete', 'error');
+                     }
+                 } catch (err) {
+                     this.showToast('Network error', 'error');
+@@ -1451,6 +1458,21 @@
+             }
+ 
+             saveSettings() {
++                const settings = {
++                    emergencyNotifications: !!document.getElementById('emergencyNotifications')?.checked,
++                    autoLocate: !!document.getElementById('autoLocate')?.checked,
++                    satelliteView: !!document.getElementById('satelliteView')?.checked,
++                    trafficData: !!document.getElementById('trafficData')?.checked
++                };
++                localStorage.setItem('mapSettings', JSON.stringify(settings));
++
++                const mapEl = document.getElementById('leafletMap');
++                if (mapEl) {
++                    mapEl.style.filter = settings.satelliteView
++                        ? 'saturate(0.8) contrast(1.05)'
++                        : '';
++                }
++
+                 this.showToast('Map settings saved', 'success');
+                 const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
+                 if (modal) modal.hide();
+@@ -1493,12 +1515,10 @@
+ 
+                 // Apply satellite view if saved
+                 if (settings.satelliteView) {
+-                    document.getElementById('mapPlaceholder').style.backgroundColor = '#1a3d5a';
+-                    document.getElementById('mapPlaceholder').innerHTML = `
+-                        < i class="bi bi-globe fs-1 mb-2" style = "color: #adb5bd;" ></i >
+-                        <h4 style="color: white;">Satellite View</h4>
+-                        <p class="text-center" style="color: #adb5bd;">Satellite map with terrain data</p>
+-                    `;
++                    const mapEl = document.getElementById('leafletMap');
++                    if (mapEl) {
++                        mapEl.style.filter = 'saturate(0.8) contrast(1.05)';
++                    }
+                 }
+             }
+         });
