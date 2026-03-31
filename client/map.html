@@ -524,7 +524,7 @@
         function getUserKey() {
             const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
             if (name) return name.replace(/\s+/g, '_');
-            return token ? token.slice(-12) : 'guest';
+            return 'guest';
         }
 
         function getPointsStorageKey() {
@@ -937,7 +937,7 @@
                     this.activeUserMarkers.clearLayers();
                     users.forEach(u => {
                         // Very rough heuristic to avoid drawing a marker right on top of our own user marker
-                        if (Math.abs(u.lat - this.currentLocation.lat) < 0.0001 && Math.abs(u.lon - this.currentLocation.lon) < 0.0001) return;
+                        if (Math.abs(u.latitude - this.currentLocation.lat) < 0.0001 && Math.abs(u.longitude - this.currentLocation.lon) < 0.0001) return;
 
                         const isVerified = u.verified || u.kyc_status === 'approved';
                         const verifiedBadge = isVerified ? `<div style="position:absolute; top:-5px; right:-5px; background:white; border-radius:50%; width:12px; height:12px; display:flex; align-items:center; justify-content:center;"><i class="bi bi-patch-check-fill" style="color:#2563eb; font-size:10px;"></i></div>` : '';
@@ -1177,11 +1177,14 @@
                     const filteredEmergencies = (emergencies || [])
                         .map(e => ({
                             ...e,
+                            lat: Number.parseFloat(e.latitude ?? e.lat),
+                            lon: Number.parseFloat(e.longitude ?? e.lon),
                             created_at: e.created_at || new Date().toISOString()
                         }))
                         .filter(e => {
                             const createdTime = new Date(e.created_at).getTime();
                             if (Number.isNaN(createdTime)) return false;
+                            if (!Number.isFinite(e.lat) || !Number.isFinite(e.lon)) return false;
                             if (now - createdTime > EMERGENCY_TTL_MS) return false;
                             const distance = getDistanceKm(this.currentLocation.lat, this.currentLocation.lon, e.lat, e.lon);
                             return distance <= MAX_EMERGENCY_DISTANCE_KM;
@@ -1323,7 +1326,12 @@
                         handleAuthFailure();
                         return;
                     }
-                    const { name } = await supabase.auth.getUser(); // dummy just to check auth
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (!user) {
+                        this.showToast('Session expired. Please login again.', 'warning');
+                        handleAuthFailure();
+                        return;
+                    }
                     const { error } = await supabase
                         .from('emergencies')
                         .update({
@@ -1339,8 +1347,7 @@
                         this.map.closePopup();
                         this.fetchEmergencies();
                     } else {
-                        const err = await res.json();
-                        this.showToast(err.detail || 'Failed to complete', 'error');
+                        this.showToast(error.message || 'Failed to complete', 'error');
                     }
                 } catch (err) {
                     this.showToast('Network error', 'error');
@@ -1451,6 +1458,21 @@
             }
 
             saveSettings() {
+                const settings = {
+                    emergencyNotifications: !!document.getElementById('emergencyNotifications')?.checked,
+                    autoLocate: !!document.getElementById('autoLocate')?.checked,
+                    satelliteView: !!document.getElementById('satelliteView')?.checked,
+                    trafficData: !!document.getElementById('trafficData')?.checked
+                };
+                localStorage.setItem('mapSettings', JSON.stringify(settings));
+
+                const mapEl = document.getElementById('leafletMap');
+                if (mapEl) {
+                    mapEl.style.filter = settings.satelliteView
+                        ? 'saturate(0.8) contrast(1.05)'
+                        : '';
+                }
+
                 this.showToast('Map settings saved', 'success');
                 const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
                 if (modal) modal.hide();
@@ -1493,12 +1515,10 @@
 
                 // Apply satellite view if saved
                 if (settings.satelliteView) {
-                    document.getElementById('mapPlaceholder').style.backgroundColor = '#1a3d5a';
-                    document.getElementById('mapPlaceholder').innerHTML = `
-                        < i class="bi bi-globe fs-1 mb-2" style = "color: #adb5bd;" ></i >
-                        <h4 style="color: white;">Satellite View</h4>
-                        <p class="text-center" style="color: #adb5bd;">Satellite map with terrain data</p>
-                    `;
+                    const mapEl = document.getElementById('leafletMap');
+                    if (mapEl) {
+                        mapEl.style.filter = 'saturate(0.8) contrast(1.05)';
+                    }
                 }
             }
         });

@@ -1,7 +1,8 @@
 // Global configuration for the HelpOn frontend using Supabase
 const CONFIG = {
     SUPABASE_URL: 'https://yatmmbytwhpngzofiukt.supabase.co',
-    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhdG1tYnl0d2hwbmd6b2ZpdWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODc2MjgsImV4cCI6MjA4OTY2MzYyOH0.aPm4Bk-302CVfacQPkfdyABhB0-EvL4q5hFQiDnfP34'
+    SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlhdG1tYnl0d2hwbmd6b2ZpdWt0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwODc2MjgsImV4cCI6MjA4OTY2MzYyOH0.aPm4Bk-302CVfacQPkfdyABhB0-EvL4q5hFQiDnfP34',
+    API_BASE_URL: '/api'
 };
 
 // Initialize Supabase Client
@@ -81,6 +82,19 @@ async function handleLogout() {
 
 // Legacy stub
 async function fetchWithAuth(url, options = {}) {
-    console.error('fetchWithAuth is deprecated! Use the supabase client directly.');
-    throw new Error('Please migrate this API call to Supabase.');
+    try {
+        const headers = new Headers(options.headers || {});
+        const { data: { session } } = await window.supabase.auth.getSession();
+        if (session?.access_token && !headers.has('Authorization')) {
+            headers.set('Authorization', `Bearer ${session.access_token}`);
+        }
+        return fetch(url, {
+            ...options,
+            headers,
+            credentials: options.credentials || 'include'
+        });
+    } catch (err) {
+        console.error('fetchWithAuth fallback failed:', err);
+        throw err;
+    }
 }

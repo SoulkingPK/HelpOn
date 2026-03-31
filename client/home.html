@@ -1177,7 +1177,7 @@
         function getUserKey() {
             const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
             if (name) return name.replace(/\s+/g, '_');
-            return token ? token.slice(-12) : 'guest';
+            return 'guest';
         }
 
         function getPointsStorageKey() {
@@ -1467,16 +1467,39 @@
 
         async function fetchNearbyUsers() {
             try {
-                const res = await fetchWithAuth(`${apiBase}/emergency/nearby`);
-                if (!res || !res.ok) throw new Error('Failed to load nearby');
-                const data = await res.json();
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
 
-                // Update helpers count metric to reflect active users over mocked values
+                const activeSince = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+                const { data: users, error } = await supabase
+                    .from('profiles')
+                    .select('id, latitude, longitude')
+                    .not('latitude', 'is', null)
+                    .not('longitude', 'is', null)
+                    .gt('last_active', activeSince);
+
+                if (error) throw error;
+
+                let nearbyCount = 0;
+                (users || []).forEach(u => {
+                    if (u.id === user.id) return;
+                    const dLat = (u.latitude - userLat) * Math.PI / 180;
+                    const dLon = (u.longitude - userLon) * Math.PI / 180;
+                    const a = Math.sin(dLat / 2) ** 2 +
+                        Math.cos(userLat * Math.PI / 180) * Math.cos(u.latitude * Math.PI / 180) *
+                        Math.sin(dLon / 2) ** 2;
+                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                    const distanceKm = 6371 * c;
+                    if (distanceKm <= 5) nearbyCount += 1;
+                });
+
                 const helpersCount = document.getElementById('helpersCount');
-                if (helpersCount && data.active_helpers !== undefined) {
-                    helpersCount.textContent = data.active_helpers; // Raw real users
+                if (helpersCount) {
+                    helpersCount.textContent = nearbyCount;
                 }
-            } catch (e) { }
+            } catch (e) {
+                console.error('Failed loading nearby helpers', e);
+            }
             setTimeout(fetchNearbyUsers, 15000);
         }
 
