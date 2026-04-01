@@ -43,7 +43,12 @@
 
         /* Custom SOS button shadow */
         .btn-sos {
-            box-shadow: 0 4px 20px rgba(220, 53, 69, 0.3);
+            box-shadow: 0 4px 25px rgba(220, 53, 69, 0.5);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .btn-sos:hover {
+            transform: scale(1.04);
+            box-shadow: 0 6px 30px rgba(220, 53, 69, 0.7);
         }
 
         .sos-active {
@@ -263,8 +268,8 @@
 
         <!-- SOS Button / EmergencySOSModal -->
         <section class="mb-4 text-center">
-            <button class="btn btn-lg rounded-pill py-3 px-4 btn-sos theme-peach border-peach fw-bold shadow-sm"
-                id="sosBtn" style="width: min(80%, 300px); font-size: 1.1rem; color: #d32f2f !important;">
+            <button class="btn btn-danger btn-lg rounded-pill py-3 px-4 btn-sos fw-bold shadow"
+                id="sosBtn" style="width: min(80%, 300px); font-size: 1.1rem; letter-spacing: 0.04em;">
                 <i class="bi bi-bell-fill me-2"></i>SOS EMERGENCY
             </button>
             <div class="mt-2">
