@@ -228,6 +228,9 @@
                     });
 
                     if (error) {
+                        if (error.message === 'Invalid login credentials') {
+                            throw new Error('Invalid login credentials. If you just registered, ensure "Confirm email" is turned OFF in your Supabase Dashboard, or verify your email first.');
+                        }
                         throw error;
                     }
 
