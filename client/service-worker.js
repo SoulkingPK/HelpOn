@@ -1,7 +1,7 @@
 // HelpOn Service Worker
 // Provides offline support for static assets with a network-first strategy for API calls
 
-const CACHE_NAME = 'helpon-v3';
+const CACHE_NAME = 'helpon-v4';
 const STATIC_ASSETS = [
     'index.html',
     'register.html',

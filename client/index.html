@@ -222,7 +222,7 @@
                 loginText.textContent = 'Logging in...';
 
                 try {
-                    const { data, error } = await supabase.auth.signInWithPassword({
+                    const { data, error } = await window.supabase.auth.signInWithPassword({
                         email: usernameInput.value.trim(),
                         password: passwordInput.value
                     });
