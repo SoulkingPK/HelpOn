@@ -244,6 +244,8 @@
         // Initialize Telemetry
         initTelemetry();
 
+        const supabase = getSupabase();
+
         let homeMap = null;
         let homeUserMarker = null;
         let userLat = DEFAULT_LOCATION.lat;
