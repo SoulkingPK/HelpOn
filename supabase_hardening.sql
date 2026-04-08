@@ -36,6 +36,10 @@ CREATE POLICY "Users can update own profile" ON public.profiles
     FOR UPDATE USING (auth.uid() = id);
 
 -- 3. Hardening Emergencies Table --
+-- Ensure columns exist before setting policies --
+ALTER TABLE public.emergencies ADD COLUMN IF NOT EXISTS helper_id UUID REFERENCES auth.users(id);
+ALTER TABLE public.emergencies ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP WITH TIME ZONE;
+
 ALTER TABLE public.emergencies ENABLE ROW LEVEL SECURITY;
 
 -- Anyone logged in can see active/accepted emergencies --
