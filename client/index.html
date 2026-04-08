@@ -295,10 +295,14 @@
 
                     try {
                         console.log('[HelpOn] Starting OAuth flow...');
+                        const authOrigin = window.location.origin === 'null' ? 
+                                           window.location.href.split('/').slice(0, -1).join('/') : 
+                                           window.location.origin;
+
                         const { data, error } = await client.auth.signInWithOAuth({
                             provider: 'google',
                             options: {
-                                redirectTo: window.location.origin + '/home.html'
+                                redirectTo: authOrigin + '/home.html'
                             }
                         });
                         if (error) throw error;
