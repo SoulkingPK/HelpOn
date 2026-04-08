@@ -272,7 +272,18 @@
             const googleBtn = document.getElementById('googleLoginBtn');
             if (googleBtn) {
                 googleBtn.addEventListener('click', async function () {
+                    console.log('[HelpOn] Google Login Clicked. Checking initialization...');
+                    
+                    if (!supabase) {
+                        const errorMsg = "Supabase client failed to initialize. Please check your internet connection or the 'config.js' file.";
+                        console.error('[HelpOn] ' + errorMsg);
+                        loginAlert.classList.remove('d-none');
+                        alertMessage.textContent = errorMsg;
+                        return;
+                    }
+
                     try {
+                        console.log('[HelpOn] Starting OAuth flow...');
                         const { data, error } = await supabase.auth.signInWithOAuth({
                             provider: 'google',
                             options: {
@@ -281,6 +292,7 @@
                         });
                         if (error) throw error;
                     } catch (error) {
+                        console.error('[HelpOn] Google Login Error:', error);
                         loginAlert.classList.remove('d-none');
                         alertMessage.textContent = "Google Login Error: " + error.message;
                     }
