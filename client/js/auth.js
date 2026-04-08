@@ -3,49 +3,43 @@
  * Centralizes Supabase initialization and authentication state logic
  */
 
-let supabaseInstance = null;
+let _supabaseClient = null;
 
-// Initialize Supabase client safely
-const getSupabase = () => {
-    // Return existing instance if available
-    if (supabaseInstance) return supabaseInstance;
+/**
+ * Lazy getter for the Supabase Client.
+ * Ensures the library and config are loaded before initialization.
+ */
+export function getSupabase() {
+    if (_supabaseClient) return _supabaseClient;
 
-    // 1. Check if Supabase library is loaded
     const lib = window.supabase;
     if (!lib || (typeof lib.createClient !== 'function' && !lib.auth)) {
-        console.error('[HelpOn] Supabase library (window.supabase) not found.');
+        console.warn('[HelpOn] Supabase library not found on window yet.');
         return null;
     }
 
-    // If window.supabase is actually an instance (already initialized elsewhere), use it
-    if (lib.auth && typeof lib.from === 'function') {
-        supabaseInstance = lib;
-        return supabaseInstance;
-    }
-
-    // 2. Check if configuration is loaded from config.js
+    // Capture from window.supabase (library) or config.js globals
     const url = window.SUPABASE_URL || (window.CONFIG && window.CONFIG.SUPABASE_URL);
     const key = window.SUPABASE_ANON_KEY || (window.CONFIG && window.CONFIG.SUPABASE_ANON_KEY);
 
     if (!url || !key) {
-        console.error('[HelpOn] Configuration (config.js) not found or missing keys.');
+        console.warn('[HelpOn] Supabase config not found on window yet.');
         return null;
     }
 
     try {
-        supabaseInstance = lib.createClient(url, key);
-        console.log('[HelpOn] Supabase client initialized via auth module.');
-        return supabaseInstance;
+        _supabaseClient = lib.createClient(url, key);
+        console.log('[HelpOn] Supabase client initialized.');
+        return _supabaseClient;
     } catch (err) {
-        console.error('[HelpOn] Exception during createClient:', err);
+        console.error('[HelpOn] Failed to initialize Supabase:', err);
         return null;
     }
-};
+}
 
-// Exported client (lazy getter)
+// Legacy export for compatibility (though getter is safer)
 export const supabase = getSupabase();
 
-// --- Auth State Helpers ---
 export async function getCurrentUser() {
     const client = getSupabase();
     if (!client) return null;
@@ -53,19 +47,11 @@ export async function getCurrentUser() {
     return user;
 }
 
-/**
- * Check if the user is nominally logged in.
- * CRITICAL: We return true if an OAuth token is in the hash to prevent redirect loop.
- */
 export function isUserLoggedIn() {
+    // Recognize OAuth / Signup / Recovery hashes immediately
     const hash = window.location.hash || '';
-    const hasToken = hash.includes('access_token=') || 
-                     hash.includes('type=recovery') || 
-                     hash.includes('type=signup') ||
-                     hash.includes('error_code=');
-    
-    if (hasToken) {
-        console.log('[HelpOn] OAuth/Sign-up hash detected, suppressing redirect.');
+    if (hash.match(/access_token=|error_code=|type=recovery|type=signup/)) {
+        console.log('[HelpOn] Auth hash detected in URL.');
         return true;
     }
     return localStorage.getItem('helpon_logged_in') === 'true';
@@ -94,13 +80,9 @@ export async function logout() {
     window.location.href = 'index.html';
 }
 
-// Global exposure for non-module scripts (using a dedicated name)
-window.helponAuth = { 
-    getSupabase, 
-    isUserLoggedIn, 
-    logout, 
-    setLoggedInState 
-};
+// Global hook
+window.helponAuth = { getSupabase, isUserLoggedIn, logout, setLoggedInState };
+
 
 
 

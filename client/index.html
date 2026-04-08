@@ -279,20 +279,21 @@
             const googleBtn = document.getElementById('googleLoginBtn');
             if (googleBtn) {
                 googleBtn.addEventListener('click', async function () {
-                    console.log('[HelpOn] Google Login Clicked. Final check...');
+                    console.log('[HelpOn] Google Login Clicked. Initializing client...');
                     
-                    const client = supabase || (window.helponAuth && window.helponAuth.getSupabase());
+                    // Always try to get a fresh client instance to avoid race conditions
+                    const client = getSupabase();
                     
                     if (!client || !client.auth) {
-                        const errorMsg = "Supabase Auth is not available. Please try a Hard Refresh (Ctrl+F5).";
-                        console.error('[HelpOn] ' + errorMsg, client);
+                        const errorMsg = "Supabase Auth service is not ready. Please wait 2 seconds and try again, or perform a Hard Refresh (Ctrl+F5).";
+                        console.error('[HelpOn] Initialization failure. Client:', client);
                         loginAlert.classList.remove('d-none');
                         alertMessage.textContent = errorMsg;
                         return;
                     }
 
                     try {
-                        console.log('[HelpOn] Starting OAuth flow with client:', client);
+                        console.log('[HelpOn] Starting OAuth flow...');
                         const { data, error } = await client.auth.signInWithOAuth({
                             provider: 'google',
                             options: {
