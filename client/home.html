@@ -107,7 +107,7 @@
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-    <script src="config.js?v=2.1"></script>
+    <script src="config.js?v=3.0"></script>
 </head>
 
 <body class="bg-light" style="padding-bottom: 72px;">
@@ -230,16 +230,16 @@
 
     <!-- HELPON MODULES -->
     <script type="module">
-        import { supabase, getCurrentUser, logout, isUserLoggedIn } from './js/auth.js?v=2.1';
-        import { createEmergency } from './js/sos.js?v=2.1';
+        import { supabase, getCurrentUser, logout, isUserLoggedIn } from './js/auth.js?v=3.0';
+        import { createEmergency } from './js/sos.js?v=3.0';
         import { 
             DEFAULT_LOCATION, 
             saveLocation, 
             loadSavedLocation, 
             isLocationFresh,
             getDistanceKm
-        } from './js/utils.js?v=2.1';
-        import { initTelemetry } from './js/error_telemetry.js?v=2.1';
+        } from './js/utils.js?v=3.0';
+        import { initTelemetry } from './js/error_telemetry.js?v=3.0';
 
         // Initialize Telemetry
         initTelemetry();
@@ -250,7 +250,16 @@
         let userLon = DEFAULT_LOCATION.lon;
 
         document.addEventListener('DOMContentLoaded', async () => {
+            console.log('[HelpOn] Home Loaded. Checking session...');
+            
+            // Give Supabase a tiny bit of time to process Hash tokens if present
+            if (window.location.hash) {
+                console.log('[HelpOn] Hash detected, waiting for session processing...');
+                await new Promise(r => setTimeout(r, 100));
+            }
+
             if (!isUserLoggedIn()) {
+                console.warn('[HelpOn] Not logged in, redirecting to index.html');
                 window.location.href = 'index.html';
                 return;
             }

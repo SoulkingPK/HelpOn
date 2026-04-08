@@ -75,9 +75,9 @@
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-    <script src="config.js?v=2.1"></script>
+    <script src="config.js?v=3.0"></script>
     <script type="module">
-        import { initTelemetry } from './js/error_telemetry.js?v=2.1';
+        import { initTelemetry } from './js/error_telemetry.js?v=3.0';
         initTelemetry();
     </script>
 </head>
@@ -159,11 +159,16 @@
     </div>
 
     <script type="module">
-        import { supabase, setLoggedInState } from './js/auth.js?v=2.1';
+        import { supabase, setLoggedInState } from './js/auth.js?v=3.0';
 
         document.addEventListener('DOMContentLoaded', function () {
-            console.log('[HelpOn] Login Page Loaded. Supabase state:', supabase ? 'Initialized' : 'Null');
-            if (supabase) console.dir(supabase);
+            console.log('[HelpOn] Login Page Loaded. Global Supabase type:', typeof window.supabase);
+            console.log('[HelpOn] Module Supabase state:', supabase ? 'Initialized' : 'Null');
+            
+            if (supabase) {
+                console.log('[HelpOn] Supabase.auth exists?', !!supabase.auth);
+                if (!supabase.auth) console.dir(supabase);
+            }
             // Elements
             const loginForm = document.getElementById('loginForm');
             const usernameInput = document.getElementById('username');
@@ -274,19 +279,21 @@
             const googleBtn = document.getElementById('googleLoginBtn');
             if (googleBtn) {
                 googleBtn.addEventListener('click', async function () {
-                    console.log('[HelpOn] Google Login Clicked. Checking initialization...');
+                    console.log('[HelpOn] Google Login Clicked. Final check...');
                     
-                    if (!supabase) {
-                        const errorMsg = "Supabase client failed to initialize. Please check your internet connection or the 'config.js' file.";
-                        console.error('[HelpOn] ' + errorMsg);
+                    const client = supabase || (window.helponAuth && window.helponAuth.getSupabase());
+                    
+                    if (!client || !client.auth) {
+                        const errorMsg = "Supabase Auth is not available. Please try a Hard Refresh (Ctrl+F5).";
+                        console.error('[HelpOn] ' + errorMsg, client);
                         loginAlert.classList.remove('d-none');
                         alertMessage.textContent = errorMsg;
                         return;
                     }
 
                     try {
-                        console.log('[HelpOn] Starting OAuth flow...');
-                        const { data, error } = await supabase.auth.signInWithOAuth({
+                        console.log('[HelpOn] Starting OAuth flow with client:', client);
+                        const { data, error } = await client.auth.signInWithOAuth({
                             provider: 'google',
                             options: {
                                 redirectTo: window.location.origin + '/home.html'

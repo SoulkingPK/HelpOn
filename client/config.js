@@ -5,5 +5,9 @@ window.CONFIG = {
     API_BASE_URL: '/api'
 };
 
+// Also set separate window globals for maximum reliability
+window.SUPABASE_URL = window.CONFIG.SUPABASE_URL;
+window.SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
+
 // Log for debugging
 console.log('[HelpOn] Configuration loaded.');
