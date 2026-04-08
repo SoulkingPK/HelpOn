@@ -13,26 +13,14 @@
     <link rel="stylesheet" href="css/style.css">
 
     <!-- Leaflet CSS & JS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
         /* Wave animation for greeting */
         @keyframes wave {
-
-            0%,
-            100% {
-                transform: rotate(0deg);
-            }
-
-            25% {
-                transform: rotate(-15deg);
-            }
-
-            75% {
-                transform: rotate(15deg);
-            }
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            75% { transform: rotate(15deg); }
         }
 
         .animate-wave {
@@ -78,32 +66,14 @@
         }
 
         @keyframes blink {
-
-            0%,
-            100% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.3;
-            }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
         }
 
         @keyframes pulse {
-            0% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
-            }
-
-            70% {
-                transform: scale(1.05);
-                box-shadow: 0 0 0 15px rgba(220, 53, 69, 0);
-            }
-
-            100% {
-                transform: scale(1);
-                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
-            }
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 0 15px rgba(220, 53, 69, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
         }
 
         .map-placeholder {
@@ -119,122 +89,25 @@
         }
 
         /* Dark Mode Styles */
-        .dark-mode {
-            background-color: #121212 !important;
-            color: #ffffff !important;
-        }
+        .dark-mode { background-color: #121212 !important; color: #ffffff !important; }
+        .dark-mode .bg-light { background-color: #1e1e1e !important; color: #ffffff !important; }
+        .dark-mode .bg-white { background-color: #2d2d2d !important; color: #ffffff !important; }
+        .dark-mode .card { background-color: #2d2d2d !important; color: #ffffff !important; border-color: #444 !important; }
+        .dark-mode .text-muted { color: #aaa !important; }
+        .dark-mode .form-control, .dark-mode .form-select { background-color: #2d2d2d; border-color: #444; color: #ffffff; }
+        .dark-mode .modal-content { background-color: #2d2d2d; color: #ffffff; }
+        .dark-mode .list-group-item { background-color: #2d2d2d; color: #ffffff; border-color: #444; }
+        .dark-mode .navbar { background-color: #2d2d2d !important; border-color: #444 !important; }
 
-        .dark-mode .bg-light {
-            background-color: #1e1e1e !important;
-            color: #ffffff !important;
-        }
-
-        .dark-mode .bg-white {
-            background-color: #2d2d2d !important;
-            color: #ffffff !important;
-        }
-
-        .dark-mode .card {
-            background-color: #2d2d2d !important;
-            color: #ffffff !important;
-            border-color: #444 !important;
-        }
-
-        .dark-mode .text-muted {
-            color: #aaa !important;
-        }
-
-        .dark-mode .btn-outline-primary {
-            border-color: #0d6efd;
-            color: #0d6efd;
-        }
-
-        .dark-mode .btn-outline-primary:hover {
-            background-color: #0d6efd;
-            color: #fff;
-        }
-
-        .dark-mode .form-control,
-        .dark-mode .form-select {
-            background-color: #2d2d2d;
-            border-color: #444;
-            color: #ffffff;
-        }
-
-        .dark-mode .modal-content {
-            background-color: #2d2d2d;
-            color: #ffffff;
-        }
-
-        .dark-mode .list-group-item {
-            background-color: #2d2d2d;
-            color: #ffffff;
-            border-color: #444;
-        }
-
-        .dark-mode .navbar {
-            background-color: #2d2d2d !important;
-            border-color: #444 !important;
-        }
-
-        .dark-mode .shadow-sm {
-            box-shadow: 0 0.125rem 0.25rem rgba(255, 255, 255, 0.1) !important;
-        }
-
-        /* Accepted task styling */
-        .accepted-task-card {
-            border-left: 4px solid #198754 !important;
-        }
-
-        .completed-task-card {
-            border-left: 4px solid #0d6efd !important;
-        }
-
-        /* Emergency Feature Colors (Lime, Peach, Sky Blue) */
-        .theme-peach {
-            background-color: #ffdab9 !important;
-            color: #8a4b08 !important;
-        }
-
-        .theme-lime {
-            background-color: #32cd32 !important;
-            color: white !important;
-            border-color: #2eb82e !important;
-        }
-
-        .theme-sky-blue {
-            border: 3px solid #87ceeb !important;
-            box-shadow: 0 0 15px rgba(135, 206, 235, 0.5) !important;
-            border-radius: 12px;
-        }
-
-        .border-peach {
-            border-left: 4px solid #ffba75 !important;
-        }
+        /* Emergency Feature Colors */
+        .theme-peach { background-color: #ffdab9 !important; color: #8a4b08 !important; }
+        .theme-lime { background-color: #32cd32 !important; color: white !important; border-color: #2eb82e !important; }
+        .theme-sky-blue { border: 3px solid #87ceeb !important; box-shadow: 0 0 15px rgba(135, 206, 235, 0.5) !important; border-radius: 12px; }
+        .border-peach { border-left: 4px solid #ffba75 !important; }
     </style>
-    <script>
 
-        // Set username dynamically
-        document.addEventListener('DOMContentLoaded', () => {
-            const userName = localStorage.getItem('helpon_user_name');
-            if (userName) {
-                const firstName = userName.split(' ')[0];
-                const header = document.getElementById('userGreetingHeader');
-                if (header) {
-                    header.innerHTML = `Hi ${firstName}<span class="animate-wave">👋</span>`;
-                }
-            }
-        });
-    </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
-    <script src="js/utils.js"></script>
-    <script>
-        // Authentication check - must be after config.js is loaded
-        if (!isUserLoggedIn()) {
-            window.location.href = 'index.html';
-        }
-    </script>
 </head>
 
 <body class="bg-light" style="padding-bottom: 72px;">
@@ -243,14 +116,12 @@
         <div class="container py-2">
             <div class="d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center">
-                    <div
-                        style="width: 32px; height: 32px; background: #0d6efd; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 8px;">
-                        H</div>
+                    <div style="width: 32px; height: 32px; background: #0d6efd; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 8px;">H</div>
                     <span class="fw-bold text-primary">HelpOn</span>
                 </div>
-                <a href="index.html" class="btn btn-outline-danger btn-sm" id="logoutBtn">
+                <button class="btn btn-outline-danger btn-sm logout-trigger">
                     <i class="bi bi-box-arrow-right"></i> Logout
-                </a>
+                </button>
             </div>
         </div>
     </header>
@@ -258,7 +129,7 @@
     <main class="container py-3">
         <!-- User Greeting -->
         <section class="mb-4">
-            <h1 class="fw-bold" id="userGreetingHeader">Hi User<span class="animate-wave">👋</span></h1>
+            <h1 class="fw-bold" id="userGreetingHeader">Hi <span id="userName">User</span><span class="animate-wave">👋</span></h1>
             <div class="d-flex gap-2 mb-2">
                 <span class="badge bg-primary rounded-pill">Helper & Seeker</span>
                 <span class="badge bg-warning text-dark rounded-pill">Guardian <i class="bi bi-shield"></i></span>
@@ -266,31 +137,25 @@
             <p class="text-muted mb-0">Welcome back! Let's get you connected.</p>
         </section>
 
-        <!-- SOS Button / EmergencySOSModal -->
+        <!-- SOS Button Section -->
         <section class="mb-4 text-center">
-            <button class="btn btn-danger btn-lg rounded-pill py-3 px-4 btn-sos fw-bold shadow"
-                id="sosBtn" style="width: min(80%, 300px); font-size: 1.1rem; letter-spacing: 0.04em;">
+            <button class="btn btn-danger btn-lg rounded-pill py-3 px-4 btn-sos fw-bold shadow" id="sosBtn" style="width: min(80%, 300px); font-size: 1.1rem; letter-spacing: 0.04em;">
                 <i class="bi bi-bell-fill me-2"></i>SOS EMERGENCY
             </button>
             <div class="mt-2">
-                <div class="sos-indicator d-none shadow-sm" id="sosActiveIndicator" style="background-color: #ffdab9;">
+                <div class="sos-indicator d-none shadow-sm" id="sosActiveIndicator">
                     <span class="dot"></span> <span class="fw-bold" style="color: #d32f2f;">SOS ACTIVE</span>
                 </div>
             </div>
             <div class="d-flex justify-content-center mt-3 gap-2">
-                <select class="form-select form-select-sm w-auto" id="emergencyType" aria-label="Select emergency type">
-                    <option value="danger">I'm in danger</option>
-                    <option value="health">Health Emergency</option>
+                <select class="form-select form-select-sm w-auto" id="emergencyType">
+                    <option value="danger">Danger</option>
+                    <option value="health">Health</option>
                     <option value="lost">Lost</option>
                     <option value="custom">Custom</option>
                 </select>
-                <button class="btn btn-light border btn-sm" id="recordAudioBtn" title="Record audio"><i
-                        class="bi bi-mic text-dark"></i></button>
-                <button class="btn btn-light border btn-sm" id="takePhotoBtn" title="Take photo"><i
-                        class="bi bi-camera text-dark"></i></button>
-            </div>
-            <div id="customEmergencyInput" class="mt-2 d-none">
-                <input type="text" class="form-control form-control-sm" placeholder="Describe your emergency">
+                <button class="btn btn-light border btn-sm" id="sosMedical" title="Medical SOS"><i class="bi bi-heart-pulse text-danger"></i></button>
+                <button class="btn btn-light border btn-sm" id="sosDanger" title="Safety SOS"><i class="bi bi-shield-lock text-warning"></i></button>
             </div>
         </section>
 
@@ -299,31 +164,21 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="card-title mb-0 fw-semibold">Live Map</h5>
-                    <a href="#" class="btn btn-outline-primary btn-sm" id="viewFullMapBtn">View Full</a>
+                    <a href="map.html" class="btn btn-outline-primary btn-sm">View Full</a>
                 </div>
-                <div class="rounded-3 theme-sky-blue position-relative overflow-hidden" id="mapContainer"
-                    style="height: 300px; z-index: 1; background-color: #e0f7fa;"></div>
+                <div class="rounded-3 theme-sky-blue position-relative overflow-hidden" id="mapContainer" style="height: 300px; z-index: 1; background-color: #e0f7fa;"></div>
                 <div class="d-flex justify-content-center gap-3 mt-3">
                     <small class="text-nowrap"><i class="bi bi-person-fill text-primary"></i> You</small>
-                    <small class="text-nowrap"><i class="bi bi-people-fill text-success"></i> <span
-                            id="helpersCount">0</span> Helpers Nearby</small>
+                    <small class="text-nowrap"><i class="bi bi-people-fill text-success"></i> <span id="helpersCount">0</span> Helpers Nearby</small>
                 </div>
             </div>
         </section>
 
-        <!-- Accepted Tasks Section -->
-        <section class="mb-4" id="acceptedTasksSection" style="display: none;">
-            <h5 class="fw-semibold mb-3">Your Accepted Tasks</h5>
-            <div class="row g-3" id="acceptedTasksContainer">
-                <!-- Accepted tasks will appear here -->
-            </div>
-        </section>
-
-        <!-- Active Requests -->
+        <!-- Help Requests Nearby -->
         <section class="mb-4">
             <h5 class="fw-semibold mb-3">Help Requests Nearby</h5>
             <div class="row g-3" id="helpRequestsContainer">
-                <!-- Requests will be dynamically loaded here -->
+                <div class="col-12"><p class="text-center py-4">Searching for requests...</p></div>
             </div>
         </section>
 
@@ -339,96 +194,9 @@
                     <div class="progress-bar bg-warning" id="progressBar" style="width: 0%"></div>
                 </div>
                 <small class="text-muted" id="pointsHint">Start helping to earn points</small>
-                <div class="mt-3">
-                    <a href="leaderboard.html" class="btn btn-outline-warning w-100 fw-bold"><i
-                            class="bi bi-trophy-fill me-2"></i>View Leaderboard</a>
-                </div>
-            </div>
-        </section>
-
-        <!-- Quick Actions (Minimal Spacing) -->
-        <section class="mb-1 pb-1">
-            <h5 class="fw-semibold mb-2">Quick Actions</h5>
-            <div class="row g-1 text-center">
-                <div class="col">
-                    <a href="map.html" class="btn btn-outline-primary btn-sm w-100 py-1 d-flex flex-column">
-                        <i class="bi bi-map fs-5 mb-0"></i>
-                        <span class="small">Map</span>
-                    </a>
-                </div>
-                <div class="col">
-                    <a href="rewards.html" class="btn btn-outline-primary btn-sm w-100 py-1 d-flex flex-column">
-                        <i class="bi bi-gift fs-5 mb-0"></i>
-                        <span class="small">Rewards</span>
-                    </a>
-                </div>
-                <div class="col">
-                    <a href="history.html" class="btn btn-outline-primary btn-sm w-100 py-1 d-flex flex-column">
-                        <i class="bi bi-clock-history fs-5 mb-0"></i>
-                        <span class="small">History</span>
-                    </a>
-                </div>
-                <div class="col">
-                    <a href="#" class="btn btn-outline-primary btn-sm w-100 py-1 d-flex flex-column" id="contactsBtn">
-                        <i class="bi bi-people fs-5 mb-0"></i>
-                        <span class="small">Contacts</span>
-                    </a>
-                </div>
-                <div class="col">
-                    <a href="#settingsModal" data-bs-toggle="modal"
-                        class="btn btn-outline-primary btn-sm w-100 py-1 d-flex flex-column">
-                        <i class="bi bi-gear fs-5 mb-0"></i>
-                        <span class="small">Settings</span>
-                    </a>
-                </div>
             </div>
         </section>
     </main>
-
-    <!-- Settings Modal -->
-    <div class="modal fade" id="settingsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Settings</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="list-group list-group-flush">
-                        <a href="#"
-                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            <span>
-                                <i class="bi bi-bell me-2"></i> Notifications </span>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="notificationsToggle" checked>
-                            </div>
-                        </a>
-                        <a href="#"
-                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            <span>
-                                <i class="bi bi-moon me-2"></i> Dark Mode </span>
-                            <div class="form-check form-switch">
-                                <input class="form-check-input" type="checkbox" id="darkModeToggle">
-                            </div>
-                        </a>
-                        <a href="#" class="list-group-item list-group-item-action" id="privacySettingsBtn">
-                            <i class="bi bi-shield-lock me-2"></i> Privacy Settings </a>
-                        <a href="#" class="list-group-item list-group-item-action" id="paymentMethodsBtn">
-                            <i class="bi bi-credit-card me-2"></i> Payment Methods </a>
-                        <a href="help.html" class="list-group-item list-group-item-action" id="helpCenterBtn">
-                            <i class="bi bi-question-circle me-2"></i> Help Center </a>
-                        <a href="index.html" class="list-group-item list-group-item-action text-danger"
-                            id="modalLogoutBtn">
-                            <i class="bi bi-box-arrow-right me-2"></i> Logout </a>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="saveSettingsBtn">Save Changes</button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Bottom Navigation -->
     <nav class="navbar fixed-bottom bg-white shadow-sm border-top py-2">
@@ -446,11 +214,7 @@
                     <i class="bi bi-gift fs-5"></i>
                     <span class="small">Rewards</span>
                 </a>
-                <a href="inbox.html" class="text-center text-muted d-flex flex-column align-items-center">
-                    <i class="bi bi-inbox fs-5"></i>
-                    <span class="small">Inbox</span>
-                </a>
-                <a href="profile.html" class="text-center text-primary d-flex flex-column align-items-center">
+                <a href="profile.html" class="text-center text-muted d-flex flex-column align-items-center">
                     <i class="bi bi-person-fill fs-5"></i>
                     <span class="small">Profile</span>
                 </a>
@@ -458,1238 +222,200 @@
         </div>
     </nav>
 
-    <!-- Toast Container for Notifications -->
-    <div class="toast-container position-fixed top-0 end-0 p-3">
-        <!-- Toasts will be added here dynamically -->
-    </div>
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3"></div>
 
-    <!-- Bootstrap JS (for components) -->
+    <!-- Bootstrap Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Custom JavaScript -->
-    <script>
+    <!-- HELPON MODULES -->
+    <script type="module">
+        import { supabase, getCurrentUser, logout, isUserLoggedIn } from './js/auth.js';
+        import { createEmergency } from './js/sos.js';
+        import { 
+            DEFAULT_LOCATION, 
+            saveLocation, 
+            loadSavedLocation, 
+            isLocationFresh,
+            getDistanceKm
+        } from './js/utils.js';
+        import { initTelemetry } from './js/error_telemetry.js';
+
+        // Initialize Telemetry
+        initTelemetry();
 
-        // Help Requests Manager with Cancellation
-        class HelpRequestsManager {
-            constructor() {
-                this.acceptedRequests = new Map(); // Track accepted requests
-                this.availableRequests = []; // Track available requests
-                this.init();
-            }
-
-            init() {
-                this.initWebSocket();
-                this.loadHelpRequests();
-            }
-
-            initWebSocket() {
-                // Supabase Realtime setup
-                const channel = supabase
-                    .channel('emergencies-db-changes')
-                    .on(
-                        'postgres_changes',
-                        {
-                            event: '*',
-                            schema: 'public',
-                            table: 'emergencies'
-                        },
-                        (payload) => {
-                            console.log('Change received!', payload);
-                            this.loadHelpRequests();
-                        }
-                    )
-                    .subscribe();
-                
-                this.supabaseChannel = channel;
-            }
-
-            async loadHelpRequests() {
-                try {
-                    if (!isUserLoggedIn()) return;
-
-                    // Fetch active emergencies from Supabase
-                    const { data, error } = await supabase
-                        .from('emergencies')
-                        .select('*, profiles(full_name)')
-                        .eq('status', 'active');
-
-                    if (error) throw error;
-
-                    this.availableRequests = data.map(e => {
-                        let distanceStr = 'Unknown distance';
-                        if (window.userLat && window.userLon) {
-                            const R = 6371;
-                            const dLat = (e.latitude - window.userLat) * Math.PI / 180;
-                            const dLon = (e.longitude - window.userLon) * Math.PI / 180;
-                            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                                Math.cos(window.userLat * Math.PI / 180) * Math.cos(e.latitude * Math.PI / 180) *
-                                Math.sin(dLon / 2) * Math.sin(dLon / 2);
-                            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                            const d = R * c;
-                            if (d < 1) {
-                                distanceStr = Math.round(d * 1000) + 'm away';
-                            } else {
-                                distanceStr = d.toFixed(1) + 'km away';
-                            }
-                        }
-
-                        let badgeClass = 'bg-primary';
-                        const typeLower = (e.type || '').toLowerCase();
-                        if (typeLower.includes('health')) badgeClass = 'bg-danger';
-                        if (typeLower.includes('danger') || typeLower === 'sos') badgeClass = 'bg-warning text-dark';
-                        if (typeLower.includes('lost')) badgeClass = 'bg-info';
-
-                        return {
-                            id: e.id,
-                            type: e.type,
-                            distance: distanceStr,
-                            badgeClass: badgeClass,
-                            status: e.status,
-                            userName: e.profiles?.full_name || 'Anonymous',
-                            phone: 'Not provided',
-                            lat: e.latitude,
-                            lon: e.longitude,
-                            location: `Lat: ${e.latitude.toFixed(4)}, Lon: ${e.longitude.toFixed(4)}`,
-                            timestamp: e.created_at
-                        };
-                    });
-                    this.renderHelpRequests();
-                } catch (e) { console.error('Error fetching help requests', e); }
-            }
-
-            renderHelpRequests() {
-                const container = document.getElementById('helpRequestsContainer');
-
-                if (this.availableRequests.length === 0) {
-                    container.innerHTML = `
-                        <div class="col-12">
-                            <div class="card border-0 shadow-sm">
-                                <div class="card-body text-center py-4">
-                                    <i class="bi bi-check-circle text-success fs-1"></i>
-                                    <p class="mt-2 mb-0">No active help requests nearby</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    return;
-                }
-
-                container.innerHTML = this.availableRequests.map(request => `
-                    <div class="col-12" id="request-${request.id}">
-                        <div class="card shadow-sm border-peach" style="background-color: #fff9f2;">
-                            <div class="card-body py-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="flex-grow-1">
-                                        <span class="badge ${request.badgeClass} rounded-pill mb-1">${request.type}</span>
-                                        <p class="mb-1 text-dark fw-medium">${request.distance}</p>
-                                        <small class="text-muted"><i class="bi bi-person"></i> ${request.userName} • ${this.formatTime(request.timestamp)}</small>
-                                    </div>
-                                    <button class="btn theme-lime shadow-sm btn-sm px-3 fw-bold accept-request-btn" 
-                                            data-request-id="${request.id}">
-                                        Accept
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-
-                this.attachAcceptHandlers();
-            }
-
-            attachAcceptHandlers() {
-                document.querySelectorAll('.accept-request-btn').forEach(button => {
-                    button.addEventListener('click', (e) => {
-                        const requestId = e.target.dataset.requestId;
-                        this.acceptHelpRequest(requestId);
-                    });
-                });
-            }
-
-            async acceptHelpRequest(requestId) {
-                const requestElement = document.getElementById(`request-${requestId}`);
-                const acceptBtn = requestElement.querySelector('.accept-request-btn');
-
-                // Show loading state
-                acceptBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Accepting';
-                acceptBtn.disabled = true;
-
-                try {
-                    const { error } = await supabase
-                        .from('emergencies')
-                        .update({ status: 'accepted' })
-                        .eq('id', requestId);
-
-                    if (error) throw error;
-
-                    // Find the request data
-                    const requestIndex = this.availableRequests.findIndex(req => req.id === requestId);
-                    if (requestIndex === -1) return;
-
-                    const requestData = this.availableRequests[requestIndex];
-
-                    // Remove from available requests
-                    this.availableRequests.splice(requestIndex, 1);
-
-                    // Update UI
-                    requestElement.remove();
-                    this.addToAcceptedTasks(requestData);
-
-                    // Show success message
-                    showToast('Help request accepted successfully!', 'success');
-
-                } catch (error) {
-                    // Reset button on error
-                    acceptBtn.innerHTML = 'Accept';
-                    acceptBtn.disabled = false;
-                    showToast(error.message || 'Failed to accept request. Please try again.', 'danger');
-                }
-            }
-
-            addToAcceptedTasks(requestData) {
-                const container = document.getElementById('acceptedTasksContainer');
-                const taskId = `accepted-${requestData.id}`;
-
-                const taskElement = `
-                    <div class="col-12" id="${taskId}">
-                        <div class="card border-0 shadow-sm accepted-task-card">
-                            <div class="card-body py-3">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div class="flex-grow-1">
-                                        <span class="badge ${requestData.badgeClass} rounded-pill mb-1">${requestData.type}</span>
-                                        <h6 class="mb-1">${requestData.userName}</h6>
-                                        <p class="mb-1 text-muted small">
-                                            <i class="bi bi-telephone"></i> ${requestData.phone}
-                                        </p>
-                                        <p class="mb-1 text-muted small">
-                                            <i class="bi bi-geo-alt"></i> ${requestData.location}
-                                        </p>
-                                        <p class="mb-0">${requestData.distance}</p>
-                                    </div>
-                                    <span class="badge bg-success">Accepted</span>
-                                </div>
-                                
-                                <!-- Action Buttons -->
-                                <div class="d-flex gap-2 mt-3">
-                                    <button class="btn btn-outline-primary btn-sm flex-fill contact-btn" 
-                                            data-phone="${requestData.phone}">
-                                        <i class="bi bi-telephone"></i> Call
-                                    </button>
-                                    <button class="btn btn-outline-success btn-sm flex-fill navigate-btn">
-                                        <i class="bi bi-geo-alt"></i> Navigate
-                                    </button>
-                                    <button class="btn btn-outline-danger btn-sm cancel-btn" 
-                                            data-request-id="${requestData.id}">
-                                        <i class="bi bi-x-circle"></i>
-                                    </button>
-                                </div>
-                                
-                                <!-- Progress Status -->
-                                <div class="mt-3">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <small class="text-muted">Task Progress</small>
-                                        <small class="text-muted" id="timer-${requestData.id}">0 min</small>
-                                    </div>
-                                    <div class="progress" style="height: 4px;">
-                                        <div class="progress-bar bg-success" id="progress-${requestData.id}" style="width: 10%"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                container.insertAdjacentHTML('afterbegin', taskElement);
-
-                // Store in accepted requests map
-                this.acceptedRequests.set(requestData.id, {
-                    elementId: taskId,
-                    startTime: new Date(),
-                    timerInterval: null,
-                    data: requestData
-                });
-
-                // Start progress timer
-                this.startProgressTimer(requestData.id);
-
-                // Attach event listeners to new buttons
-                this.attachAcceptedTaskHandlers(taskId);
-
-                // Show accepted tasks section if hidden
-                document.getElementById('acceptedTasksSection').style.display = 'block';
-            }
-
-            attachAcceptedTaskHandlers(taskId) {
-                const taskElement = document.getElementById(taskId);
-
-                // Contact button
-                taskElement.querySelector('.contact-btn').addEventListener('click', (e) => {
-                    const phone = e.target.dataset.phone;
-                    this.contactUser(phone);
-                });
-
-                // Navigate button
-                taskElement.querySelector('.navigate-btn').addEventListener('click', (e) => {
-                    const taskData = this.acceptedRequests.get(taskId.replace('accepted-', ''))?.data;
-                    if (taskData) {
-                        window.open(`https://www.google.com/maps/search/?api=1&query=${taskData.lat},${taskData.lon}`, '_blank');
-                        showToast('Opening navigation to user location...', 'info');
-                    }
-                });
-
-                // Complete button removed - Victim has to complete it now
-
-                // Cancel button
-                taskElement.querySelector('.cancel-btn').addEventListener('click', (e) => {
-                    const requestId = e.target.dataset.requestId;
-                    this.cancelTask(requestId);
-                });
-            }
-
-            startProgressTimer(requestId) {
-                const acceptedRequest = this.acceptedRequests.get(requestId);
-                if (!acceptedRequest) return;
-
-                acceptedRequest.timerInterval = setInterval(() => {
-                    const now = new Date();
-                    const diff = Math.floor((now - acceptedRequest.startTime) / 1000 / 60); // minutes
-                    const timerElement = document.getElementById(`timer-${requestId}`);
-                    const progressElement = document.getElementById(`progress-${requestId}`);
-
-                    if (timerElement) {
-                        timerElement.textContent = `${diff} min`;
-                    }
-
-                    if (progressElement) {
-                        // Simulate progress (max 90% until completed)
-                        const progress = Math.min(10 + (diff * 5), 90);
-                        progressElement.style.width = `${progress}%`;
-                    }
-                }, 60000); // Update every minute
-            }
-
-            async cancelTask(requestId) {
-                if (!confirm('Are you sure you want to cancel this help task? This will make the request available for other helpers.')) {
-                    return;
-                }
-
-                const acceptedRequest = this.acceptedRequests.get(requestId);
-                if (!acceptedRequest) return;
-
-                try {
-                    // Show loading state
-                    const cancelBtn = document.querySelector(`#${acceptedRequest.elementId} .cancel-btn`);
-                    const originalText = cancelBtn.innerHTML;
-                    cancelBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-                    cancelBtn.disabled = true;
-
-                    // Simulate API call to cancel
-                    await this.simulateApiCall(800);
-
-                    // Clear timer
-                    if (acceptedRequest.timerInterval) {
-                        clearInterval(acceptedRequest.timerInterval);
-                    }
-
-                    // Remove from accepted tasks
-                    document.getElementById(acceptedRequest.elementId).remove();
-
-                    // Add back to available requests
-                    this.availableRequests.push(acceptedRequest.data);
-                    this.renderHelpRequests();
-
-                    // Remove from tracking
-                    this.acceptedRequests.delete(requestId);
-
-                    // Hide accepted tasks section if no tasks left
-                    this.checkAcceptedTasksVisibility();
-
-                    // Update helpers count
-                    updateHelpersCount(1);
-
-                    showToast('Task cancelled successfully', 'warning');
-
-                } catch (error) {
-                    showToast('Failed to cancel task. Please try again.', 'danger');
-                }
-            }
-
-            async completeTask(requestId) {
-                if (!confirm('Mark this task as completed? This will award you points and notify the user.')) {
-                    return;
-                }
-
-                const acceptedRequest = this.acceptedRequests.get(requestId);
-                if (!acceptedRequest) return;
-
-                try {
-                    // Show loading state
-                    const completeBtn = document.querySelector(`#${acceptedRequest.elementId} .complete-btn`);
-                    completeBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-                    completeBtn.disabled = true;
-
-                    const { error } = await supabase
-                        .from('emergencies')
-                        .update({ status: 'resolved', resolved_at: new Date().toISOString() })
-                        .eq('id', requestId);
-
-                    if (error) throw error;
-
-                    // Clear timer
-                    if (acceptedRequest.timerInterval) {
-                        clearInterval(acceptedRequest.timerInterval);
-                    }
-
-                    // Update UI to show completion
-                    const taskElement = document.getElementById(acceptedRequest.elementId);
-                    taskElement.querySelector('.card').classList.remove('accepted-task-card');
-                    taskElement.querySelector('.card').classList.add('completed-task-card');
-
-                    // Update status badge
-                    const statusBadge = taskElement.querySelector('.badge.bg-success');
-                    statusBadge.className = 'badge bg-primary rounded-pill mb-1';
-                    statusBadge.textContent = 'Completed';
-
-                    // Update progress to 100%
-                    const progressElement = document.getElementById(`progress-${requestId}`);
-                    if (progressElement) {
-                        progressElement.style.width = '100%';
-                        progressElement.classList.remove('bg-success');
-                        progressElement.classList.add('bg-primary');
-                    }
-
-                    // Disable action buttons
-                    taskElement.querySelectorAll('button').forEach(btn => {
-                        btn.disabled = true;
-                    });
-
-                    // Show completion message
-                    taskElement.querySelector('.complete-btn').innerHTML = '<i class="bi bi-check-circle"></i> Completed';
-
-                    // Remove from tracking after delay
-                    setTimeout(() => {
-                        taskElement.remove();
-                        this.acceptedRequests.delete(requestId);
-                        this.checkAcceptedTasksVisibility();
-                    }, 3000);
-
-                    updatePoints(HELP_POINTS_PER_TASK);
-                    incrementHelpsCount();
-                    showToast('Task completed! Points awarded.', 'success');
-
-                } catch (error) {
-                    showToast('Failed to complete task. Please try again.', 'danger');
-                }
-            }
-
-            contactUser(phone) {
-                // Simulate calling functionality
-                if (confirm(`Call ${phone}?`)) {
-                    showToast(`Calling ${phone}...`, 'info');
-                    // In real app: window.location.href = `tel:${phone}`;
-                }
-            }
-
-            navigateToUser() {
-                showToast('Opening navigation to user location...', 'info');
-                // In real app: Open maps with user location
-            }
-
-            checkAcceptedTasksVisibility() {
-                const container = document.getElementById('acceptedTasksContainer');
-                const section = document.getElementById('acceptedTasksSection');
-
-                if (container.children.length === 0) {
-                    section.style.display = 'none';
-                }
-            }
-
-            formatTime(timestamp) {
-                return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            }
-
-            simulateApiCall(delay) {
-                return new Promise(resolve => setTimeout(resolve, delay));
-            }
-        }
-
-        // Initialize when DOM is loaded
-        document.addEventListener('DOMContentLoaded', function () {
-            // Initialize Dark Mode Manager
-            const darkModeManager = new DarkModeManager();
-
-            // Initialize Help Requests Manager
-            const helpRequestsManager = new HelpRequestsManager();
-
-            // Initialize all components
-            initSOSButton();
-            initEmergencyTypeSelector();
-            initMediaButtons();
-            initSettingsModal(darkModeManager);
-            initRewardsSystem();
-            initMapSimulation();
-            initNavigation();
-
-            // Show welcome message
-            const welcomeName = (localStorage.getItem('helpon_user_name') || '').split(' ')[0];
-            const welcomeText = welcomeName ? `Welcome back, ${welcomeName}!` : 'Welcome back!';
-            showToast(welcomeText, 'success');
-        });
-
-        // SOS Button Functionality
-        function initSOSButton() {
-            const sosBtn = document.getElementById('sosBtn');
-            if (!sosBtn) {
-                console.error('SOS button not found');
-                return;
-            }
-            if (sosBtn.dataset.bound === 'true') return;
-            sosBtn.dataset.bound = 'true';
-            let activeEmergencyId = null;
-
-            const indicator = document.getElementById('sosActiveIndicator');
-
-            const setButtonState = (state) => {
-                if (state === 'sending') {
-                    sosBtn.disabled = true;
-                    sosBtn.classList.remove('btn-danger', 'btn-success');
-                    sosBtn.classList.add('btn-secondary');
-                    sosBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>SENDING SOS...';
-                    if (indicator) indicator.classList.add('d-none');
-                    return;
-                }
-
-                if (state === 'active') {
-                    sosBtn.disabled = false;
-                    sosBtn.classList.add('sos-active');
-                    sosBtn.classList.remove('btn-secondary', 'btn-success');
-                    sosBtn.classList.add('btn-danger');
-                    sosBtn.innerHTML = '<i class="bi bi-x-circle me-2"></i>CANCEL SOS';
-                    if (indicator) indicator.classList.remove('d-none');
-                    return;
-                }
-
-                sosBtn.disabled = false;
-                sosBtn.classList.remove('sos-active', 'btn-success', 'btn-secondary');
-                sosBtn.classList.add('btn-danger');
-                sosBtn.innerHTML = '<i class="bi bi-bell-fill me-2"></i>SOS EMERGENCY';
-                if (indicator) indicator.classList.add('d-none');
-            };
-
-            sosBtn.addEventListener('click', async function () {
-                if (sosPending) {
-                    showToast('SOS is being sent. Please wait...', 'info');
-                    return;
-                }
-
-                if (!sosActive) {
-                    sosPending = true;
-                    setButtonState('sending');
-
-                    // Get emergency type
-                    const emergencyType = document.getElementById('emergencyType').value;
-                    let emergencyMessage = '';
-
-                    switch (emergencyType) {
-                        case 'danger':
-                            emergencyMessage = 'I am in danger and need immediate assistance.';
-                            break;
-                        case 'health':
-                            emergencyMessage = 'I am having a health emergency and need medical help.';
-                            break;
-                        case 'lost':
-                            emergencyMessage = 'I am lost and need help finding my way.';
-                            break;
-                        case 'custom':
-                            const customInput = document.querySelector('#customEmergencyInput input');
-                            emergencyMessage = customInput ? customInput.value : 'Custom emergency.';
-                            break;
-                    }
-
-                    let locationData;
-                    try {
-                        locationData = await resolveLocationForSOS();
-                    } catch (error) {
-                        console.error('Location error:', error);
-                        showToast('Testing mode: Using default location for SOS.', 'warning');
-                        locationData = { lat: DEFAULT_LOCATION.lat, lon: DEFAULT_LOCATION.lon, source: 'default' };
-                    }
-
-                    if (locationData.source === 'saved') {
-                        showToast('Using last known location for SOS.', 'warning');
-                        userLat = locationData.lat;
-                        userLon = locationData.lon;
-                    }
-
-                    const timestamp = new Date().toISOString();
-                    activeEmergencyId = await sendSOSAlert({
-                        type: emergencyType,
-                        message: emergencyMessage,
-                        lat: locationData.lat,
-                        lon: locationData.lon,
-                        timestamp
-                    });
-
-                    if (activeEmergencyId) {
-                        sosActive = true;
-                        sosPending = false;
-                        setButtonState('active');
-                        sosBtn.disabled = true;
-                        setTimeout(() => {
-                            if (sosActive) sosBtn.disabled = false;
-                        }, 1500);
-                        showToast('SOS sent successfully.', 'success');
-
-                        // Simulate response after 5 seconds with random estimated arrival time
-                        const responseTime = Math.floor(Math.random() * 5) + 2; // 2-6 mins
-                        sosTimer = setTimeout(function () {
-                            showToast(`A helper is responding to your SOS! Estimated arrival: ${responseTime} mins`, 'info');
-                        }, 5000);
-                    } else {
-                        console.error('Failed to create SOS request');
-                        sosActive = false;
-                        sosPending = false;
-                        setButtonState('idle');
-                    }
-                } else {
-                    sosPending = true;
-                    sosBtn.disabled = true;
-                    if (activeEmergencyId) {
-                        try {
-                            const { error } = await supabase
-                                .from('emergencies')
-                                .update({ status: 'resolved', resolved_at: new Date().toISOString() })
-                                .eq('id', activeEmergencyId);
-
-                            if (error) throw error;
-                            activeEmergencyId = null;
-                            showToast('Emergency Resolved! Your helper has been awarded points.', 'success');
-                        } catch (e) {
-                            console.error('Failed to resolve SOS:', e);
-                            showToast('Failed to resolve SOS. Please try again.', 'danger');
-                            sosPending = false;
-                            sosBtn.disabled = false;
-                            return;
-                        }
-                    } else {
-                        showToast('SOS deactivated', 'warning');
-                    }
-
-                    // Deactivate SOS
-                    sosActive = false;
-                    sosPending = false;
-                    setButtonState('idle');
-
-                    if (sosTimer) {
-                        clearTimeout(sosTimer);
-                    }
-                }
-            });
-        }
-
-        // Emergency Type Selector
-        function initEmergencyTypeSelector() {
-            const emergencyType = document.getElementById('emergencyType');
-            const customInput = document.getElementById('customEmergencyInput');
-
-            emergencyType.addEventListener('change', function () {
-                if (this.value === 'custom') {
-                    customInput.classList.remove('d-none');
-                } else {
-                    customInput.classList.add('d-none');
-                }
-            });
-        }
-
-        // Media Buttons (Audio and Photo)
-        function initMediaButtons() {
-            const recordAudioBtn = document.getElementById('recordAudioBtn');
-            const takePhotoBtn = document.getElementById('takePhotoBtn');
-
-            recordAudioBtn.addEventListener('click', function () {
-                // Simulate audio recording
-                if (confirm('Allow HelpOn to access your microphone?')) {
-                    showToast('Recording audio... Click again to stop.', 'info');
-                    // In a real app, you would use the MediaRecorder API here
-                }
-            });
-
-            takePhotoBtn.addEventListener('click', function () {
-                // Simulate photo capture
-                if (confirm('Allow HelpOn to access your camera?')) {
-                    showToast('Camera activated. Take a photo of your situation.', 'info');
-                    // In a real app, you would use the MediaDevices API here
-                }
-            });
-        }
-
-        // Settings Modal
-        function initSettingsModal(darkModeManager) {
-            const saveSettingsBtn = document.getElementById('saveSettingsBtn');
-            const notificationsToggle = document.getElementById('notificationsToggle');
-            const darkModeToggle = document.getElementById('darkModeToggle');
-
-            // Set initial toggle states
-            darkModeToggle.checked = darkModeManager.isDarkMode;
-
-            saveSettingsBtn.addEventListener('click', function () {
-                // Save settings (simulated)
-                const settings = {
-                    notifications: notificationsToggle.checked,
-                    darkMode: darkModeToggle.checked
-                };
-
-                // Apply dark mode if enabled
-                darkModeManager.applyDarkMode(settings.darkMode);
-
-                // Save to localStorage
-                localStorage.setItem('appSettings', JSON.stringify(settings));
-
-                showToast('Settings saved successfully', 'success');
-
-                // Close modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('settingsModal'));
-                modal.hide();
-            });
-
-            // Other settings buttons
-            document.getElementById('privacySettingsBtn').addEventListener('click', function () {
-                showToast('Privacy settings would open here', 'info');
-            });
-
-            document.getElementById('paymentMethodsBtn').addEventListener('click', function () {
-                showToast('Payment methods would open here', 'info');
-            });
-
-            document.getElementById('helpCenterBtn').addEventListener('click', function (e) {
-                // e.preventDefault(); // allow navigation to help.html
-            });
-        }
-
-        // Rewards System
-        const apiBase = CONFIG.API_BASE_URL;
-        const HELP_POINTS_PER_TASK = 20;
-        const LOCATION_TTL_MS = 5 * 60 * 1000;
-        const DEFAULT_LOCATION = { lat: 28.6139, lon: 77.2090 };
         let homeMap = null;
         let homeUserMarker = null;
-        let locationSyncStarted = false;
-        let nearbyUsersStarted = false;
-        let sosActive = false;
-        let sosPending = false;
-        let sosTimer = null;
+        let userLat = DEFAULT_LOCATION.lat;
+        let userLon = DEFAULT_LOCATION.lon;
 
-        function getUserKey() {
-            const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
-            if (name) return name.replace(/\s+/g, '_');
-            return 'guest';
-        }
-
-        function getPointsStorageKey() {
-            return `helpon_points_${getUserKey()}`;
-        }
-
-        function getHelpsStorageKey() {
-            return `helpon_helps_${getUserKey()}`;
-        }
-
-        function getLocationStorageKey() {
-            return `helpon_last_location_${getUserKey()}`;
-        }
-
-        function getPointsHistoryKey() {
-            return `helpon_points_history_${getUserKey()}`;
-        }
-
-        function getSOSStorageKey() {
-            return `helpon_sos_requests_${getUserKey()}`;
-        }
-
-
-
-        function loadUserPoints() {
-            const key = getPointsStorageKey();
-            const raw = localStorage.getItem(key);
-            if (raw === null) {
-                localStorage.setItem(key, '0');
-                return 0;
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!isUserLoggedIn()) {
+                window.location.href = 'index.html';
+                return;
             }
-            const points = parseInt(raw, 10);
-            return Number.isFinite(points) ? points : 0;
-        }
 
-        function saveUserPoints(points) {
-            const safePoints = Math.max(0, Math.floor(points));
-            localStorage.setItem(getPointsStorageKey(), String(safePoints));
-            return safePoints;
-        }
-
-        function loadHelpsCount() {
-            const key = getHelpsStorageKey();
-            const raw = localStorage.getItem(key);
-            if (raw === null) {
-                localStorage.setItem(key, '0');
-                return 0;
+            const user = await getCurrentUser();
+            if (user) {
+                const name = localStorage.getItem('helpon_user_name') || 'HelpOn User';
+                const el = document.getElementById('userName');
+                if (el) el.textContent = name;
+                
+                const firstName = name.split(' ')[0];
+                const greeting = document.getElementById('userGreetingHeader');
+                if (greeting) greeting.innerHTML = `Hi ${firstName}<span class="animate-wave">👋</span>`;
             }
-            const helps = parseInt(raw, 10);
-            return Number.isFinite(helps) ? helps : 0;
-        }
 
-        function saveHelpsCount(count) {
-            const safeCount = Math.max(0, Math.floor(count));
-            localStorage.setItem(getHelpsStorageKey(), String(safeCount));
-            return safeCount;
-        }
+            // Sync rewards from DB
+            syncRewards(user);
 
-        function incrementHelpsCount() {
-            const current = loadHelpsCount();
-            return saveHelpsCount(current + 1);
-        }
+            initUI();
+            initLocation();
+            initRealtime();
+        });
 
-        function loadSavedLocation() {
-            try {
-                const raw = localStorage.getItem(getLocationStorageKey());
-                if (!raw) return null;
-                const data = JSON.parse(raw);
-                if (!Number.isFinite(data.lat) || !Number.isFinite(data.lon)) return null;
-                return data;
-            } catch (e) {
-                return null;
+        async function syncRewards(user) {
+            if (!user) return;
+            const { data } = await supabase.from('profiles').select('points').eq('id', user.id).single();
+            if (data) {
+                const points = data.points || 0;
+                document.getElementById('pointsCount').textContent = points;
+                document.getElementById('progressBar').style.width = `${Math.min((points/500)*100, 100)}%`;
+                document.getElementById('pointsHint').textContent = points >= 500 ? 'Reward Unlocked!' : `Next reward at 500 (${500-points} to go)`;
             }
         }
 
-        function saveLocation(lat, lon) {
-            localStorage.setItem(getLocationStorageKey(), JSON.stringify({
-                lat: lat,
-                lon: lon,
-                ts: Date.now()
-            }));
+        function initUI() {
+            document.querySelectorAll('.logout-trigger').forEach(el => {
+                el.onclick = () => { if(confirm('Logout?')) logout(); };
+            });
+
+            // SOS Handlers
+            document.getElementById('sosBtn').onclick = () => triggerSOS('General Emergency');
+            document.getElementById('sosMedical').onclick = () => triggerSOS('Medical Emergency');
+            document.getElementById('sosDanger').onclick = () => triggerSOS('Safety Threat');
         }
 
-        function isLocationFresh(location) {
-            return location && location.ts && (Date.now() - location.ts) < LOCATION_TTL_MS;
+        async function triggerSOS(type) {
+            showToast(`Broadcasting ${type}...`, 'warning');
+            const { error } = await createEmergency(type, 'Requesting help from nearby users', userLat, userLon);
+            if (!error) {
+                showToast('SOS Sent Successfully!', 'success');
+                setTimeout(() => window.location.href = 'map.html', 1500);
+            } else {
+                showToast(error.message, 'danger');
+            }
         }
 
-        function resolveLocationForSOS() {
+        function initLocation() {
             const saved = loadSavedLocation();
-            const hasSaved = saved && Number.isFinite(saved.lat) && Number.isFinite(saved.lon);
+            userLat = saved ? saved.lat : DEFAULT_LOCATION.lat;
+            userLon = saved ? saved.lon : DEFAULT_LOCATION.lon;
+            
+            setupHomeMap(userLat, userLon);
 
-            return new Promise((resolve, reject) => {
-                if (!navigator.geolocation) {
-                    if (hasSaved) return resolve({ ...saved, source: 'saved' });
-                    return reject(new Error('Geolocation not supported'));
-                }
+            if (navigator.geolocation && (!saved || !isLocationFresh(saved))) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const { latitude: lat, longitude: lon } = pos.coords;
+                    userLat = lat; userLon = lon;
+                    saveLocation(lat, lon);
+                    updateMap(lat, lon);
+                    syncLocationToDB(lat, lon);
+                }, err => console.warn("Geo error", err), {timeout: 10000});
+            }
 
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const lat = position.coords.latitude;
-                        const lon = position.coords.longitude;
-                        userLat = lat;
-                        userLon = lon;
-                        saveLocation(lat, lon);
-                        resolve({ lat, lon, source: 'live' });
-                    },
-                    (error) => {
-                        console.warn('Geolocation error:', error);
-                        if (hasSaved) return resolve({ ...saved, source: 'saved', error });
-                        reject(error);
-                    },
-                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-                );
+            setInterval(() => syncLocationToDB(userLat, userLon), 60000);
+        }
+
+        async function syncLocationToDB(lat, lon) {
+            const user = await getCurrentUser();
+            if (user) {
+                await supabase.from('profiles').update({
+                    latitude: lat,
+                    longitude: lon,
+                    last_active: new Date().toISOString()
+                }).eq('id', user.id);
+            }
+        }
+
+        function setupHomeMap(lat, lon) {
+            if (homeMap) return;
+            homeMap = L.map('mapContainer', { zoomControl: false, attributionControl: false }).setView([lat, lon], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(homeMap);
+            
+            const icon = L.divIcon({
+                html: `<div style="background:#0d6efd; width:14px; height:14px; border-radius:50%; border:3px solid white; box-shadow: 0 0 8px rgba(13,110,253,0.5);"></div>`,
+                className: '', iconSize: [14, 14]
             });
+            homeUserMarker = L.marker([lat, lon], { icon }).addTo(homeMap);
         }
 
-        function storeSOSRequest(record) {
-            try {
-                const key = getSOSStorageKey();
-                const existing = JSON.parse(localStorage.getItem(key) || '[]');
-                existing.unshift(record);
-                localStorage.setItem(key, JSON.stringify(existing.slice(0, 50)));
-            } catch (e) {
-                console.error('Failed to store SOS request locally', e);
-            }
-        }
-
-        function setPointsHint(points) {
-            const hint = document.getElementById('pointsHint');
-            if (!hint) return;
-            if (points <= 0) {
-                hint.textContent = 'Start helping to earn points';
-            } else if (points < 500) {
-                hint.textContent = `Next reward at 500 points (${500 - points} more)`;
-            } else {
-                hint.textContent = 'You unlocked a reward!';
-            }
-        }
-
-        function appendPointsHistory(points, description) {
-            if (!points) return;
-            const key = getPointsHistoryKey();
-            let history = [];
-            try {
-                history = JSON.parse(localStorage.getItem(key)) || [];
-            } catch (e) {
-                history = [];
-            }
-            history.unshift({
-                type: 'earned',
-                description: description,
-                points: points,
-                date: new Date().toISOString()
-            });
-            localStorage.setItem(key, JSON.stringify(history.slice(0, 50)));
-        }
-
-        function setPointsUI(points) {
-            const pointsElement = document.getElementById('pointsCount');
-            if (pointsElement) pointsElement.textContent = points;
-            const progressPercentage = Math.min((points / 500) * 100, 100);
-            const progressBar = document.getElementById('progressBar');
-            if (progressBar) progressBar.style.width = `${progressPercentage}%`;
-            setPointsHint(points);
-        }
-
-        async function initRewardsSystem() {
-            const storedPoints = loadUserPoints();
-            setPointsUI(storedPoints);
-
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
-
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('points')
-                    .eq('id', user.id)
-                    .single();
-
-                if (error) throw error;
-
-                if (data) {
-                    const points = saveUserPoints(data.points || 0);
-                    setPointsUI(points);
-                    // Rank fetching would need a more complex query or edge function
-                    document.getElementById('userRank').textContent = '—';
-                }
-            } catch (e) {
-                console.error("Error fetching points", e);
-            }
-        }
-
-        function updatePoints(pointsToAdd) {
-            const currentPoints = loadUserPoints();
-            const updatedPoints = saveUserPoints(currentPoints + pointsToAdd);
-            setPointsUI(updatedPoints);
-            if (pointsToAdd > 0) {
-                appendPointsHistory(pointsToAdd, 'Help task completed');
-            }
-
-            if (currentPoints < 500 && updatedPoints >= 500) {
-                showToast('Congratulations! You reached 500 points and earned a reward!', 'success');
-            }
-        }
-
-        // Map & Real-User Tracking Initialization
-        let userLat = 0, userLon = 0;
-
-        function initMapSimulation() {
-            const viewFullMapBtn = document.getElementById('viewFullMapBtn');
-
-            viewFullMapBtn.addEventListener('click', function (e) {
-                window.location.href = 'map.html';
-            });
-
-            const savedLocation = loadSavedLocation();
-            if (savedLocation) {
-                userLat = savedLocation.lat;
-                userLon = savedLocation.lon;
-                setupLeafletMap(userLat, userLon);
-            } else {
-                userLat = DEFAULT_LOCATION.lat;
-                userLon = DEFAULT_LOCATION.lon;
-                setupLeafletMap(userLat, userLon);
-            }
-
-            startLocationSync();
-            startNearbyUsersPoll();
-
-            const shouldRequest = !savedLocation || !isLocationFresh(savedLocation);
-            if (navigator.geolocation && shouldRequest) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        userLat = position.coords.latitude;
-                        userLon = position.coords.longitude;
-                        saveLocation(userLat, userLon);
-                        setupLeafletMap(userLat, userLon);
-                        startLocationSync();
-                        startNearbyUsersPoll();
-                    },
-                    (error) => {
-                        console.warn("Geolocation error:", error);
-                        if (savedLocation) {
-                            showToast('Location permission denied. Using last known location.', 'warning');
-                        } else {
-                            showToast('Location permission denied. Showing default area.', 'warning');
-                        }
-                    },
-                    { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-                );
-            } else if (!navigator.geolocation && !savedLocation) {
-                showToast('Location not supported. Showing default area.', 'warning');
-            }
-        }
-
-        function startLocationSync() {
-            if (locationSyncStarted) return;
-            locationSyncStarted = true;
-            syncLocationLoop();
-        }
-
-        function startNearbyUsersPoll() {
-            if (nearbyUsersStarted) return;
-            nearbyUsersStarted = true;
-            fetchNearbyUsers();
-        }
-
-        async function syncLocationLoop() {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (user) {
-                    await supabase
-                        .from('profiles')
-                        .update({ 
-                            latitude: userLat, 
-                            longitude: userLon,
-                            last_active: new Date().toISOString()
-                        })
-                        .eq('id', user.id);
-                }
-            } catch (err) { console.error("Location sync failed"); }
-
-            // Sync every 30 seconds
-            setTimeout(syncLocationLoop, 30000);
-        }
-
-        async function fetchNearbyUsers() {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
-
-                const activeSince = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-                const { data: users, error } = await supabase
-                    .from('profiles')
-                    .select('id, latitude, longitude')
-                    .not('latitude', 'is', null)
-                    .not('longitude', 'is', null)
-                    .gt('last_active', activeSince);
-
-                if (error) throw error;
-
-                let nearbyCount = 0;
-                (users || []).forEach(u => {
-                    if (u.id === user.id) return;
-                    const dLat = (u.latitude - userLat) * Math.PI / 180;
-                    const dLon = (u.longitude - userLon) * Math.PI / 180;
-                    const a = Math.sin(dLat / 2) ** 2 +
-                        Math.cos(userLat * Math.PI / 180) * Math.cos(u.latitude * Math.PI / 180) *
-                        Math.sin(dLon / 2) ** 2;
-                    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                    const distanceKm = 6371 * c;
-                    if (distanceKm <= 5) nearbyCount += 1;
-                });
-
-                const helpersCount = document.getElementById('helpersCount');
-                if (helpersCount) {
-                    helpersCount.textContent = nearbyCount;
-                }
-            } catch (e) {
-                console.error('Failed loading nearby helpers', e);
-            }
-            setTimeout(fetchNearbyUsers, 15000);
-        }
-
-        function setupLeafletMap(lat, lon) {
-            if (!homeMap) {
-                homeMap = L.map('mapContainer').setView([lat, lon], 14);
-
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; OpenStreetMap contributors'
-                }).addTo(homeMap);
-
-                // User pin styling
-                const userIconHtml = `<div style="background-color:#0d6efd; width:18px; height:18px; border-radius:50%; border:2px solid white; box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>`;
-                const userIcon = L.divIcon({
-                    className: 'custom-user-icon',
-                    html: userIconHtml,
-                    iconSize: [18, 18],
-                    iconAnchor: [9, 9]
-                });
-
-                homeUserMarker = L.marker([lat, lon], { icon: userIcon })
-                    .addTo(homeMap)
-                    .bindPopup("<b>You are here</b>");
-
-                // Load live amenities once on init
-                loadNearbyAmenities(lat, lon, homeMap);
-            } else {
+        function updateMap(lat, lon) {
+            if (homeMap) {
                 homeMap.setView([lat, lon], 14);
-                if (homeUserMarker) {
-                    homeUserMarker.setLatLng([lat, lon]);
-                }
+                if (homeUserMarker) homeUserMarker.setLatLng([lat, lon]);
             }
         }
 
-        async function loadNearbyAmenities(lat, lon, map) {
-            const query = `
-                [out:json][timeout:25];
-                (
-                  node["amenity"="hospital"](around:5000,${lat},${lon});
-                  node["amenity"="clinic"](around:5000,${lat},${lon});
-                  node["amenity"="police"](around:5000,${lat},${lon});
-                );
-                out body;
-                >;
-                out skel qt;
-            `;
+        function initRealtime() {
+            // Helpers count realtime
+            supabase.channel('public:profiles')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, refreshNearbyCount)
+                .subscribe();
+            
+            // Emergencies realtime
+            supabase.channel('public:emergencies')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'emergencies' }, refreshRequests)
+                .subscribe();
 
-            try {
-                const response = await fetch('https://overpass-api.de/api/interpreter', {
-                    method: 'POST',
-                    body: query
-                });
-                const data = await response.json();
+            refreshNearbyCount();
+            refreshRequests();
+        }
 
-                const hospitalIcon = L.divIcon({
-                    className: 'custom-hospital-icon',
-                    html: `<div style="background-color:white; width:24px; height:24px; border-radius:50%; border:2px solid #dc3545; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3);"><i class="bi bi-hospital" style="color:#dc3545; font-size:14px;"></i></div>`,
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12]
-                });
-
-                const policeIcon = L.divIcon({
-                    className: 'custom-police-icon',
-                    html: `<div style="background-color:white; width:24px; height:24px; border-radius:50%; border:2px solid #0d6efd; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 5px rgba(0,0,0,0.3);"><i class="bi bi-shield-shaded" style="color:#0d6efd; font-size:14px;"></i></div>`,
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12]
-                });
-
-                data.elements.forEach(el => {
-                    if (el.type === 'node' && el.tags) {
-                        const isHospital = el.tags.amenity === 'hospital' || el.tags.amenity === 'clinic';
-                        const isPolice = el.tags.amenity === 'police';
-                        const name = el.tags.name || (isHospital ? 'Medical Facility' : 'Police Station');
-
-                        let iconToUse = isHospital ? hospitalIcon : (isPolice ? policeIcon : null);
-                        if (!iconToUse) return;
-
-                        L.marker([el.lat, el.lon], { icon: iconToUse })
-                            .addTo(map)
-                            .bindPopup(`<b>${name}</b><br>${isHospital ? 'Emergency Medical' : 'Law Enforcement'}`);
-                    }
-                });
-
-            } catch (error) {
-                console.error("Error fetching Overpass data:", error);
+        async function refreshNearbyCount() {
+            const activeSince = new Date(Date.now() - 10 * 60000).toISOString();
+            const { data: users } = await supabase.from('profiles').select('id, latitude, longitude').gt('last_active', activeSince);
+            if (users) {
+                const count = users.filter(u => getDistanceKm(userLat, userLon, u.latitude, u.longitude) <= 5).length;
+                const el = document.getElementById('helpersCount');
+                if (el) el.textContent = Math.max(0, count - 1);
             }
         }
 
-        // Navigation
-        function initNavigation() {
-            // Logout buttons
-            const logoutButtons = [document.getElementById('logoutBtn'), document.getElementById('modalLogoutBtn')];
-
-            logoutButtons.forEach(button => {
-                if (button) {
-                    button.addEventListener('click', function (e) {
-                        e.preventDefault();
-                        if (confirm('Are you sure you want to logout?')) {
-                            showToast('Logging out...', 'info');
-                            // Clear cookies server-side
-                            setLoggedInState(false);
-                            localStorage.removeItem('helpon_user_name');
-                            handleAuthFailure();
-                        }
-                    });
-                }
-            });
-
-            // Contacts button
-            document.getElementById('contactsBtn').addEventListener('click', function (e) {
-                e.preventDefault();
-                showToast('Contacts would open here', 'info');
-            });
-        }
-
-
-
-        function updateHelpersCount(change) {
-            const helpersCount = document.getElementById('helpersCount');
-            if (!helpersCount) return;
-            let count = parseInt(helpersCount.textContent);
-            count = Math.max(0, count + change);
-            helpersCount.textContent = count;
-        }
-
-        async function sendSOSAlert(payload) {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) throw new Error("Not logged in");
-
-                // Ensure profile row exists to satisfy FK constraint on emergencies.user_id
-                const fullName = localStorage.getItem('helpon_user_name') || 'User';
-                await supabase.from('profiles').upsert([{
-                    id: user.id,
-                    email: user.email,
-                    full_name: fullName
-                }], { onConflict: 'id' });
-
-                const { data, error } = await supabase
-                    .from('emergencies')
-                    .insert([
-                        {
-                            user_id: user.id,
-                            type: payload.type,
-                            description: payload.message || 'Emergency requested via Quick SOS',
-                            latitude: payload.lat,
-                            longitude: payload.lon,
-                            status: 'active'
-                        }
-                    ])
-                    .select()
-                    .single();
-
-                if (error) throw error;
-
-                if (data) {
-                    storeSOSRequest({
-                        id: data.id,
-                        type: payload.type,
-                        message: payload.message,
-                        lat: payload.lat,
-                        lon: payload.lon,
-                        status: 'active',
-                        timestamp: payload.timestamp
-                    });
-                    showToast('Emergency Broadcasted to nearby users!', 'success');
-                    setTimeout(() => updateHelpersCount(1), 2000);
-                    return data.id;
-                }
-            } catch (e) {
-                console.error('SOS Error:', e);
-                showToast('Failed to broadcast SOS: ' + e.message, 'danger');
-                return null;
+        async function refreshRequests() {
+            const { data } = await supabase.from('emergencies').select('*, profiles(full_name)').eq('status', 'active');
+            const container = document.getElementById('helpRequestsContainer');
+            if (!data || data.length === 0) {
+                container.innerHTML = '<div class="col-12"><div class="card border-0 shadow-sm text-center py-4 text-muted"><i class="bi bi-check-circle fs-1 text-success mb-2"></i><p class="mb-0">All quiet nearby</p></div></div>';
+                return;
             }
+
+            container.innerHTML = data.map(req => {
+                const dist = getDistanceKm(userLat, userLon, req.latitude, req.longitude).toFixed(1);
+                return `<div class="col-12">
+                    <div class="card border-0 shadow-sm border-peach" style="background:#fff9f2">
+                        <div class="card-body d-flex justify-content-between align-items-center py-3">
+                            <div>
+                                <span class="badge bg-danger rounded-pill mb-1">${req.type}</span>
+                                <h6 class="mb-1">${req.profiles?.full_name || 'Someone'} needs help</h6>
+                                <small class="text-muted"><i class="bi bi-geo-alt"></i> ${dist} km away</small>
+                            </div>
+                            <button class="btn theme-lime btn-sm px-3 fw-bold shadow-sm" onclick="window.location.href='map.html?emergency=${req.id}'">Help</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
-        // Simple wave animation
-        document.querySelector('.animate-wave').style.transformOrigin = 'bottom center';
-        setInterval(() => {
-            const wave = document.querySelector('.animate-wave');
-            wave.style.animation = wave.style.animation ? '' : 'wave 1s ease-in-out';
-        }, 2000);
+        function showToast(m, t = 'info') {
+            const id = 't-' + Date.now();
+            const container = document.querySelector('.toast-container');
+            if (!container) return;
+            container.insertAdjacentHTML('beforeend', `<div id="${id}" class="toast align-items-center text-bg-${t} border-0" role="alert"><div class="d-flex"><div class="toast-body">${m}</div></div></div>`);
+            const node = document.getElementById(id);
+            (new bootstrap.Toast(node, { delay: 3000 })).show();
+            node.addEventListener('hidden.bs.toast', () => node.remove());
+        }
     </script>
-
-    
 </body>
-
 </html>

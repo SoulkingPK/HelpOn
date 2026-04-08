@@ -1,130 +1,100 @@
-// --- Shared Utilities ---
+/**
+ * HelpOn Global Utilities
+ * Centralizes common helper functions to reduce code duplication
+ */
 
-// Toast notification function
-window.showToast = function (message, type = 'info') {
-    // Remove existing toasts
-    const existingToasts = document.querySelectorAll('.custom-toast');
-    existingToasts.forEach(toast => toast.remove());
+// --- Constants ---
+export const DEFAULT_LOCATION = { lat: 20.5937, lon: 78.9629 }; // India Center
+export const MAX_EMERGENCY_DISTANCE_KM = 5;
+export const EMERGENCY_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
-    // Create toast element
-    const toast = document.createElement('div');
-    toast.className = `custom-toast position-fixed top-0 start-50 translate-middle-x mt-3 p-3 rounded shadow-sm border-0 text-white`;
-    toast.style.zIndex = '9999';
+// --- Location Helpers ---
+export function saveLocation(lat, lon) {
+    localStorage.setItem('user_location', JSON.stringify({
+        lat,
+        lon,
+        timestamp: Date.now()
+    }));
+}
 
-    // Set background color based on type
-    if (type === 'success') {
-        toast.classList.add('bg-success');
-    } else if (type === 'error') {
-        toast.classList.add('bg-danger');
-    } else if (type === 'warning') {
-        toast.classList.add('bg-warning', 'text-dark');
-        toast.classList.remove('text-white');
-    } else {
-        toast.classList.add('bg-primary');
+export function loadSavedLocation() {
+    const saved = localStorage.getItem('user_location');
+    if (!saved) return null;
+    try {
+        return JSON.parse(saved);
+    } catch (e) {
+        return null;
     }
+}
 
-    // Set content and icon
-    let icon = 'bi-info-circle';
-    if (type === 'success') icon = 'bi-check-circle';
-    if (type === 'error') icon = 'bi-exclamation-circle';
-    if (type === 'warning') icon = 'bi-exclamation-triangle';
+export function isLocationFresh(location) {
+    if (!location || !location.timestamp) return false;
+    const threshold = 15 * 60 * 1000; // 15 mins
+    return (Date.now() - location.timestamp) < threshold;
+}
 
-    toast.innerHTML = `
-        <div class="d-flex align-items-center">
-            <i class="bi ${icon} fs-4 me-2"></i>
-            <div>${message}</div>
-        </div>
-    `;
+// --- Coordinate/Distance Math ---
+export function toRad(value) {
+    return (value * Math.PI) / 180;
+}
 
-    document.body.appendChild(toast);
+export function getDistanceKm(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radius of the earth in km
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+}
 
-    // Auto remove after 3 seconds
-    setTimeout(() => {
-        toast.style.transition = 'opacity 0.5s ease';
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 500);
-    }, 3000);
-};
+export function formatDistance(km) {
+    if (!Number.isFinite(km)) return 'Unknown';
+    if (km < 1) return `${Math.round(km * 1000)} m`;
+    return `${km.toFixed(1)} km`;
+}
 
-// Service worker registration
-window.registerServiceWorker = function () {
-    if ("serviceWorker" in navigator) {
-        window.addEventListener("load", function () {
-            // Need relative or absolute depending on scope, assume root
-            const swPath = window.location.pathname.includes('/client/')
-                ? 'service-worker.js'
-                : '/service-worker.js';
-            navigator.serviceWorker.register(swPath)
-                .catch(function (e) { console.warn("SW registration failed:", e); });
-        });
+// --- Time Formatting ---
+export function formatTimeAgo(iso) {
+    if (!iso) return 'Just now';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return 'Just now';
+    const diffMs = Date.now() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    return `${diffDays}d ago`;
+}
+
+// --- Storage Helpers (SOS Alerts) ---
+export function loadAlertedSOS() {
+    const saved = localStorage.getItem('alerted_sos');
+    if (!saved) return new Set();
+    try {
+        return new Set(JSON.parse(saved));
+    } catch (e) {
+        return new Set();
     }
-};
+}
 
-// Initialize common features on load
-document.addEventListener('DOMContentLoaded', () => {
-    window.registerServiceWorker();
+export function saveAlertedSOS(set) {
+    localStorage.setItem('alerted_sos', JSON.stringify([...set]));
+}
 
-    // Auto-setup logout buttons where they exist, preventing duplicate binding if possible
-    const logoutBtns = document.querySelectorAll('#logoutBtn, #modalLogoutBtn');
-    logoutBtns.forEach(btn => {
-        // Prevent duplicate attaching by checking a dataset flag
-        if (btn.dataset.logoutBound) return;
-        btn.dataset.logoutBound = "true";
+export function loadLastAlertTimestamp() {
+    return parseInt(localStorage.getItem('last_alert_ts') || '0', 10);
+}
 
-        btn.addEventListener('click', async function (e) {
-            e.preventDefault();
-            if (typeof window.hasUnsavedChanges !== 'undefined' && window.hasUnsavedChanges) {
-                if (!confirm('You have unsaved changes. Are you sure you want to logout?')) {
-                    return;
-                }
-            }
-            if (typeof handleLogout === 'function') {
-                await handleLogout();
-            } else {
-                if (typeof setLoggedInState === 'function') setLoggedInState(false);
-                localStorage.removeItem('helpon_user_name');
-                window.location.href = 'index.html';
-            }
-        });
-    });
-});
+export function saveLastAlertTimestamp(ts) {
+    localStorage.setItem('last_alert_ts', ts.toString());
+}
 
-// Dark Mode Manager
-class DarkModeManager {
-    constructor() {
-        this.isDarkMode = localStorage.getItem('darkMode') === 'true';
-        this.init();
-    }
-
-    init() {
-        // Apply saved mode on page load
-        this.applyDarkMode(this.isDarkMode);
-
-        // Set toggle state
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        if (darkModeToggle) {
-            darkModeToggle.checked = this.isDarkMode;
-        }
-    }
-
-    applyDarkMode(enable) {
-        const body = document.body;
-        const html = document.documentElement;
-
-        if (enable) {
-            body.classList.add('dark-mode');
-            html.setAttribute('data-bs-theme', 'dark');
-        } else {
-            body.classList.remove('dark-mode');
-            html.setAttribute('data-bs-theme', 'light');
-        }
-
-        this.isDarkMode = enable;
-        localStorage.setItem('darkMode', enable);
-    }
-
-    toggle() {
-        this.applyDarkMode(!this.isDarkMode);
-        return this.isDarkMode;
-    }
+// --- Shared Map Markers & UI ---
+export function buildDirectionsLink(lat, lon) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
 }
