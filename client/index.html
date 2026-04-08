@@ -75,9 +75,9 @@
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-    <script src="config.js"></script>
+    <script src="config.js?v=2.1"></script>
     <script type="module">
-        import { initTelemetry } from './js/error_telemetry.js';
+        import { initTelemetry } from './js/error_telemetry.js?v=2.1';
         initTelemetry();
     </script>
 </head>
@@ -159,9 +159,11 @@
     </div>
 
     <script type="module">
-        import { supabase, setLoggedInState } from './js/auth.js';
+        import { supabase, setLoggedInState } from './js/auth.js?v=2.1';
 
         document.addEventListener('DOMContentLoaded', function () {
+            console.log('[HelpOn] Login Page Loaded. Supabase state:', supabase ? 'Initialized' : 'Null');
+            if (supabase) console.dir(supabase);
             // Elements
             const loginForm = document.getElementById('loginForm');
             const usernameInput = document.getElementById('username');

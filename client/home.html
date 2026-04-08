@@ -107,7 +107,7 @@
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-    <script src="config.js"></script>
+    <script src="config.js?v=2.1"></script>
 </head>
 
 <body class="bg-light" style="padding-bottom: 72px;">
@@ -230,16 +230,16 @@
 
     <!-- HELPON MODULES -->
     <script type="module">
-        import { supabase, getCurrentUser, logout, isUserLoggedIn } from './js/auth.js';
-        import { createEmergency } from './js/sos.js';
+        import { supabase, getCurrentUser, logout, isUserLoggedIn } from './js/auth.js?v=2.1';
+        import { createEmergency } from './js/sos.js?v=2.1';
         import { 
             DEFAULT_LOCATION, 
             saveLocation, 
             loadSavedLocation, 
             isLocationFresh,
             getDistanceKm
-        } from './js/utils.js';
-        import { initTelemetry } from './js/error_telemetry.js';
+        } from './js/utils.js?v=2.1';
+        import { initTelemetry } from './js/error_telemetry.js?v=2.1';
 
         // Initialize Telemetry
         initTelemetry();

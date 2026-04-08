@@ -7,9 +7,14 @@
 const getSupabaseClient = () => {
     // 1. Check if Supabase library is loaded
     const lib = window.supabase;
-    if (!lib || typeof lib.createClient !== 'function') {
+    if (!lib || (typeof lib.createClient !== 'function' && !lib.auth)) {
         console.error('[HelpOn] Supabase CDN not loaded yet or wrong version.');
         return null;
+    }
+
+    // If window.supabase is already an instance (has .auth), return it!
+    if (lib.auth && typeof lib.from === 'function') {
+        return lib;
     }
 
     // 2. Check if configuration is loaded
@@ -38,7 +43,16 @@ export async function getCurrentUser() {
     return user;
 }
 
+/**
+ * Check if the user is nominally logged in.
+ * CRITICAL: We also return true if returning from an OAuth flow (Google)
+ * or a Password Recovery flow to prevent premature redirection.
+ */
 export function isUserLoggedIn() {
+    const hash = window.location.hash || '';
+    if (hash.includes('access_token=') || hash.includes('type=recovery') || hash.includes('type=signup')) {
+        return true;
+    }
     return localStorage.getItem('helpon_logged_in') === 'true';
 }
 
@@ -69,4 +83,5 @@ if (supabase) {
 }
 window.isUserLoggedIn = isUserLoggedIn;
 window.handleAuthFailure = handleAuthFailure;
+
 
