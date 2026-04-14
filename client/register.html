@@ -195,13 +195,14 @@
                     }
 
                     try {
-                        const authOrigin = (window.location.origin && window.location.origin !== 'null') ? 
-                                           window.location.origin : 
-                                           window.location.href.split('/').slice(0, -1).join('/');
+                        // Dynamically build redirect URL from current browser address
+                        const currentUrl = new URL(window.location.href);
+                        const redirectTo = currentUrl.origin + '/home.html';
+                        console.log('[HelpOn] Redirect URL:', redirectTo);
 
                         const { error } = await client.auth.signInWithOAuth({
                             provider: 'google',
-                            options: { redirectTo: authOrigin + '/home.html' }
+                            options: { redirectTo: redirectTo }
                         });
                         if (error) throw error;
                     } catch (error) {

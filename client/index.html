@@ -295,14 +295,16 @@
 
                     try {
                         console.log('[HelpOn] Starting OAuth flow...');
-                        const authOrigin = window.location.origin === 'null' ? 
-                                           window.location.href.split('/').slice(0, -1).join('/') : 
-                                           window.location.origin;
+                        // Dynamically build redirect URL from current browser address
+                        // This ensures we always use the correct port (e.g., 5500, 8000, etc.)
+                        const currentUrl = new URL(window.location.href);
+                        const redirectTo = currentUrl.origin + '/client/home.html';
+                        console.log('[HelpOn] Redirect URL:', redirectTo);
 
                         const { data, error } = await client.auth.signInWithOAuth({
                             provider: 'google',
                             options: {
-                                redirectTo: authOrigin + '/home.html'
+                                redirectTo: redirectTo
                             }
                         });
                         if (error) throw error;
