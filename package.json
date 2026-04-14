@@ -1,0 +1,9 @@
+{
+  "name": "helpon",
+  "version": "1.0.0",
+  "description": "HelpOn - Emergency assistance platform",
+  "scripts": {
+    "start": "npx serve . -p 8000 --no-clipboard",
+    "dev": "npx serve . -p 8000"
+  }
+}
