@@ -230,16 +230,16 @@
 
     <!-- HELPON MODULES -->
     <script type="module">
-        import { getSupabase, getCurrentUser, logout, isUserLoggedIn } from './js/auth.js?v=3.1';
-        import { createEmergency } from './js/sos.js?v=3.1';
+        import { getSupabase, getCurrentUser, logout, checkSession } from './js/auth.js?v=4.0';
+        import { createEmergency } from './js/sos.js?v=4.0';
         import { 
             DEFAULT_LOCATION, 
             saveLocation, 
             loadSavedLocation, 
             isLocationFresh,
             getDistanceKm
-        } from './js/utils.js?v=3.1';
-        import { initTelemetry } from './js/error_telemetry.js?v=3.1';
+        } from './js/utils.js?v=4.0';
+        import { initTelemetry } from './js/error_telemetry.js?v=4.0';
 
         // Initialize Telemetry
         initTelemetry();
@@ -252,18 +252,22 @@
         let userLon = DEFAULT_LOCATION.lon;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('[HelpOn] Home Loaded. Checking session...');
-            
-            // Give Supabase more time to process Hash tokens if present
-            if (window.location.hash) {
-                console.log('[HelpOn] OAuth/Recovery/Signup hash detected. Waiting 300ms for session processing...');
-                await new Promise(r => setTimeout(r, 300));
-            }
+            console.log('[HelpOn] Home Loaded. Verifying session...');
 
-            if (!isUserLoggedIn()) {
-                console.warn('[HelpOn] Session check failed, redirecting to index.html');
+            // Use proper async session check - handles OAuth hash tokens correctly
+            const hasSession = await checkSession();
+
+            if (!hasSession) {
+                console.warn('[HelpOn] No valid session found, redirecting to login.');
                 window.location.href = 'index.html';
                 return;
+            }
+
+            console.log('[HelpOn] Session verified. Loading home page.');
+
+            // Clear the hash from URL (cleanup after OAuth redirect)
+            if (window.location.hash && window.location.hash.includes('access_token')) {
+                history.replaceState(null, '', window.location.pathname);
             }
 
             const supabase = getSupabase();

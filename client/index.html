@@ -159,16 +159,23 @@
     </div>
 
     <script type="module">
-        import { getSupabase, setLoggedInState } from './js/auth.js?v=3.1';
+        import { getSupabase, setLoggedInState } from './js/auth.js?v=4.0';
 
         document.addEventListener('DOMContentLoaded', function () {
             const supabase = getSupabase();
-            console.log('[HelpOn] Login Page Loaded. Global Supabase type:', typeof window.supabase);
-            console.log('[HelpOn] Module Supabase state:', supabase ? 'Initialized' : 'Null');
-            
+
+            // Listen for auth state changes — this catches Google OAuth redirects
             if (supabase) {
-                console.log('[HelpOn] Supabase.auth exists?', !!supabase.auth);
-                if (!supabase.auth) console.dir(supabase);
+                supabase.auth.onAuthStateChange((event, session) => {
+                    console.log('[HelpOn] Auth event:', event, session ? 'has session' : 'no session');
+                    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
+                        setLoggedInState(true);
+                        if (session.user?.user_metadata?.full_name) {
+                            localStorage.setItem('helpon_user_name', session.user.user_metadata.full_name);
+                        }
+                        // Don't redirect here — let home.html handle it after the OAuth redirect
+                    }
+                });
             }
             // Elements
             const loginForm = document.getElementById('loginForm');
