@@ -1,30 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="refresh" content="0; url=client/index.html" />
-    <title>Redirecting to HelpOn...</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HelpOn</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #f8fafc;
-            color: #333;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+            color: #2563eb;
+            font-size: 1.1rem;
         }
     </style>
-</head>
 
+    <!-- Load Supabase & config BEFORE module script -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="client/config.js?v=5.0"></script>
+</head>
 <body>
-    <p>Redirecting to the application...</p>
-    <script>
-        // Fallback JS redirect just in case meta refresh fails
-        window.location.replace("client/index.html");
+    <p id="msg">Loading HelpOn...</p>
+
+    <script type="module">
+        /**
+         * Root index.html — dual-purpose:
+         * 1. OAuth callback handler: If Google redirected here with a token, process it and go to home.html
+         * 2. Entry point: If no token, redirect to the login page
+         */
+
+        const msgEl = document.getElementById('msg');
+
+        const hash   = window.location.hash   || '';
+        const search = window.location.search || '';
+        const hasToken = hash.includes('access_token') || search.includes('code=');
+        const hasError = hash.includes('error=')       || search.includes('error=');
+
+        if (hasError) {
+            // OAuth returned an error — go to login with error flag
+            console.error('[HelpOn] OAuth error in URL:', hash || search);
+            window.location.replace('client/index.html?oauth_error=1');
+        } else if (hasToken) {
+            // Google OAuth completed successfully — Supabase auto-processes the token.
+            // We just need to wait briefly then go to home.html.
+            msgEl.textContent = 'Signing you in...';
+            console.log('[HelpOn] OAuth token detected. Processing session...');
+
+            const url = window.SUPABASE_URL || (window.CONFIG && window.CONFIG.SUPABASE_URL);
+            const key = window.SUPABASE_ANON_KEY || (window.CONFIG && window.CONFIG.SUPABASE_ANON_KEY);
+
+            if (url && key && window.supabase) {
+                const client = window.supabase.createClient(url, key, {
+                    auth: { persistSession: true, detectSessionInUrl: true }
+                });
+
+                // Poll for session (detectSessionInUrl processes the hash)
+                let attempts = 0;
+                const interval = setInterval(async () => {
+                    attempts++;
+                    const { data: { session } } = await client.auth.getSession();
+                    if (session) {
+                        clearInterval(interval);
+                        if (session.user?.user_metadata?.full_name) {
+                            localStorage.setItem('helpon_user_name', session.user.user_metadata.full_name);
+                        } else if (session.user?.email) {
+                            localStorage.setItem('helpon_user_name', session.user.email.split('@')[0]);
+                        }
+                        msgEl.textContent = 'Welcome! Redirecting...';
+                        window.location.replace('client/home.html');
+                    } else if (attempts >= 15) {
+                        clearInterval(interval);
+                        console.warn('[HelpOn] Session not established after 3s. Redirecting to login.');
+                        window.location.replace('client/index.html');
+                    }
+                }, 200);
+            } else {
+                // Config not ready — still go to home, let home.html handle it
+                setTimeout(() => window.location.replace('client/home.html'), 500);
+            }
+        } else {
+            // Normal entry — go to login page
+            window.location.replace('client/index.html');
+        }
     </script>
 </body>
-
 </html>

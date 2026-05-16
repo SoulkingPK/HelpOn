@@ -96,10 +96,10 @@ export async function signInWithGoogle() {
     const client = getSupabase();
     if (!client) throw new Error('Supabase not initialized');
 
-    // Build redirect URL relative to the current page's folder
-    // e.g. http://localhost:8000/client/home.html
-    const base = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    const redirectTo = base + 'home.html';
+    // Always redirect to the root origin (e.g. http://localhost:8000/)
+    // The root index.html acts as the OAuth callback handler.
+    // This means only ONE URL needs to be in Supabase's allowlist: http://localhost:8000/
+    const redirectTo = window.location.origin + '/';
 
     console.log('[Auth] OAuth redirectTo:', redirectTo);
 
