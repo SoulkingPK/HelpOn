@@ -195,14 +195,19 @@
                     }
 
                     try {
-                        // Dynamically build redirect URL from current browser address
-                        const currentUrl = new URL(window.location.href);
-                        const redirectTo = currentUrl.origin + '/home.html';
+                        // Build callback relative to the current page directory.
+                        // Works for both /index.html and /client/index.html deployments.
+                        const redirectTo = new URL('home.html', window.location.href).toString();
                         console.log('[HelpOn] Redirect URL:', redirectTo);
 
                         const { error } = await client.auth.signInWithOAuth({
                             provider: 'google',
-                            options: { redirectTo: redirectTo }
+                            options: {
+                                redirectTo: redirectTo,
+                                queryParams: {
+                                    prompt: 'select_account'
+                                }
+                            }
                         });
                         if (error) throw error;
                     } catch (error) {

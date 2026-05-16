@@ -1,20 +1,22 @@
 /**
- * HelpOn Auth Module v4.0
- * Centralizes Supabase initialization and robust authentication state logic.
- * Key fix: Use supabase.auth.getSession() as the source of truth, not localStorage.
+ * HelpOn Auth Module v5.0 — Clean, reliable OAuth handling
+ * 
+ * Strategy:
+ * - Supabase JS v2 automatically handles the OAuth hash (#access_token=...)
+ *   and the PKCE code (?code=...) in the URL.
+ * - We just need to call getSession() and wait for it.
+ * - No manual hash parsing. No localStorage as auth source of truth.
+ * - localStorage is only used for non-auth UI state (name, preferences).
  */
 
-let _supabaseClient = null;
+let _client = null;
 
-/**
- * Lazy getter for the Supabase Client.
- */
 export function getSupabase() {
-    if (_supabaseClient) return _supabaseClient;
+    if (_client) return _client;
 
     const lib = window.supabase;
     if (!lib || typeof lib.createClient !== 'function') {
-        console.warn('[HelpOn] Supabase library not loaded yet.');
+        console.warn('[Auth] Supabase library not ready.');
         return null;
     }
 
@@ -22,24 +24,60 @@ export function getSupabase() {
     const key = window.SUPABASE_ANON_KEY || (window.CONFIG && window.CONFIG.SUPABASE_ANON_KEY);
 
     if (!url || !key) {
-        console.warn('[HelpOn] Supabase config missing.');
+        console.warn('[Auth] Missing Supabase config.');
         return null;
     }
 
-    try {
-        _supabaseClient = lib.createClient(url, key);
-        console.log('[HelpOn] Supabase client initialized (v4.0).');
-        return _supabaseClient;
-    } catch (err) {
-        console.error('[HelpOn] Supabase init failed:', err);
-        return null;
-    }
+    _client = lib.createClient(url, key, {
+        auth: {
+            // Store session in localStorage automatically (default)
+            persistSession: true,
+            // Automatically detect and handle OAuth redirects
+            detectSessionInUrl: true
+        }
+    });
+
+    console.log('[Auth] Client ready (v5.0).');
+    return _client;
 }
 
 /**
- * Get the current authenticated user from Supabase directly.
- * This is the ONLY reliable source of truth after OAuth.
+ * Waits for Supabase to process any pending OAuth redirect, then returns session.
+ * This is the ONLY function home.html should use to check auth.
  */
+export async function waitForSession(timeoutMs = 3000) {
+    const client = getSupabase();
+    if (!client) return null;
+
+    // Supabase v2 with detectSessionInUrl:true automatically processes
+    // the #access_token hash. We just need to poll briefly.
+    const deadline = Date.now() + timeoutMs;
+
+    while (Date.now() < deadline) {
+        const { data: { session }, error } = await client.auth.getSession();
+        if (error) {
+            console.error('[Auth] getSession error:', error.message);
+            return null;
+        }
+        if (session) {
+            // Cache user name for UI
+            if (session.user?.user_metadata?.full_name) {
+                localStorage.setItem('helpon_user_name', session.user.user_metadata.full_name);
+            } else if (session.user?.email) {
+                localStorage.setItem('helpon_user_name', session.user.email.split('@')[0]);
+            }
+            // Clean up OAuth params from URL
+            if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
+                history.replaceState(null, '', window.location.pathname);
+            }
+            return session;
+        }
+        await new Promise(r => setTimeout(r, 200));
+    }
+
+    return null;
+}
+
 export async function getCurrentUser() {
     const client = getSupabase();
     if (!client) return null;
@@ -47,83 +85,44 @@ export async function getCurrentUser() {
     return user;
 }
 
-/**
- * Get current session — works after OAuth redirect with hash token.
- */
-export async function getSession() {
-    const client = getSupabase();
-    if (!client) return null;
-    const { data: { session } } = await client.auth.getSession();
-    return session;
-}
-
-/**
- * isUserLoggedIn — checks ONLY the URL hash for OAuth tokens.
- * For actual session check, use checkSession() which is async.
- * This sync version is used as a fast pre-check only.
- */
-export function isUserLoggedIn() {
-    const hash = window.location.hash || '';
-    if (hash.match(/access_token=|error_code=|type=recovery|type=signup/)) {
-        console.log('[HelpOn] Auth hash detected.');
-        return true;
-    }
-    return localStorage.getItem('helpon_logged_in') === 'true';
-}
-
-/**
- * ASYNC session check — the proper way to verify auth state.
- * Returns true if there is a valid Supabase session.
- */
-export async function checkSession() {
-    // First check hash (fast path for OAuth redirects)
-    const hash = window.location.hash || '';
-    if (hash.match(/access_token=|type=recovery|type=signup/)) {
-        console.log('[HelpOn] Hash token detected, session incoming...');
-        return true;
-    }
-
-    // Then check actual Supabase session
-    const session = await getSession();
-    if (session) {
-        // Keep localStorage in sync
-        localStorage.setItem('helpon_logged_in', 'true');
-        if (session.user?.user_metadata?.full_name) {
-            localStorage.setItem('helpon_user_name', session.user.user_metadata.full_name);
-        }
-        return true;
-    }
-
-    // No session found
-    localStorage.removeItem('helpon_logged_in');
-    return false;
-}
-
-export function setLoggedInState(isLoggedIn) {
-    if (isLoggedIn) {
-        localStorage.setItem('helpon_logged_in', 'true');
-    } else {
-        localStorage.removeItem('helpon_logged_in');
-        localStorage.removeItem('helpon_user_name');
-    }
-}
-
-export async function handleAuthFailure() {
-    setLoggedInState(false);
-    const client = getSupabase();
-    if (client) await client.auth.signOut();
-    window.location.href = 'index.html';
-}
-
 export async function logout() {
     const client = getSupabase();
     if (client) await client.auth.signOut();
-    setLoggedInState(false);
+    localStorage.removeItem('helpon_user_name');
     window.location.href = 'index.html';
 }
 
-// Legacy compat
-export const supabase = getSupabase();
+export async function signInWithGoogle() {
+    const client = getSupabase();
+    if (!client) throw new Error('Supabase not initialized');
 
-// Global hook
-window.helponAuth = { getSupabase, isUserLoggedIn, checkSession, logout, setLoggedInState };
+    // Build redirect URL relative to the current page's folder
+    // e.g. http://localhost:8000/client/home.html
+    const base = window.location.origin + window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const redirectTo = base + 'home.html';
+
+    console.log('[Auth] OAuth redirectTo:', redirectTo);
+
+    const { error } = await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+            redirectTo,
+            queryParams: { prompt: 'select_account' }
+        }
+    });
+
+    if (error) throw error;
+}
+
+export async function signInWithPassword(email, password) {
+    const client = getSupabase();
+    if (!client) throw new Error('Supabase not initialized');
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return data;
+}
+
+// Keep legacy exports for any other pages that import them
+export { waitForSession as checkSession };
+export const supabase = getSupabase();
+window.helponAuth = { getSupabase, waitForSession, logout, signInWithGoogle };

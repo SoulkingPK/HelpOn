@@ -230,16 +230,16 @@
 
     <!-- HELPON MODULES -->
     <script type="module">
-        import { getSupabase, getCurrentUser, logout, checkSession } from './js/auth.js?v=4.0';
-        import { createEmergency } from './js/sos.js?v=4.0';
+        import { getSupabase, getCurrentUser, logout, waitForSession } from './js/auth.js?v=5.0';
+        import { createEmergency } from './js/sos.js?v=5.0';
         import { 
             DEFAULT_LOCATION, 
             saveLocation, 
             loadSavedLocation, 
             isLocationFresh,
             getDistanceKm
-        } from './js/utils.js?v=4.0';
-        import { initTelemetry } from './js/error_telemetry.js?v=4.0';
+        } from './js/utils.js?v=5.0';
+        import { initTelemetry } from './js/error_telemetry.js?v=5.0';
 
         // Initialize Telemetry
         initTelemetry();
@@ -252,23 +252,19 @@
         let userLon = DEFAULT_LOCATION.lon;
 
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('[HelpOn] Home Loaded. Verifying session...');
+            console.log('[HelpOn] Home loading. Waiting for session...');
 
-            // Use proper async session check - handles OAuth hash tokens correctly
-            const hasSession = await checkSession();
+            // waitForSession() uses Supabase's built-in detectSessionInUrl
+            // It polls getSession() for up to 3s, handles OAuth hash automatically
+            const session = await waitForSession();
 
-            if (!hasSession) {
-                console.warn('[HelpOn] No valid session found, redirecting to login.');
-                window.location.href = 'index.html';
+            if (!session) {
+                console.warn('[HelpOn] No session. Redirecting to login.');
+                window.location.replace('index.html');
                 return;
             }
 
-            console.log('[HelpOn] Session verified. Loading home page.');
-
-            // Clear the hash from URL (cleanup after OAuth redirect)
-            if (window.location.hash && window.location.hash.includes('access_token')) {
-                history.replaceState(null, '', window.location.pathname);
-            }
+            console.log('[HelpOn] Session OK. User:', session.user?.email);
 
             const supabase = getSupabase();
             const user = await getCurrentUser();

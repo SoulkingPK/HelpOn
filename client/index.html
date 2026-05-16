@@ -68,6 +68,76 @@
             background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <title>Login - HelpOn</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 20px;
+        }
+
+        .form-control:focus {
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-primary {
+            background-color: #2563eb;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background-color: #1e40af;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .password-toggle {
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .password-toggle:hover {
+            color: #2563eb !important;
+        }
+
+        .social-btn {
+            border-radius: 10px;
+            padding: 10px;
+            font-weight: 500;
+        }
+
+        .logo-text {
+            font-weight: 700;
+            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
         .alert {
             border-radius: 10px;
@@ -75,7 +145,7 @@
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-    <script src="config.js?v=3.0"></script>
+    <script src="config.js?v=5.0"></script>
     <script type="module">
         import { initTelemetry } from './js/error_telemetry.js?v=3.0';
         initTelemetry();
@@ -159,169 +229,82 @@
     </div>
 
     <script type="module">
-        import { getSupabase, setLoggedInState } from './js/auth.js?v=4.0';
+        import { getSupabase, signInWithGoogle, signInWithPassword, waitForSession } from './js/auth.js?v=5.0';
+
+        // If returning from Google OAuth (hash in URL), redirect to home immediately
+        // Supabase processes the hash automatically
+        if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
+            window.location.replace('home.html');
+        }
 
         document.addEventListener('DOMContentLoaded', function () {
-            const supabase = getSupabase();
+            const loginForm   = document.getElementById('loginForm');
+            const usernameEl  = document.getElementById('username');
+            const passwordEl  = document.getElementById('password');
+            const togglePw    = document.getElementById('togglePassword');
+            const loginBtn    = document.getElementById('loginBtn');
+            const loginSpinner= document.getElementById('loginSpinner');
+            const loginText   = document.getElementById('loginText');
+            const loginAlert  = document.getElementById('loginAlert');
+            const alertMsg    = document.getElementById('alertMessage');
+            const googleBtn   = document.getElementById('googleLoginBtn');
 
-            // Listen for auth state changes — this catches Google OAuth redirects
-            if (supabase) {
-                supabase.auth.onAuthStateChange((event, session) => {
-                    console.log('[HelpOn] Auth event:', event, session ? 'has session' : 'no session');
-                    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
-                        setLoggedInState(true);
-                        if (session.user?.user_metadata?.full_name) {
-                            localStorage.setItem('helpon_user_name', session.user.user_metadata.full_name);
-                        }
-                        // Don't redirect here — let home.html handle it after the OAuth redirect
-                    }
-                });
+            function showError(msg) {
+                loginAlert.classList.remove('d-none');
+                alertMsg.textContent = msg;
+                loginBtn.disabled = false;
+                loginSpinner.classList.add('d-none');
+                loginText.textContent = 'Login';
             }
-            // Elements
-            const loginForm = document.getElementById('loginForm');
-            const usernameInput = document.getElementById('username');
-            const passwordInput = document.getElementById('password');
-            const togglePassword = document.getElementById('togglePassword');
-            const loginBtn = document.getElementById('loginBtn');
-            const loginSpinner = document.getElementById('loginSpinner');
-            const loginText = document.getElementById('loginText');
-            const loginAlert = document.getElementById('loginAlert');
-            const alertMessage = document.getElementById('alertMessage');
-            const forgotPassword = document.getElementById('forgotPassword');
 
-            // Toggle password visibility
-            togglePassword.addEventListener('click', function () {
-                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                passwordInput.setAttribute('type', type);
-
-                // Toggle eye icon
-                const eyeIcon = this.querySelector('i');
-                if (type === 'password') {
-                    eyeIcon.classList.remove('bi-eye-slash');
-                    eyeIcon.classList.add('bi-eye');
-                } else {
-                    eyeIcon.classList.remove('bi-eye');
-                    eyeIcon.classList.add('bi-eye-slash');
-                }
+            // Password toggle
+            togglePw && togglePw.addEventListener('click', function () {
+                const isPassword = passwordEl.getAttribute('type') === 'password';
+                passwordEl.setAttribute('type', isPassword ? 'text' : 'password');
+                this.querySelector('i').classList.toggle('bi-eye');
+                this.querySelector('i').classList.toggle('bi-eye-slash');
             });
 
-            // Form validation
-            loginForm.addEventListener('submit', async function (e) {
+            // Email/Password Login
+            loginForm && loginForm.addEventListener('submit', async function (e) {
                 e.preventDefault();
-
-                // Reset validation
-                usernameInput.classList.remove('is-invalid');
-                passwordInput.classList.remove('is-invalid');
                 loginAlert.classList.add('d-none');
+                usernameEl.classList.remove('is-invalid');
+                passwordEl.classList.remove('is-invalid');
 
-                let isValid = true;
+                const email = usernameEl.value.trim();
+                const pw    = passwordEl.value;
 
-                // Validate username
-                if (!usernameInput.value.trim() || !usernameInput.value.includes('@')) {
-                    usernameInput.classList.add('is-invalid');
-                    document.getElementById('usernameFeedback').textContent = 'Please enter a valid email address';
-                    isValid = false;
-                }
+                if (!email.includes('@')) { usernameEl.classList.add('is-invalid'); return; }
+                if (pw.length < 6)        { passwordEl.classList.add('is-invalid'); return; }
 
-                // Validate password
-                if (!passwordInput.value) {
-                    passwordInput.classList.add('is-invalid');
-                    document.getElementById('passwordFeedback').textContent = 'Please enter your password';
-                    isValid = false;
-                } else if (passwordInput.value.length < 6) {
-                    passwordInput.classList.add('is-invalid');
-                    document.getElementById('passwordFeedback').textContent = 'Password must be at least 6 characters';
-                    isValid = false;
-                }
-
-                if (!isValid) return;
-
-                // Simulate login process
                 loginBtn.disabled = true;
                 loginSpinner.classList.remove('d-none');
                 loginText.textContent = 'Logging in...';
 
                 try {
-                    const { data, error } = await supabase.auth.signInWithPassword({
-                        email: usernameInput.value.trim(),
-                        password: passwordInput.value
-                    });
-
-                    if (error) {
-                        if (error.message === 'Invalid login credentials') {
-                            throw new Error('Invalid login credentials. If you just registered, ensure "Confirm email" is turned OFF in your Supabase Dashboard, or verify your email first.');
-                        }
-                        throw error;
-                    }
-
-                    // Set logged in state
-                    setLoggedInState(true);
-                    if (data.user?.user_metadata?.full_name) {
-                        localStorage.setItem('helpon_user_name', data.user.user_metadata.full_name);
-                    }
+                    await signInWithPassword(email, pw);
                     window.location.href = 'home.html';
-                } catch (error) {
-                    loginAlert.classList.remove('d-none');
-                    alertMessage.textContent = error.message;
-                    loginBtn.disabled = false;
-                    loginSpinner.classList.add('d-none');
-                    loginText.textContent = 'Login';
+                } catch (err) {
+                    showError(err.message || 'Login failed. Check your credentials.');
                 }
             });
 
-            // Forgot password handler
-            forgotPassword.addEventListener('click', function (e) {
-                e.preventDefault();
-
-                if (!usernameInput.value.trim()) {
-                    loginAlert.classList.remove('d-none');
-                    alertMessage.textContent = 'Please enter your email address first';
-                    return;
+            // Google Login
+            googleBtn && googleBtn.addEventListener('click', async function () {
+                loginAlert.classList.add('d-none');
+                googleBtn.disabled = true;
+                googleBtn.textContent = 'Redirecting to Google...';
+                try {
+                    await signInWithGoogle();
+                    // Browser will navigate away to Google
+                } catch (err) {
+                    console.error('[Auth] Google OAuth error:', err);
+                    showError('Google login failed: ' + err.message);
+                    googleBtn.disabled = false;
+                    googleBtn.innerHTML = '<i class="bi bi-google me-2"></i> Continue with Google';
                 }
-
-                loginAlert.classList.remove('d-none');
-                alertMessage.textContent = `Password reset instructions will be sent to ${usernameInput.value}`;
             });
-
-            // Google Login handler
-            const googleBtn = document.getElementById('googleLoginBtn');
-            if (googleBtn) {
-                googleBtn.addEventListener('click', async function () {
-                    console.log('[HelpOn] Google Login Clicked. Initializing client...');
-                    
-                    // Always try to get a fresh client instance to avoid race conditions
-                    const client = getSupabase();
-                    
-                    if (!client || !client.auth) {
-                        const errorMsg = "Supabase Auth service is not ready. Please wait 2 seconds and try again, or perform a Hard Refresh (Ctrl+F5).";
-                        console.error('[HelpOn] Initialization failure. Client:', client);
-                        loginAlert.classList.remove('d-none');
-                        alertMessage.textContent = errorMsg;
-                        return;
-                    }
-
-                    try {
-                        console.log('[HelpOn] Starting OAuth flow...');
-                        // Dynamically build redirect URL from current browser address
-                        // This ensures we always use the correct port (e.g., 5500, 8000, etc.)
-                        const currentUrl = new URL(window.location.href);
-                        const redirectTo = currentUrl.origin + '/client/home.html';
-                        console.log('[HelpOn] Redirect URL:', redirectTo);
-
-                        const { data, error } = await client.auth.signInWithOAuth({
-                            provider: 'google',
-                            options: {
-                                redirectTo: redirectTo
-                            }
-                        });
-                        if (error) throw error;
-                    } catch (error) {
-                        console.error('[HelpOn] Google Login Error:', error);
-                        loginAlert.classList.remove('d-none');
-                        alertMessage.textContent = "Google Login Error: " + error.message;
-                    }
-                });
-            }
         });
     </script>
 
