@@ -7,6 +7,7 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
     <title>Login - HelpOn</title>
+    <meta name="description" content="Login to HelpOn to access emergency support and connect with helpers near you.">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
@@ -233,8 +234,38 @@
                     googleBtn.innerHTML = '<i class="bi bi-google me-2"></i> Continue with Google';
                 }
             });
+            // Forgot Password
+            const forgotBtn = document.getElementById('forgotPassword');
+            forgotBtn && forgotBtn.addEventListener('click', async function (e) {
+                e.preventDefault();
+                const email = usernameEl.value.trim();
+                if (!email.includes('@')) {
+                    showError('Enter your email address above, then click Forgot password.');
+                    usernameEl.classList.add('is-invalid');
+                    return;
+                }
+                forgotBtn.textContent = 'Sending...';
+                forgotBtn.style.pointerEvents = 'none';
+                try {
+                    const { signInWithGoogle: _, ...authModule } = await import('./js/auth.js?v=5.0');
+                    const client = authModule.getSupabase ? authModule.getSupabase() : window.helponAuth.getSupabase();
+                    const { error } = await client.auth.resetPasswordForEmail(email, {
+                        redirectTo: window.location.origin + '/client/index.html'
+                    });
+                    if (error) throw error;
+                    loginAlert.classList.remove('d-none', 'alert-danger');
+                    loginAlert.classList.add('alert-success');
+                    alertMsg.textContent = 'Password reset email sent! Check your inbox.';
+                } catch (err) {
+                    showError('Failed to send reset email: ' + err.message);
+                } finally {
+                    forgotBtn.textContent = 'Forgot password?';
+                    forgotBtn.style.pointerEvents = '';
+                }
+            });
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 

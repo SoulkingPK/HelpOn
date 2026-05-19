@@ -1,16 +1,31 @@
 /**
  * HelpOn SOS Module
  * Handles creation, acceptance, and resolution of emergency requests
+ *
+ * FIX: Previously imported `supabase` as a static value from auth.js,
+ * which was undefined at module parse time (race condition).
+ * Now uses getSupabase() lazily inside each function.
  */
-import { supabase, getCurrentUser } from './auth.js';
+import { getSupabase, getCurrentUser } from './auth.js';
 import { getDistanceKm, MAX_EMERGENCY_DISTANCE_KM } from './utils.js';
 
 export async function createEmergency(type, description, lat, lon) {
     try {
+        const client = getSupabase();
+        if (!client) throw new Error('Supabase not initialized');
+
         const user = await getCurrentUser();
         if (!user) throw new Error('You must be logged in to send an SOS.');
 
-        const { data, error } = await supabase
+        // Ensure profile row exists to satisfy FK constraint on emergencies.user_id
+        const fullName = localStorage.getItem('helpon_user_name') || 'User';
+        await client.from('profiles').upsert([{
+            id: user.id,
+            email: user.email,
+            full_name: fullName
+        }], { onConflict: 'id' });
+
+        const { data, error } = await client
             .from('emergencies')
             .insert([{
                 user_id: user.id,
@@ -33,10 +48,13 @@ export async function createEmergency(type, description, lat, lon) {
 
 export async function acceptEmergency(id) {
     try {
+        const client = getSupabase();
+        if (!client) throw new Error('Supabase not initialized');
+
         const user = await getCurrentUser();
         if (!user) throw new Error('Login required');
 
-        const { error } = await supabase
+        const { error } = await client
             .from('emergencies')
             .update({
                 status: 'accepted',
@@ -53,7 +71,10 @@ export async function acceptEmergency(id) {
 
 export async function resolveEmergency(id) {
     try {
-        const { error } = await supabase
+        const client = getSupabase();
+        if (!client) throw new Error('Supabase not initialized');
+
+        const { error } = await client
             .from('emergencies')
             .update({
                 status: 'resolved',
@@ -79,6 +100,7 @@ export function filterEmergencies(emergencies, userLat, userLon) {
             lon: Number.parseFloat(e.longitude)
         }))
         .filter(e => {
+            if (!Number.isFinite(e.lat) || !Number.isFinite(e.lon)) return false;
             const distance = getDistanceKm(userLat, userLon, e.lat, e.lon);
             return distance <= MAX_EMERGENCY_DISTANCE_KM;
         });

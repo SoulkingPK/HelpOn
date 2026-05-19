@@ -1,6 +1,6 @@
 /**
- * HelpOn Auth Module v5.0 — Clean, reliable OAuth handling
- * 
+ * HelpOn Auth Module v5.1 — Clean, reliable OAuth handling
+ *
  * Strategy:
  * - Supabase JS v2 automatically handles the OAuth hash (#access_token=...)
  *   and the PKCE code (?code=...) in the URL.
@@ -37,7 +37,7 @@ export function getSupabase() {
         }
     });
 
-    console.log('[Auth] Client ready (v5.0).');
+    console.log('[Auth] Client ready (v5.1).');
     return _client;
 }
 
@@ -81,8 +81,17 @@ export async function waitForSession(timeoutMs = 3000) {
 export async function getCurrentUser() {
     const client = getSupabase();
     if (!client) return null;
-    const { data: { user } } = await client.auth.getUser();
-    return user;
+    try {
+        const { data: { user }, error } = await client.auth.getUser();
+        if (error) {
+            console.warn('[Auth] getUser error:', error.message);
+            return null;
+        }
+        return user;
+    } catch (err) {
+        console.error('[Auth] getCurrentUser exception:', err);
+        return null;
+    }
 }
 
 export async function logout() {
@@ -118,11 +127,25 @@ export async function signInWithPassword(email, password) {
     const client = getSupabase();
     if (!client) throw new Error('Supabase not initialized');
     const { data, error } = await client.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    if (error) {
+        // Provide clearer message for unverified email
+        if (error.message === 'Invalid login credentials') {
+            throw new Error('Invalid email or password. If you just registered, please verify your email first.');
+        }
+        throw error;
+    }
     return data;
 }
 
 // Keep legacy exports for any other pages that import them
 export { waitForSession as checkSession };
-export const supabase = getSupabase();
-window.helponAuth = { getSupabase, waitForSession, logout, signInWithGoogle };
+
+// FIX: supabase export was calling getSupabase() at module parse time,
+// before window.supabase (UMD CDN) is guaranteed to be initialized.
+// Use a getter so it's always resolved lazily at call time.
+export function supabase() {
+    return getSupabase();
+}
+
+// Expose on window for non-module scripts (home.html inline scripts)
+window.helponAuth = { getSupabase, waitForSession, logout, signInWithGoogle, getCurrentUser };
