@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NGO Console - HelpOn</title>
+    <!-- Bootstrap 5 CSS + Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            min-height: 100vh;
+            color: #1e293b;
+        }
+
+        h1, h2, h3, h4, h5, h6, .font-outfit {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .header-bg {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0f172a 100%);
+            color: white;
+            padding: 2.5rem 0;
+            border-bottom-left-radius: 24px;
+            border-bottom-right-radius: 24px;
+            box-shadow: 0 10px 25px rgba(30, 58, 138, 0.15);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .kpi-card {
+            border: none;
+            border-radius: 16px;
+            padding: 20px;
+            color: white;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            transition: transform 0.2s;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .kpi-blue { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); }
+        .kpi-green { background: linear-gradient(135deg, #10b981 0%, #047857 100%); }
+        .kpi-purple { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+
+        .list-group-item {
+            border: none;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 16px;
+        }
+
+        .list-group-item:last-child {
+            border-bottom: none;
+        }
+
+        .avatar-sm {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Onboarding Panel (Join or Create) -->
+    <div class="container py-5 d-none" id="onboardingPanel">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-5">
+                <div class="d-flex align-items-center mb-4 justify-content-center">
+                    <a href="profile.html" class="btn btn-outline-secondary btn-sm me-3"><i class="bi bi-arrow-left"></i></a>
+                    <h3 class="fw-bold text-primary mb-0">Join or Create NGO</h3>
+                </div>
+                
+                <!-- Create NGO -->
+                <div class="card glass-card p-4 mb-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-plus-circle text-primary me-2"></i>Create Volunteer Team</h5>
+                    <p class="text-muted small">Register a new organization to manage and deploy dispatches for local emergencies.</p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Organization Name</label>
+                        <input type="text" class="form-control" id="createOrgName" placeholder="e.g. Red Cross Nagpur" style="border-radius: 10px;">
+                    </div>
+                    <button class="btn btn-primary w-100 fw-bold py-2" id="createOrgBtn" style="border-radius: 10px;">Create Team</button>
+                </div>
+
+                <!-- Join NGO -->
+                <div class="card glass-card p-4">
+                    <h5 class="fw-bold mb-3"><i class="bi bi-key-fill text-warning me-2"></i>Join Existing Team</h5>
+                    <p class="text-muted small">Enter the 8-character invite code shared by your organization administrator.</p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Invite Code</label>
+                        <input type="text" class="form-control text-uppercase" id="joinInviteCode" maxlength="8" placeholder="e.g. AB12CD34" style="border-radius: 10px; font-weight: bold; letter-spacing: 2px;">
+                    </div>
+                    <button class="btn btn-outline-secondary w-100 fw-bold py-2" id="joinOrgBtn" style="border-radius: 10px;">Join Cohort</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Panel -->
+    <div class="d-none" id="dashboardPanel">
+        <!-- Header -->
+        <header class="header-bg">
+            <div class="container">
+                <div class="d-flex align-items-center mb-3">
+                    <a href="profile.html" class="btn btn-outline-light btn-sm me-3"><i class="bi bi-arrow-left"></i> Back</a>
+                    <h4 class="mb-0 fw-bold" id="orgNameTitle">Volunteer Hub</h4>
+                    <span class="badge bg-success ms-3" id="userRoleBadge">Responder</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <p class="mb-0 text-white-50 small">Coordinate dispatches and monitor active distress signals in real-time.</p>
+                    <div class="bg-white bg-opacity-10 px-3 py-2 rounded" style="border: 1px dashed rgba(255,255,255,0.2);">
+                        <span class="small text-white-50">Invite Code: </span>
+                        <strong class="text-warning user-select-all" id="inviteCodeDisplay">----</strong>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container py-4">
+            <!-- KPI Section -->
+            <section class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="kpi-card kpi-blue">
+                        <h6 class="text-white-50 mb-1 small text-uppercase fw-bold">Cohort Responders</h6>
+                        <h2 class="fw-bold mb-0" id="responderCount">0</h2>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="kpi-card kpi-purple">
+                        <h6 class="text-white-50 mb-1 small text-uppercase fw-bold">Active Local SOS</h6>
+                        <h2 class="fw-bold mb-0" id="activeSosCount">0</h2>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="kpi-card kpi-green">
+                        <h6 class="text-white-50 mb-1 small text-uppercase fw-bold">Assists Completed</h6>
+                        <h2 class="fw-bold mb-0" id="completedAssistsCount">0</h2>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Roster & Queue Row -->
+            <div class="row g-4">
+                <!-- Roster Panel -->
+                <div class="col-lg-4">
+                    <div class="card glass-card h-100 p-4">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-people-fill text-primary me-2"></i>Team Roster</h5>
+                        <div class="list-group list-group-flush" id="rosterList">
+                            <!-- Members loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Dispatch Queue -->
+                <div class="col-lg-8">
+                    <div class="card glass-card h-100 p-4">
+                        <h5 class="fw-bold mb-3"><i class="bi bi-activity text-danger me-2"></i>Live Dispatch Queue</h5>
+                        <div class="list-group list-group-flush" id="dispatchQueue">
+                            <!-- Incident stream loaded dynamically -->
+                            <p class="text-muted small text-center py-5">Searching for emergency broadcasts...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 2000;"></div>
+
+    <!-- Core Javascript dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="config.js?v=3.0"></script>
+    <script type="module">
+        import { getSupabase, getCurrentUser, logout } from './js/auth.js?v=5.0';
+        import { getDistanceKm, DEFAULT_LOCATION, escapeHtml, generateSecureCode } from './js/utils.js?v=5.0';
+        import { acceptEmergency, resolveEmergency } from './js/sos.js?v=5.0';
+
+        const supabase = getSupabase();
+        let myUser = null;
+        let myOrg = null;
+        let myRole = 'responder';
+
+        // UI Panels
+        const onboardingPanel = document.getElementById('onboardingPanel');
+        const dashboardPanel = document.getElementById('dashboardPanel');
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.replace('index.html');
+                return;
+            }
+            myUser = user;
+
+            await checkOrganizationStatus();
+            setupEventListeners();
+        });
+
+        async function checkOrganizationStatus() {
+            try {
+                // Query members table
+                const { data: memberRecord, error } = await supabase
+                    .from('organization_members')
+                    .select('*, organizations(*)')
+                    .eq('profile_id', myUser.id)
+                    .maybeSingle();
+
+                if (error) throw error;
+
+                if (memberRecord) {
+                    myOrg = memberRecord.organizations;
+                    myRole = memberRecord.role;
+
+                    // Expose variables to DOM
+                    document.getElementById('orgNameTitle').textContent = myOrg.name;
+                    document.getElementById('userRoleBadge').textContent = myRole.toUpperCase();
+                    document.getElementById('userRoleBadge').className = `badge ms-3 bg-${myRole === 'admin' ? 'danger' : 'success'}`;
+                    document.getElementById('inviteCodeDisplay').textContent = myOrg.invite_code;
+
+                    onboardingPanel.classList.add('d-none');
+                    dashboardPanel.classList.remove('d-none');
+
+                    // Run dashboard processes
+                    await loadRoster();
+                    await loadQueue();
+                    setupRealtimeListeners();
+                } else {
+                    dashboardPanel.classList.add('d-none');
+                    onboardingPanel.classList.remove('d-none');
+                }
+            } catch (err) {
+                console.error('[NGO] Status fetch failed:', err);
+                showToast('Failed to check membership status.', 'danger');
+            }
+        }
+
+        function setupEventListeners() {
+            // Create organization
+            document.getElementById('createOrgBtn').onclick = async () => {
+                const name = document.getElementById('createOrgName').value.trim();
+                if (!name) {
+                    showToast('Please enter an organization name.', 'warning');
+                    return;
+                }
+
+                document.getElementById('createOrgBtn').disabled = true;
+
+                try {
+                    // Generate 8-character cryptographically secure alphanumeric code
+                    const code = generateSecureCode(8);
+
+                    // Create Org row
+                    const { data: orgData, error: orgError } = await supabase
+                        .from('organizations')
+                        .insert([{ name, invite_code: code }])
+                        .select()
+                        .single();
+
+                    if (orgError) throw orgError;
+
+                    // Insert creator as admin
+                    const { error: memberError } = await supabase
+                        .from('organization_members')
+                        .insert([{
+                            organization_id: orgData.id,
+                            profile_id: myUser.id,
+                            role: 'admin'
+                        }]);
+
+                    if (memberError) throw memberError;
+
+                    showToast('Organization registered successfully!', 'success');
+                    setTimeout(() => checkOrganizationStatus(), 1000);
+                } catch (err) {
+                    console.error('[NGO] Creation failed:', err);
+                    showToast('Failed to create organization: ' + err.message, 'danger');
+                } finally {
+                    document.getElementById('createOrgBtn').disabled = false;
+                }
+            };
+
+            // Join organization
+            document.getElementById('joinOrgBtn').onclick = async () => {
+                const code = document.getElementById('joinInviteCode').value.trim().toUpperCase();
+                if (!code || code.length !== 8) {
+                    showToast('Please enter a valid 8-character invite code.', 'warning');
+                    return;
+                }
+
+                document.getElementById('joinOrgBtn').disabled = true;
+
+                try {
+                    // Check if organization exists
+                    const { data: orgData, error: orgSearchError } = await supabase
+                        .from('organizations')
+                        .select('id, name')
+                        .eq('invite_code', code)
+                        .maybeSingle();
+
+                    if (orgSearchError) throw orgSearchError;
+
+                    if (!orgData) {
+                        showToast('Invite code not found. Check again.', 'warning');
+                        return;
+                    }
+
+                    // Insert member record
+                    const { error: joinError } = await supabase
+                        .from('organization_members')
+                        .insert([{
+                            organization_id: orgData.id,
+                            profile_id: myUser.id,
+                            role: 'responder'
+                        }]);
+
+                    if (joinError) throw joinError;
+
+                    showToast(`Successfully joined ${orgData.name}!`, 'success');
+                    setTimeout(() => checkOrganizationStatus(), 1000);
+                } catch (err) {
+                    console.error('[NGO] Joining failed:', err);
+                    showToast('Failed to join organization.', 'danger');
+                } finally {
+                    document.getElementById('joinOrgBtn').disabled = false;
+                }
+            };
+        }
+
+        async function loadRoster() {
+            try {
+                const { data: members, error } = await supabase
+                    .from('organization_members')
+                    .select('*, profiles(full_name, email)')
+                    .eq('organization_id', myOrg.id);
+
+                if (error) throw error;
+
+                document.getElementById('responderCount').textContent = members.length;
+
+                const rosterList = document.getElementById('rosterList');
+                rosterList.innerHTML = members.map(m => {
+                    const profile = m.profiles || {};
+                    const isAdmin = m.role === 'admin';
+                    const isMe = m.profile_id === myUser.id;
+                    
+                    const dismissButton = (myRole === 'admin' && !isMe)
+                        ? `<button class="btn btn-sm btn-outline-danger py-0 px-2 ms-auto" onclick="window.dismissMemberHelper('${escapeHtml(m.id)}')" title="Remove member"><i class="bi bi-x-circle"></i></button>`
+                        : '';
+
+                    return `
+                        <div class="list-group-item d-flex align-items-center">
+                            <div class="avatar-sm me-3">${escapeHtml((profile.full_name || 'U').charAt(0).toUpperCase())}</div>
+                            <div>
+                                <h6 class="mb-0 fw-semibold">${escapeHtml(profile.full_name || 'Anonymous')} ${isMe ? '(You)' : ''}</h6>
+                                <span class="badge bg-${isAdmin ? 'danger' : 'secondary'} rounded-pill" style="font-size:0.75rem;">${escapeHtml(m.role)}</span>
+                            </div>
+                            ${dismissButton}
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('[NGO] Roster load failed:', err);
+            }
+        }
+
+        // Expose admin dismiss trigger
+        window.dismissMemberHelper = async (memberRecordId) => {
+            if (!confirm('Are you sure you want to remove this responder from your organization?')) return;
+            try {
+                const { error } = await supabase
+                    .from('organization_members')
+                    .delete()
+                    .eq('id', memberRecordId);
+
+                if (error) throw error;
+                showToast('Responder dismissed.', 'info');
+                await loadRoster();
+            } catch (err) {
+                showToast('Failed to dismiss member.', 'danger');
+            }
+        };
+
+        async function loadQueue() {
+            try {
+                const { data: activeSos, error } = await supabase
+                    .from('emergencies')
+                    .select('*, profiles(full_name)')
+                    .in('status', ['active', 'accepted'])
+                    .order('created_at', { ascending: false })
+                    .limit(25);
+
+                if (error) throw error;
+
+                // Anonymously count completed dispatches
+                const { count: completedCount } = await supabase
+                    .from('emergencies')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('status', 'resolved');
+
+                document.getElementById('completedAssistsCount').textContent = completedCount || 0;
+
+                // Process active dispatches count
+                const assignedDispatches = activeSos.filter(e => e.helper_id === myUser.id);
+                document.getElementById('activeSosCount').textContent = activeSos.filter(e => e.status === 'active').length;
+
+                const queueEl = document.getElementById('dispatchQueue');
+                if (activeSos.length === 0) {
+                    queueEl.innerHTML = '<p class="text-muted small text-center py-5">No active dispatches. All quiet nearby.</p>';
+                    return;
+                }
+
+                queueEl.innerHTML = activeSos.map(e => {
+                    const dist = getDistanceKm(DEFAULT_LOCATION.lat, DEFAULT_LOCATION.lon, e.latitude, e.longitude).toFixed(1);
+                    const severity = e.severity || 'medium';
+                    const severityClass = severity === 'high' ? 'bg-danger text-white' : (severity === 'low' ? 'bg-info text-dark' : 'bg-warning text-dark');
+                    const severityText = severity.toUpperCase();
+                    
+                    const isAssignedToMe = e.helper_id === myUser.id;
+                    const isUnassigned = !e.helper_id;
+
+                    let dispatchButtons = '';
+                    if (isUnassigned) {
+                        dispatchButtons = `
+                            <button class="btn btn-sm btn-primary py-1 px-3 fw-bold text-white" onclick="window.assignSOSHelper('${escapeHtml(e.id)')">Accept SOS</button>
+                        `;
+                    } else if (isAssignedToMe) {
+                        dispatchButtons = `
+                            <button class="btn btn-sm btn-success py-1 px-3 fw-bold text-white" onclick="window.resolveSOSHelper('${escapeHtml(e.id)}')">Complete</button>
+                        `;
+                    } else {
+                        dispatchButtons = `<span class="badge bg-secondary">Accepted by others</span>`;
+                    }
+
+                    return `
+                        <div class="list-group-item d-flex flex-column gap-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="badge bg-danger rounded-pill">${escapeHtml(e.type)}</span>
+                                <span class="badge ${severityClass} rounded-pill" style="font-size:0.75rem;">${escapeHtml(severityText)}</span>
+                            </div>
+                            <div>
+                                <h6 class="mb-1 text-dark fw-bold">${escapeHtml(e.profiles?.full_name || 'Someone')} needs help</h6>
+                                <p class="small text-muted mb-2">${escapeHtml(e.description)}</p>
+                                <small class="text-muted d-block mb-2"><i class="bi bi-geo-alt"></i> Approx. ${escapeHtml(dist)} km away (Nagpur center)</small>
+                                ${e.image_url ? `
+                                <div class="mb-2">
+                                    <img src="${escapeHtml(e.image_url)}" class="img-thumbnail" style="max-height: 80px;" alt="SOS attachment">
+                                </div>` : ''}
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="chat.html?user=${escapeHtml(e.user_id)}&emergency=${escapeHtml(e.id)}" class="btn btn-sm btn-outline-secondary py-1 px-3 fw-bold text-decoration-none text-center"><i class="bi bi-chat-dots-fill me-1"></i>Chat Seeker</a>
+                                ${dispatchButtons}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (err) {
+                console.error('[NGO] Queue load failed:', err);
+            }
+        }
+
+        // Dispatch Assignment Handlers
+        window.assignSOSHelper = async (emergencyId) => {
+            showToast('Assigning incident to your log...', 'info');
+            const { error } = await acceptEmergency(emergencyId);
+            if (!error) {
+                showToast('Incident assigned! Check map or chat with Seeker.', 'success');
+                await loadQueue();
+            } else {
+                showToast(error.message, 'danger');
+            }
+        };
+
+        window.resolveSOSHelper = async (emergencyId) => {
+            showToast('Closing incident...', 'info');
+            const { error } = await resolveEmergency(emergencyId);
+            if (!error) {
+                showToast('Incident resolved! Points awarded to your profile.', 'success');
+                await loadQueue();
+            } else {
+                showToast(error.message, 'danger');
+            }
+        };
+
+        let ngoChannel = null;
+
+        function setupRealtimeListeners() {
+            // Listen to emergencies table changes
+            ngoChannel = supabase.channel('ngo-dispatches')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'emergencies' }, () => {
+                    loadQueue();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'organization_members', filter: `organization_id=eq.${myOrg.id}` }, () => {
+                    loadRoster();
+                })
+                .subscribe();
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (ngoChannel) {
+                supabase.removeChannel(ngoChannel);
+            }
+        });
+
+        function showToast(message, type = 'info') {
+            const container = document.querySelector('.toast-container');
+            if (!container) return;
+            const id = 't-' + Date.now();
+            container.insertAdjacentHTML('beforeend', `<div id="${id}" class="toast align-items-center text-bg-${type} border-0" role="alert"><div class="d-flex"><div class="toast-body">${message}</div></div></div>`);
+            const node = document.getElementById(id);
+            (new bootstrap.Toast(node, { delay: 4000 })).show();
+            node.addEventListener('hidden.bs.toast', () => node.remove());
+        }
+    </script>
+</body>
+</html>

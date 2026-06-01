@@ -1,15 +1,25 @@
 [build]
   publish = "client"
 
-# When testing locally, you can use Netlify Dev, which reads this.
-# For production, replace `to` with your Vercel URL, e.g., "https://your-project.vercel.app/api/:splat"
-[[redirects]]
-  from = "/api/*"
-  to = "https://help-on.vercel.app/api/:splat"
-  status = 200
-  force = true
+# ============================================================
+# Security Headers (applied to all routes)
+# ============================================================
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(self), camera=(self), microphone=()"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com unpkg.com; style-src 'self' 'unsafe-inline' cdn.jsdelivr.net fonts.googleapis.com; font-src 'self' fonts.gstatic.com cdn.jsdelivr.net; img-src 'self' data: blob: *.supabase.co *.supabase.io openstreetmap.org *.openstreetmap.org *.tile.openstreetmap.org; connect-src 'self' *.supabase.co *.supabase.io wss://*.supabase.co overpass-api.de nominatim.openstreetmap.org api.openai.com; worker-src 'self';"
 
-# Fallback for SPA routing if needed
+# No-cache for config files (allows key rotation without stale SW serving old config)
+[[headers]]
+  for = "/config.js"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate"
+
+# SPA fallback routing
 [[redirects]]
   from = "/*"
   to = "/index.html"

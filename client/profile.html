@@ -111,7 +111,6 @@
     </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
-    <script src="js/utils.js"></script>
     <script>
         // Authentication check - must be after config.js is loaded
         if (!isUserLoggedIn()) {
@@ -230,7 +229,7 @@
                     </div>
                     <div class="flex-grow-1 ms-3">
                         <h6 class="mb-0">Email Verified</h6>
-                        <small class="text-muted">Verified on Jan 15, 2022</small>
+                        <small class="text-muted">Email address is active</small>
                     </div>
                 </div>
                 <div class="d-flex align-items-center mb-3">
@@ -239,7 +238,7 @@
                     </div>
                     <div class="flex-grow-1 ms-3">
                         <h6 class="mb-0">Phone Verified</h6>
-                        <small class="text-muted">Verified on Jan 20, 2022</small>
+                        <small class="text-muted" id="phoneVerifiedStatus">Not provided</small>
                     </div>
                 </div>
                 <div class="d-flex align-items-center">
@@ -276,6 +275,12 @@
                         class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                         id="paymentMethods">
                         <span><i class="bi bi-credit-card me-2"></i> Payment Methods</span>
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                    <a href="ngo.html"
+                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                        id="ngoConsoleLink">
+                        <span><i class="bi bi-people me-2"></i> NGO & Volunteer Console</span>
                         <i class="bi bi-chevron-right"></i>
                     </a>
                     <a href="help.html"
@@ -698,8 +703,7 @@
                 }
 
                 if (!phone) {
-                    showToast('Please enter your phone number', 'error');
-                    return false;
+                    // Phone is optional — skip validation if blank
                 }
 
                 return true;
@@ -756,6 +760,17 @@
             });
 
             // ID verification - link navigates to kyc.html naturally
+
+            async function handleLogout() {
+                try {
+                    await supabase.auth.signOut();
+                    localStorage.removeItem('helpon_user_name');
+                    window.location.href = 'index.html';
+                } catch (err) {
+                    console.error('Logout error:', err);
+                    window.location.href = 'index.html';
+                }
+            }
 
             // Logout confirmation
             logoutBtn.addEventListener('click', async function (e) {

@@ -14,12 +14,26 @@ let _client = null;
 export function getSupabase() {
     if (_client) return _client;
 
-    const lib = window.supabase;
-    if (!lib || typeof lib.createClient !== 'function') {
-        console.warn('[Auth] Supabase library not ready.');
+    const obj = window.supabase;
+    if (!obj) {
+        console.warn('[Auth] Supabase not found on window.');
         return null;
     }
 
+    // config.js calls createClient() and overwrites window.supabase with the
+    // resulting client instance.  Detect that case: a client has .auth but no
+    // .createClient, so adopt it directly instead of trying to create again.
+    if (typeof obj.createClient !== 'function') {
+        if (obj.auth) {
+            _client = obj;
+            console.log('[Auth] Adopted pre-initialized Supabase client from config.js.');
+            return _client;
+        }
+        console.warn('[Auth] Supabase library not ready (no createClient, no auth).');
+        return null;
+    }
+
+    // Library object is still present — create our own client.
     const url = window.SUPABASE_URL || (window.CONFIG && window.CONFIG.SUPABASE_URL);
     const key = window.SUPABASE_ANON_KEY || (window.CONFIG && window.CONFIG.SUPABASE_ANON_KEY);
 
@@ -28,7 +42,7 @@ export function getSupabase() {
         return null;
     }
 
-    _client = lib.createClient(url, key, {
+    _client = obj.createClient(url, key, {
         auth: {
             // Store session in localStorage automatically (default)
             persistSession: true,

@@ -4,6 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        // Enforce trailing slash on directory access to resolve relative assets correctly
+        if (window.location.pathname.endsWith('/client')) {
+            window.location.replace(window.location.pathname + '/' + window.location.search + window.location.hash);
+        }
+    </script>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2563eb">
     <title>Login - HelpOn</title>
@@ -160,11 +166,23 @@
     </div>
 
     <script type="module">
-        import { signInWithGoogle, signInWithPassword } from './js/auth.js?v=5.0';
+        import { signInWithGoogle, signInWithPassword, checkSession } from './js/auth.js?v=5.0';
 
-        // If returning from Google OAuth, redirect to home immediately
-        if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
-            window.location.replace('home.html');
+        // If returning from Google OAuth, wait for the session to be processed, then redirect to home
+        const hash = window.location.hash || '';
+        const search = window.location.search || '';
+        if (hash.includes('access_token') || search.includes('code=')) {
+            console.log('[HelpOn] OAuth callback detected on login page. Waiting for session...');
+            checkSession().then(session => {
+                if (session) {
+                    console.log('[HelpOn] Session verified. Redirecting to home.');
+                    window.location.replace('home.html');
+                } else {
+                    console.warn('[HelpOn] OAuth session could not be established.');
+                }
+            }).catch(err => {
+                console.error('[HelpOn] OAuth error:', err);
+            });
         }
 
         document.addEventListener('DOMContentLoaded', function () {

@@ -53,9 +53,9 @@
             const key = window.SUPABASE_ANON_KEY || (window.CONFIG && window.CONFIG.SUPABASE_ANON_KEY);
 
             if (url && key && window.supabase) {
-                const client = window.supabase.createClient(url, key, {
-                    auth: { persistSession: true, detectSessionInUrl: true }
-                });
+                const client = typeof window.supabase.createClient === 'function'
+                    ? window.supabase.createClient(url, key, { auth: { persistSession: true, detectSessionInUrl: true } })
+                    : window.supabase;
 
                 // Poll for session (detectSessionInUrl processes the hash)
                 let attempts = 0;

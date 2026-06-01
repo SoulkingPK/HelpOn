@@ -75,7 +75,6 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
-    <script src="js/utils.js"></script>
     <script>
         // Authentication check
         if (!isUserLoggedIn()) {
@@ -619,75 +618,48 @@
                 try {
                     if (!isUserLoggedIn()) return;
 
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (!user) return;
+                    // Call the secure Deno edge function instead of direct database writes
+                    const { data, error } = await supabase.functions.invoke('redeem-reward', {
+                        body: { rewardId }
+                    });
 
-                    // 1. Create redemption record
-                    const voucherCode = 'REDEEM-' + Math.random().toString(36).substr(2, 9).toUpperCase();
-                    const { data, error: redeemError } = await supabase
-                        .from('redemptions')
-                        .insert([
-                            {
-                                user_id: user.id,
-                                reward_id: rewardId,
-                                voucher_code: voucherCode
-                            }
-                        ])
-                        .select()
-                        .single();
-
-                    if (redeemError) throw redeemError;
-
-                    // 2. Deduct points from profile
-                    const { error: updateError } = await supabase
-                        .from('profiles')
-                        .update({ points: this.userPoints - parseInt(pointsCost) })
-                        .eq('id', user.id);
-
-                    if (updateError) throw updateError;
-
-                    if (data) {
-
-                        // Deduct points locally for immediate UI update
-                        this.userPoints -= parseInt(pointsCost);
-                        this.redeemedRewards.push(rewardId);
-
-                        // Save to localStorage (points history is fetched from backend now)
-                        this.saveData();
-
-                        // Update UI
-                        this.updatePointsDisplay();
-                        this.loadVouchers();
-                        this.loadDonations();
-                        this.loadBadges();
-
-                        const redeemModal = bootstrap.Modal.getInstance(document.getElementById('redeemModal'));
-                        redeemModal.hide();
-
-                        // Show success message with voucher code
-                        const voucherHtml = `
-                            <div>
-                                <strong>Successfully redeemed ${rewardName}!</strong><br>
-                                Your Voucher Code:<br>
-                                <span class="bg-dark text-white p-1 rounded font-monospace user-select-all me-2" id="voucherCodeSpan">${data.voucher_code}</span>
-                                <button class="btn btn-sm btn-outline-light mt-1" onclick="navigator.clipboard.writeText('${data.voucher_code}').then(() => { const t = document.querySelector('.toast-container').lastElementChild; if(t) { const tb = t.querySelector('.toast-body'); tb.innerHTML = '<i class=\\'bi bi-check-circle-fill me-2\\'></i>Code copied!'; } })">Copy Code</button>
-                            </div>
-                        `;
-                        this.showToast(voucherHtml, 'success');
-
-                        // Wait a bit to ensure server updated, then fetch Points again to make sure everything's in sync
-                        setTimeout(() => this.fetchPoints(), 1000);
-
-                    } else if (res.status === 400) {
-                        this.showToast('Not enough points to redeem this reward.', 'error');
-                        const redeemModal = bootstrap.Modal.getInstance(document.getElementById('redeemModal'));
-                        if (redeemModal) redeemModal.hide();
-                    } else {
-                        throw new Error('Failed to redeem reward');
+                    if (error || !data || !data.success) {
+                        throw new Error(error?.message || data?.error || 'Redemption failed');
                     }
+
+                    // Deduct points locally for immediate UI update based on the server response
+                    this.userPoints = data.newBalance;
+                    this.redeemedRewards.push(rewardId);
+
+                    // Save to localStorage
+                    this.saveData();
+
+                    // Update UI
+                    this.updatePointsDisplay();
+                    this.loadVouchers();
+                    this.loadDonations();
+                    this.loadBadges();
+
+                    const redeemModal = bootstrap.Modal.getInstance(document.getElementById('redeemModal'));
+                    redeemModal.hide();
+
+                    // Show success message with voucher code
+                    const voucherHtml = `
+                        <div>
+                            <strong>Successfully redeemed ${rewardName}!</strong><br>
+                            Your Voucher Code:<br>
+                            <span class="bg-dark text-white p-1 rounded font-monospace user-select-all me-2" id="voucherCodeSpan">${data.voucherCode}</span>
+                            <button class="btn btn-sm btn-outline-light mt-1" onclick="navigator.clipboard.writeText('${data.voucherCode}').then(() => { const t = document.querySelector('.toast-container').lastElementChild; if(t) { const tb = t.querySelector('.toast-body'); tb.innerHTML = '<i class=\\'bi bi-check-circle-fill me-2\\'></i>Code copied!'; } })">Copy Code</button>
+                        </div>
+                    `;
+                    this.showToast(voucherHtml, 'success');
+
+                    // Sync point display from DB again to make sure everything's in sync
+                    setTimeout(() => this.fetchPoints(), 1000);
+
                 } catch (e) {
                     console.error('Error redeeming reward', e);
-                    this.showToast('Could not redeem reward at this time.', 'error');
+                    this.showToast(e.message || 'Could not redeem reward at this time.', 'error');
                 }
             }
 
@@ -702,39 +674,41 @@
                 this.currentDonation = { donationId, donationName, pointsAmount };
             }
 
-            confirmDonation() {
+            async confirmDonation() {
                 const { donationId, donationName, pointsAmount } = this.currentDonation;
 
                 if (this.userPoints >= parseInt(pointsAmount)) {
-                    // Deduct points
-                    this.userPoints -= parseInt(pointsAmount);
+                    try {
+                        // Call the secure Deno edge function instead of direct database writes
+                        const { data, error } = await supabase.functions.invoke('redeem-reward', {
+                            body: { rewardId: donationId }
+                        });
 
-                    // Add to donations made
-                    this.donationsMade.push(donationId);
+                        if (error || !data || !data.success) {
+                            throw new Error(error?.message || data?.error || 'Donation failed');
+                        }
 
-                    // Add to points history
-                    this.pointsHistory.unshift({
-                        type: 'donation',
-                        description: `Donated to: ${donationName}`,
-                        points: -parseInt(pointsAmount),
-                        date: new Date().toISOString()
-                    });
+                        // Deduct points locally for immediate UI update based on server response
+                        this.userPoints = data.newBalance;
+                        this.donationsMade.push(donationId);
+                        this.saveData();
 
-                    // Save to localStorage
-                    this.saveData();
+                        // Update UI
+                        this.updatePointsDisplay();
+                        this.loadDonations();
 
-                    // Update UI
-                    this.updatePointsDisplay();
-                    this.loadDonations();
+                        // Close modal
+                        const donateModal = bootstrap.Modal.getInstance(document.getElementById('donateModal'));
+                        donateModal.hide();
 
-                    // Close modal
-                    const donateModal = bootstrap.Modal.getInstance(document.getElementById('donateModal'));
-                    donateModal.hide();
+                        setTimeout(() => {
+                            window.location.href = 'donate-success.html';
+                        }, 500);
 
-                    setTimeout(() => {
-                        window.location.href = 'donate-success.html';
-                    }, 500);
-
+                    } catch (err) {
+                        this.showToast('Error making donation: ' + err.message, 'error');
+                        console.error('Error donating points:', err);
+                    }
                 } else {
                     this.showToast('Not enough points to make this donation', 'error');
                 }
@@ -762,7 +736,9 @@
                     const { data: redemptions, error } = await supabase
                         .from('redemptions')
                         .select('*, rewards(name)')
-                        .eq('user_id', user.id);
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false })
+                        .limit(25);
 
                     if (error) throw error;
                     if (redemptions) {

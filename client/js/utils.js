@@ -8,6 +8,39 @@ export const DEFAULT_LOCATION = { lat: 20.5937, lon: 78.9629 }; // India Center
 export const MAX_EMERGENCY_DISTANCE_KM = 5;
 export const EMERGENCY_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
+// --- Security Helpers ---
+
+/**
+ * Escapes a string for safe insertion into HTML context.
+ * Must be applied to ALL values sourced from the database or user input
+ * before they are set as innerHTML or interpolated into template literals.
+ * @param {string|null|undefined} str
+ * @returns {string}
+ */
+export function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * Generates a cryptographically secure random alphanumeric code.
+ * Uses Web Crypto API (CSPRNG) — safe for invite codes and vouchers.
+ * @param {number} length - number of characters
+ * @returns {string}
+ */
+export function generateSecureCode(length = 8) {
+    // Unambiguous characters (no 0/O, 1/I/l confusion)
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const arr = new Uint8Array(length);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(b => chars[b % chars.length]).join('');
+}
+
 // --- Location Helpers ---
 export function saveLocation(lat, lon) {
     localStorage.setItem('user_location', JSON.stringify({

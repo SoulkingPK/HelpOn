@@ -37,7 +37,6 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
-    <script src="js/utils.js"></script>
 </head>
 <body class="bg-light">
     <!-- Navigation -->
@@ -180,26 +179,36 @@
                 submitText.textContent = 'Uploading...';
 
                 try {
-                    // 1. Upload to Cloudinary (Simulated for this implementation, using a mock endpoint)
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    
-                    // In a real app, you'd upload the file first then send the URL
-                    // Here we'll simulate the upload result
-                    const mockImageUrl = "https://res.cloudinary.com/dummy/image/upload/v1/kyc/" + file.name;
-
-                    // 2. Submit KYC data
+                    // 1. Get current authenticated user
                     const { data: { user } } = await supabase.auth.getUser();
-                    if (!user) return;
+                    if (!user) {
+                        showToast('Please log in first', 'error');
+                        return;
+                    }
 
-                    // 2. Submit KYC data to Supabase
+                    // 2. Upload file to Supabase Storage bucket 'kyc_documents'
+                    const fileExt = file.name.split('.').pop();
+                    const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+
+                    const { error: uploadError } = await supabase.storage
+                        .from('kyc_documents')
+                        .upload(filePath, file);
+
+                    if (uploadError) throw uploadError;
+
+                    // 3. Get the public URL of the uploaded image
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('kyc_documents')
+                        .getPublicUrl(filePath);
+
+                    // 4. Submit KYC data to database profiles
                     const { error: dbError } = await supabase
                         .from('kyc_submissions')
                         .insert([{
                             user_id: user.id,
                             document_type: document.getElementById('docType').value,
                             document_number: document.getElementById('docNumber').value,
-                            document_image_url: mockImageUrl,
+                            document_image_url: publicUrl,
                             status: 'pending'
                         }]);
 

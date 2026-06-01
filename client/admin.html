@@ -11,13 +11,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
-    <script src="js/utils.js"></script>
-    <script>
-        // Temporary simplistic check - In production, backend strictly manages admin roles
-        if (!isUserLoggedIn()) {
-            window.location.href = 'index.html';
-        }
-    </script>
     <style>
         body {
             background-color: #f8f9fa;
@@ -159,20 +152,29 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-danger me-auto" id="closeTicketBtn">Close
-                        Ticket</button>
+                    <button type="button" class="btn btn-outline-danger me-auto" id="closeTicketBtn">Close Ticket</button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="alert('Reply sent (Mock)')">Send
-                        Reply</button>
+                    <button type="button" class="btn btn-primary" onclick="alert('Reply sent (Mock)')">Send Reply</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+    <script type="module">
+        import { getSupabase } from './js/auth.js';
+        import { escapeHtml } from './js/utils.js';
+
+        // DB-level admin gate — verifies JWT and the is_admin flag on the profiles row.
+        // isUserLoggedIn() is NOT used here — it's a bypassable localStorage check.
+        const supabase = getSupabase();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { window.location.replace('index.html'); }
+        const { data: adminProfile } = await supabase
+            .from('profiles').select('is_admin').eq('id', user.id).single();
+        if (!adminProfile?.is_admin) { window.location.replace('home.html'); }
+
         document.addEventListener('DOMContentLoaded', () => {
-            const apiBase = CONFIG.API_BASE_URL;
             const ticketsContainer = document.getElementById('ticketsContainer');
             const loadingSpinner = document.getElementById('loadingSpinner');
             const searchInput = document.getElementById('searchInput');
@@ -183,22 +185,19 @@
             let currentTicketId = null;
             const ticketModal = new bootstrap.Modal(document.getElementById('ticketModal'));
 
-            // Load Stats
+            // Load Stats — single RPC call (replaces 4 sequential COUNT queries)
             const loadStats = async () => {
                 try {
-                    const { count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-                    const { count: activeSos } = await supabase.from('emergencies').select('*', { count: 'exact', head: true }).eq('status', 'active');
-                    const { count: resolvedSos } = await supabase.from('emergencies').select('*', { count: 'exact', head: true }).eq('status', 'resolved');
-                    const { count: openTickets } = await supabase.from('support_tickets').select('*', { count: 'exact', head: true }).eq('status', 'open');
-
-                    document.getElementById('statTotalUsers').textContent = totalUsers || 0;
-                    document.getElementById('statActiveSOS').textContent = activeSos || 0;
-                    document.getElementById('statResolvedSOS').textContent = resolvedSos || 0;
-                    document.getElementById('statOpenTickets').textContent = openTickets || 0;
+                    const { data: stats, error } = await supabase.rpc('get_admin_stats');
+                    if (error) throw error;
+                    document.getElementById('statTotalUsers').textContent = stats.total_users ?? 0;
+                    document.getElementById('statActiveSOS').textContent = (stats.active_sos ?? 0) + (stats.accepted_sos ?? 0);
+                    document.getElementById('statResolvedSOS').textContent = stats.resolved_sos ?? 0;
+                    document.getElementById('statOpenTickets').textContent = stats.open_tickets ?? 0;
                 } catch (e) { console.warn('Could not load stats:', e); }
             };
 
-            // Load Tickets
+            // Load Tickets (limited to 100 most recent — add pagination for scale)
             const loadTickets = async () => {
                 ticketsContainer.innerHTML = '';
                 ticketsContainer.appendChild(loadingSpinner);
@@ -208,7 +207,8 @@
                     const { data: tickets, error } = await supabase
                         .from('support_tickets')
                         .select('*')
-                        .order('created_at', { ascending: false });
+                        .order('created_at', { ascending: false })
+                        .limit(100);
 
                     if (error) throw error;
                     if (tickets) {
@@ -219,7 +219,7 @@
                     ticketsContainer.innerHTML = `
                         <div class="col-12">
                             <div class="alert alert-danger" role="alert">
-                                Failed to load support tickets. ${e.message}
+                                Failed to load support tickets. ${escapeHtml(e.message)}
                             </div>
                         </div>`;
                 } finally {
@@ -247,22 +247,22 @@
                     const card = document.createElement('div');
                     card.className = 'col-12';
                     card.innerHTML = `
-                        <div class="card shadow-sm border-0 ticket-card" data-ticket-id="${ticket.id}">
+                        <div class="card shadow-sm border-0 ticket-card" data-ticket-id="${escapeHtml(ticket.id)}">
                             <div class="card-body">
                                 <div class="row align-items-center">
                                     <div class="col-md-3 mb-2 mb-md-0">
-                                        <div class="fw-bold">${ticket.name}</div>
-                                        <small class="text-muted">${ticket.email}</small>
+                                        <div class="fw-bold">${escapeHtml(ticket.name)}</div>
+                                        <small class="text-muted">${escapeHtml(ticket.email)}</small>
                                     </div>
                                     <div class="col-md-5 mb-2 mb-md-0">
-                                        <div class="fw-bold text-truncate">${ticket.subject}</div>
-                                        <small class="text-muted text-truncate d-block">${ticket.message}</small>
+                                        <div class="fw-bold text-truncate">${escapeHtml(ticket.subject)}</div>
+                                        <small class="text-muted text-truncate d-block">${escapeHtml(ticket.message)}</small>
                                     </div>
                                     <div class="col-md-2 mb-2 mb-md-0">
-                                        <span class="badge ${statusColor} status-badge">${ticket.status.toUpperCase()}</span>
+                                        <span class="badge ${statusColor} status-badge">${escapeHtml(ticket.status.toUpperCase())}</span>
                                     </div>
                                     <div class="col-md-2 text-md-end text-muted small">
-                                        ${date.split(',')[0]}
+                                        ${escapeHtml(date.split(',')[0])}
                                     </div>
                                 </div>
                             </div>
@@ -271,10 +271,11 @@
 
                     card.addEventListener('click', () => {
                         currentTicketId = ticket.id;
+                        // Use textContent (never innerHTML) for modal fields — XSS safe
                         document.getElementById('modalSubject').textContent = ticket.subject;
                         document.getElementById('modalName').textContent = ticket.name;
                         document.getElementById('modalEmail').textContent = ticket.email;
-                        document.getElementById('modalEmail').href = 'mailto:' + ticket.email;
+                        document.getElementById('modalEmail').href = 'mailto:' + encodeURIComponent(ticket.email);
                         document.getElementById('modalMessage').textContent = ticket.message;
                         document.getElementById('modalDate').textContent = date;
 
@@ -348,7 +349,6 @@
         });
     </script>
 
-    
 </body>
 
 </html>

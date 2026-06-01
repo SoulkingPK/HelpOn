@@ -31,7 +31,12 @@ export function initTelemetry() {
     console.info('[HelpOn] Telemetry: Initialized');
 }
 
+let isUploadingLog = false;
+
 async function logErrorToSupabase(errorData) {
+    if (isUploadingLog) return;
+    isUploadingLog = true;
+
     try {
         // FIX: Get supabase client lazily to avoid undefined at module parse time
         const client = getSupabase();
@@ -57,5 +62,8 @@ async function logErrorToSupabase(errorData) {
         }
     } catch (err) {
         console.error('[HelpOn] Telemetry: Critical failure', err);
+    } finally {
+        // Wait 2 seconds before allowing the next log upload to avoid infinite loops
+        setTimeout(() => { isUploadingLog = false; }, 2000);
     }
 }

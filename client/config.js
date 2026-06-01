@@ -9,5 +9,26 @@ window.CONFIG = {
 window.SUPABASE_URL = window.CONFIG.SUPABASE_URL;
 window.SUPABASE_ANON_KEY = window.CONFIG.SUPABASE_ANON_KEY;
 
+// Synchronous login checker utilizing local storage token check
+window.isUserLoggedIn = function() {
+    const projectRef = 'yatmmbytwhpngzofiukt';
+    const tokenKey = `sb-${projectRef}-auth-token`;
+    return localStorage.getItem(tokenKey) !== null;
+};
+
+// Initialize the global supabase client instance immediately
+if (window.supabase && typeof window.supabase.createClient === 'function') {
+    window.supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY, {
+        auth: {
+            persistSession: true,
+            detectSessionInUrl: true
+        }
+    });
+    console.log('[HelpOn] Supabase client initialized and set to window.supabase.');
+} else {
+    console.warn('[HelpOn] Supabase library not loaded when config.js executed.');
+}
+
 // Log for debugging
 console.log('[HelpOn] Configuration loaded.');
+
