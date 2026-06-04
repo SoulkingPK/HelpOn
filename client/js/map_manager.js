@@ -479,7 +479,7 @@ export class MapManager {
                 const dialPhone = phone || fallbackPhone;
 
                 const phoneButtonHtml = dialPhone 
-                    ? `<a href="tel:${dialPhone}" class="btn btn-sm btn-success w-100 mb-1 fw-bold text-white"><i class="bi bi-telephone-fill me-1"></i> Call ${phone ? phone : ('Emergency (' + dialPhone + ')')}</a>`
+                    ? `<a href="tel:${encodeURIComponent(dialPhone)}" class="btn btn-sm btn-success w-100 mb-1 fw-bold text-white"><i class="bi bi-telephone-fill me-1"></i> Call ${phone ? escapeHtml(phone) : ('Emergency (' + escapeHtml(dialPhone) + ')')}</a>`
                     : '';
 
                 const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${elementLat},${elementLon}`;
@@ -487,9 +487,9 @@ export class MapManager {
 
                 const popupContent = `
                     <div style="min-width:200px; padding:2px;">
-                        <h6 class="fw-bold mb-1" style="color:#1e293b; font-size:14px; margin-bottom: 4px;">${name}</h6>
-                        <span class="badge bg-${this.getServiceBadgeClass(category)} mb-2" style="font-size:10px; padding:4px 8px; text-transform:uppercase;">${category === 'fire' ? 'fire station' : category}</span>
-                        <p class="small text-muted mb-3" style="font-size:12px; line-height:1.3; margin-top: 6px;"><i class="bi bi-geo-alt me-1"></i>${address}</p>
+                        <h6 class="fw-bold mb-1" style="color:#1e293b; font-size:14px; margin-bottom: 4px;">${escapeHtml(name)}</h6>
+                        <span class="badge bg-${this.getServiceBadgeClass(category)} mb-2" style="font-size:10px; padding:4px 8px; text-transform:uppercase;">${escapeHtml(category === 'fire' ? 'fire station' : category)}</span>
+                        <p class="small text-muted mb-3" style="font-size:12px; line-height:1.3; margin-top: 6px;"><i class="bi bi-geo-alt me-1"></i>${escapeHtml(address)}</p>
                         <div class="d-flex flex-column gap-1">
                             ${phoneButtonHtml}
                             ${directionsButtonHtml}

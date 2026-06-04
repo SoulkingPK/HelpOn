@@ -291,7 +291,8 @@
             saveLocation, 
             loadSavedLocation, 
             isLocationFresh,
-            getDistanceKm
+            getDistanceKm,
+            escapeHtml
         } from './js/utils.js?v=5.0';
         import { initTelemetry } from './js/error_telemetry.js?v=5.0';
 
@@ -333,7 +334,7 @@
                 const el = document.getElementById('userName');
                 if (el) el.textContent = name;
                 
-                const firstName = name.split(' ')[0];
+                const firstName = escapeHtml(name.split(' ')[0]);
                 const greeting = document.getElementById('userGreetingHeader');
                 if (greeting) greeting.innerHTML = `Hi ${firstName}<span class="animate-wave">👋</span>`;
             }
@@ -511,7 +512,7 @@
                 if (isDefault) {
                     label.innerHTML = `<i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Default: Nagpur (Fallback)`;
                 } else {
-                    label.innerHTML = `<i class="bi bi-geo-alt-fill text-danger me-1"></i>${cityName}`;
+                    label.innerHTML = `<i class="bi bi-geo-alt-fill text-danger me-1"></i>${escapeHtml(cityName)}`;
                 }
                 if (changeLink) changeLink.style.display = 'inline';
             } catch (err) {
@@ -661,21 +662,22 @@
                 const severity = req.severity || 'medium';
                 const severityClass = severity === 'high' ? 'bg-danger text-white' : (severity === 'low' ? 'bg-info text-dark' : 'bg-warning text-dark');
                 const severityText = severity.toUpperCase();
+                const safeId = escapeHtml(req.id);
 
                 return `<div class="col-12">
                     <div class="card border-0 shadow-sm border-peach" style="background:#fff9f2">
                         <div class="card-body d-flex justify-content-between align-items-center py-3">
                             <div>
-                                <span class="badge bg-danger rounded-pill mb-1">${req.type}</span>
-                                <span class="badge ${severityClass} rounded-pill mb-1 ms-1">${severityText}</span>
-                                <h6 class="mb-1">${req.profiles?.full_name || 'Someone'} needs help</h6>
-                                <p class="small text-muted mb-0"><i class="bi bi-geo-alt"></i> ${dist} km away</p>
+                                <span class="badge bg-danger rounded-pill mb-1">${escapeHtml(req.type)}</span>
+                                <span class="badge ${severityClass} rounded-pill mb-1 ms-1">${escapeHtml(severityText)}</span>
+                                <h6 class="mb-1">${escapeHtml(req.profiles?.full_name || 'Someone')} needs help</h6>
+                                <p class="small text-muted mb-0"><i class="bi bi-geo-alt"></i> ${escapeHtml(dist)} km away</p>
                                 ${req.image_url ? `
                                 <div class="mt-2">
-                                    <img src="${req.image_url}" class="img-thumbnail" style="max-height: 50px; cursor: pointer; border-radius: 8px;" onclick="window.location.href='map.html?emergency=${req.id}'" alt="Emergency attachment">
+                                    <img src="${escapeHtml(req.image_url)}" class="img-thumbnail" style="max-height: 50px; cursor: pointer; border-radius: 8px;" onclick="window.location.href='map.html?emergency=${safeId}'" alt="Emergency attachment">
                                 </div>` : ''}
                             </div>
-                            <button class="btn theme-lime btn-sm px-3 fw-bold shadow-sm" onclick="window.location.href='map.html?emergency=${req.id}'">Help</button>
+                            <button class="btn theme-lime btn-sm px-3 fw-bold shadow-sm" onclick="window.location.href='map.html?emergency=${safeId}'">Help</button>
                         </div>
                     </div>
                 </div>`;
@@ -686,7 +688,7 @@
             const id = 't-' + Date.now();
             const container = document.querySelector('.toast-container');
             if (!container) return;
-            container.insertAdjacentHTML('beforeend', `<div id="${id}" class="toast align-items-center text-bg-${t} border-0" role="alert"><div class="d-flex"><div class="toast-body">${m}</div></div></div>`);
+            container.insertAdjacentHTML('beforeend', `<div id="${id}" class="toast align-items-center text-bg-${t} border-0" role="alert"><div class="d-flex"><div class="toast-body">${escapeHtml(m)}</div></div></div>`);
             const node = document.getElementById(id);
             (new bootstrap.Toast(node, { delay: 3000 })).show();
             node.addEventListener('hidden.bs.toast', () => node.remove());

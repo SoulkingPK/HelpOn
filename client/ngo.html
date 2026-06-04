@@ -444,7 +444,7 @@
                     let dispatchButtons = '';
                     if (isUnassigned) {
                         dispatchButtons = `
-                            <button class="btn btn-sm btn-primary py-1 px-3 fw-bold text-white" onclick="window.assignSOSHelper('${escapeHtml(e.id)')">Accept SOS</button>
+                            <button class="btn btn-sm btn-primary py-1 px-3 fw-bold text-white" onclick="window.assignSOSHelper('${escapeHtml(e.id)}')">Accept SOS</button>
                         `;
                     } else if (isAssignedToMe) {
                         dispatchButtons = `
@@ -529,7 +529,7 @@
             const container = document.querySelector('.toast-container');
             if (!container) return;
             const id = 't-' + Date.now();
-            container.insertAdjacentHTML('beforeend', `<div id="${id}" class="toast align-items-center text-bg-${type} border-0" role="alert"><div class="d-flex"><div class="toast-body">${message}</div></div></div>`);
+            container.insertAdjacentHTML('beforeend', `<div id="${id}" class="toast align-items-center text-bg-${type} border-0" role="alert"><div class="d-flex"><div class="toast-body">${escapeHtml(message)}</div></div></div>`);
             const node = document.getElementById(id);
             (new bootstrap.Toast(node, { delay: 4000 })).show();
             node.addEventListener('hidden.bs.toast', () => node.remove());
