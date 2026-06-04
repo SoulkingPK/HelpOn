@@ -443,10 +443,11 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Check auth
-            if (!isUserLoggedIn()) {
-                window.location.href = 'index.html';
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check auth via real JWT session validation
+            const session = await getValidSession();
+            if (!session) {
+                window.location.replace('index.html');
                 return;
             }
 

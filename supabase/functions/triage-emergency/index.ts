@@ -155,16 +155,49 @@ serve(async (req: Request) => {
     }
 
     // Keyword fallback (when no OpenAI key OR OpenAI failed)
+    // CRITICAL: High-severity terms must be evaluated first and independently.
+    // The original if/else-if chain allowed a low-severity keyword (e.g. 'dog')
+    // to prevent a high-severity keyword ('bleed') from being matched if the
+    // low branch was checked first. We now use an explicit priority cascade:
+    //   HIGH → checked unconditionally first
+    //   LOW  → only applied if no HIGH match was found
+    //   MEDIUM is the safe default
     if (aiAnalysis.status !== "completed") {
       const text = (description || "").toLowerCase();
-      if (text.includes("heart") || text.includes("chest") || text.includes("bleed") ||
-          text.includes("fire") || text.includes("unconscious") || text.includes("accident") || text.includes("chok")) {
+
+      const HIGH_SEVERITY_TERMS = [
+        "heart attack", "cardiac", "chest pain", "chest", "heart",
+        "bleed", "blood", "hemorrhage",
+        "unconscious", "unresponsive", "not breathing",
+        "chok", "choking", "breath", "breathing",
+        "fire", "burning", "smoke",
+        "accident", "crash", "collision",
+        "dying", "dead", "overdose", "poison",
+        "stroke", "seizure", "convuls",
+        "drown", "gun", "stab", "wound"
+      ];
+
+      const LOW_SEVERITY_TERMS = [
+        "flat tire", "tyre", "tire",
+        "lost", "directions",
+        "block", "road block", "traffic",
+        "dog", "cat", "animal",
+        "locked out", "car trouble"
+      ];
+
+      // Evaluate HIGH first — if any high-severity term matches, stop immediately.
+      const isHigh = HIGH_SEVERITY_TERMS.some(term => text.includes(term));
+      if (isHigh) {
         severity = "high";
-      } else if (text.includes("car") || text.includes("lost") || text.includes("block") || text.includes("dog")) {
-        severity = "low";
+      } else {
+        // Only check LOW if there was no high-severity match.
+        const isLow = LOW_SEVERITY_TERMS.some(term => text.includes(term));
+        if (isLow) severity = "low";
+        // else: severity remains "medium" (the safe default)
       }
+
       if (aiAnalysis.status !== "openai_failed") {
-        aiAnalysis = { status: "simulated_local", notes: "Fallback keyword heuristics applied." };
+        aiAnalysis = { status: "simulated_local", notes: "Priority-ordered keyword heuristics applied." };
       }
     }
 

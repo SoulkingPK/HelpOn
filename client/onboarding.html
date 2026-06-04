@@ -210,10 +210,13 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
     <script>
-        // Authentication check
-        if (!isUserLoggedIn()) {
-            window.location.replace('index.html');
-        }
+        // Authentication check via real JWT session validation
+        (async () => {
+            const session = await getValidSession();
+            if (!session) {
+                window.location.replace('index.html');
+            }
+        })();
 
         let currentSlideIdx = 0;
         const slides = document.querySelectorAll('.slide');

@@ -51,9 +51,15 @@ export async function createEmergency(type, description, lat, lon, imageUrl = nu
         const user = await getCurrentUser();
         if (!user) throw new Error('You must be logged in to send an SOS.');
 
-        // Ensure profile row exists (INSERT only — never UPDATE here to avoid
-        // hitting the restrict_profile_updates trigger on upsert conflicts)
-        const fullName = localStorage.getItem('helpon_user_name') || 'User';
+        // Resolve full_name from the trusted JWT user_metadata (set by Supabase Auth / Google OAuth).
+        // This cannot be tampered with client-side. Fall back to email prefix if metadata is missing.
+        // Never use localStorage here — it can be overwritten by the user or a malicious script.
+        const fullName =
+            user.user_metadata?.full_name ||
+            user.user_metadata?.name ||       // Google sometimes uses 'name' instead of 'full_name'
+            user.email?.split('@')[0] ||
+            'User';
+
         await client.from('profiles').insert([{
             id: user.id,
             email: user.email,

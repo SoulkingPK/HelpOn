@@ -415,9 +415,38 @@
 
         let sosInFlight = false;
 
+        // Persistent SOS rate-limiter — survives page refreshes.
+        // sosInFlight only blocks parallel in-session calls; a user can bypass
+        // it by refreshing the page. This localStorage guard prevents that.
+        const SOS_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes between SOS alerts
+        const SOS_LAST_TS_KEY = 'helpon_last_sos_ts';
+
+        function getSosRateLimitRemaining() {
+            const lastTs = parseInt(localStorage.getItem(SOS_LAST_TS_KEY) || '0', 10);
+            const elapsed = Date.now() - lastTs;
+            const remaining = SOS_COOLDOWN_MS - elapsed;
+            return remaining > 0 ? remaining : 0;
+        }
+
+        function recordSosSubmission() {
+            localStorage.setItem(SOS_LAST_TS_KEY, Date.now().toString());
+        }
+
         window.dispatchSOSHelper = async function() {
+            // Layer 1: in-session parallel guard (prevents double-click)
             if (sosInFlight) return;
+
+            // Layer 2: persistent cross-refresh rate-limit
+            const remaining = getSosRateLimitRemaining();
+            if (remaining > 0) {
+                const secsLeft = Math.ceil(remaining / 1000);
+                showToast(`Please wait ${secsLeft}s before sending another SOS.`, 'warning');
+                return;
+            }
+
             sosInFlight = true;
+            // Record the timestamp immediately to block concurrent rapid submits
+            recordSosSubmission();
 
             if (sosCountdownTimer) clearInterval(sosCountdownTimer);
             

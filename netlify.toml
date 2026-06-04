@@ -1,5 +1,15 @@
 [build]
   publish = "client"
+  # Substitutes __SUPABASE_URL__ and __SUPABASE_ANON_KEY__ placeholders in
+  # config.js with the real values from Netlify environment variables.
+  # Set SUPABASE_URL and SUPABASE_ANON_KEY in:
+  #   Netlify Dashboard → Site Settings → Build & Deploy → Environment Variables
+  command = """
+    sed -i \
+      -e 's|__SUPABASE_URL__|'"$SUPABASE_URL"'|g' \
+      -e 's|__SUPABASE_ANON_KEY__|'"$SUPABASE_ANON_KEY"'|g' \
+      client/config.js
+  """
 
 # ============================================================
 # Security Headers (applied to all routes)
