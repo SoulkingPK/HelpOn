@@ -75,12 +75,6 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
-    <script>
-        // Authentication check
-        if (!isUserLoggedIn()) {
-            window.location.href = 'index.html';
-        }
-    </script>
 </head>
 
 <body class="bg-light" style="padding-bottom: 80px;">
@@ -265,7 +259,16 @@
 
     <!-- Custom JavaScript -->
     <script>
-        const apiBase = CONFIG.API_BASE_URL;
+        // --- Helpers ---
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
         function getUserKey() {
             const name = (localStorage.getItem('helpon_user_name') || '').trim().toLowerCase();
@@ -295,6 +298,8 @@
         // Rewards Manager Class
         class RewardsManager {
             constructor() {
+                this.supabase = null; // Set after auth check
+                this.currentUser = null;
                 this.storage = {
                     points: makeStorageKey('points'),
                     redeemedRewards: makeStorageKey('redeemed_rewards'),
@@ -316,26 +321,37 @@
                 this.init();
             }
 
-            init() {
+            async init() {
+                // ── Real JWT auth check (replaces bypassable isUserLoggedIn()) ──
+                this.supabase = window.supabase;
+                if (!this.supabase) {
+                    window.location.replace('index.html');
+                    return;
+                }
+                const { data: { user }, error: authErr } = await this.supabase.auth.getUser();
+                if (authErr || !user) {
+                    window.location.replace('index.html');
+                    return;
+                }
+                this.currentUser = user;
+
                 this.setupEventListeners();
-                this.fetchPoints().then(() => {
-                    this.loadVouchers();
-                    this.loadDonations();
-                    this.loadBadges();
-                    this.updatePointsDisplay();
-                });
+                await this.fetchPoints();
+                this.loadVouchers();
+                this.loadDonations();
+                this.loadBadges();
+                this.updatePointsDisplay();
                 this.showToast('Welcome to Rewards!', 'info');
             }
 
             async fetchPoints() {
                 try {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (!user) return;
+                    if (!this.currentUser) return;
 
-                    const { data, error } = await supabase
+                    const { data, error } = await this.supabase
                         .from('profiles')
                         .select('points')
-                        .eq('id', user.id)
+                        .eq('id', this.currentUser.id)
                         .single();
 
                     if (error) throw error;
@@ -372,9 +388,9 @@
 
             async loadVouchers() {
                 try {
-                    if (!isUserLoggedIn()) return;
+                    if (!this.currentUser) return;
 
-                    const { data: vouchers, error } = await supabase
+                    const { data: vouchers, error } = await this.supabase
                         .from('rewards')
                         .select('*');
 
@@ -391,26 +407,27 @@
                             const canAfford = this.userPoints >= voucher.points_cost;
                             const buttonClass = isRedeemed ? 'btn-success' : (canAfford ? 'btn-primary' : 'btn-secondary');
                             const buttonText = isRedeemed ? 'Redeemed' : (canAfford ? 'Redeem' : 'Need More Points');
-
+                            // Voucher ID stored in data attribute (used in event listener, not innerHTML)
+                            // Name/description are DB data — must be escaped before innerHTML
                             return `
                                 <div class="col-md-6">
                                     <div class="card reward-card h-100 ${isRedeemed ? 'border-success' : ''}">
                                         <div class="card-body">
                                             <div class="d-flex">
-                                                <div class="reward-image me-3" style="background: ${voucher.image_color}">
-                                                    ${voucher.image_text}
+                                                <div class="reward-image me-3" style="background: ${escapeHtml(voucher.image_color)}">
+                                                    ${escapeHtml(voucher.image_text)}
                                                 </div>
                                                 <div class="flex-grow-1">
-                                                    <h5>${voucher.name}</h5>
-                                                    <p class="text-muted small">${voucher.description}</p>
+                                                    <h5>${escapeHtml(voucher.name)}</h5>
+                                                    <p class="text-muted small">${escapeHtml(voucher.description)}</p>
                                                     <div class="d-flex justify-content-between align-items-center mt-3">
                                                         <span class="badge ${isRedeemed ? 'badge-earned' : 'bg-warning text-dark'}">
-                                                            <i class="bi bi-coin"></i> ${voucher.points_cost}
+                                                            <i class="bi bi-coin"></i> ${escapeHtml(String(voucher.points_cost))}
                                                         </span>
                                                         <button class="btn btn-sm ${buttonClass} redeem-btn" 
-                                                                data-reward-id="${voucher.id}"
-                                                                data-reward-name="${voucher.name}"
-                                                                data-points-cost="${voucher.points_cost}"
+                                                                data-reward-id="${escapeHtml(voucher.id)}"
+                                                                data-reward-name="${escapeHtml(voucher.name)}"
+                                                                data-points-cost="${escapeHtml(String(voucher.points_cost))}"
                                                                 ${isRedeemed || !canAfford ? 'disabled' : ''}>
                                                             ${buttonText}
                                                         </button>
@@ -426,9 +443,10 @@
                         // Add event listeners to redeem buttons
                         document.querySelectorAll('.redeem-btn').forEach(button => {
                             button.addEventListener('click', (e) => {
-                                const rewardId = e.target.dataset.rewardId;
-                                const rewardName = e.target.dataset.rewardName;
-                                const pointsCost = e.target.dataset.pointsCost;
+                                // Read from data attributes (already decoded, not re-injected into HTML)
+                                const rewardId = e.currentTarget.dataset.rewardId;
+                                const rewardName = e.currentTarget.dataset.rewardName;
+                                const pointsCost = e.currentTarget.dataset.pointsCost;
                                 this.showRedeemConfirmation(rewardId, rewardName, pointsCost);
                             });
                         });
@@ -615,11 +633,14 @@
             async confirmRedeem() {
                 const { rewardId, rewardName, pointsCost } = this.currentRedemption;
 
-                try {
-                    if (!isUserLoggedIn()) return;
+                const btn = document.getElementById('confirmRedeemBtn');
+                if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Redeeming...'; }
 
-                    // Call the secure Deno edge function instead of direct database writes
-                    const { data, error } = await supabase.functions.invoke('redeem-reward', {
+                try {
+                    if (!this.currentUser) throw new Error('Not authenticated');
+
+                    // Call the secure Deno Edge Function — no direct DB writes from client
+                    const { data, error } = await this.supabase.functions.invoke('redeem-reward', {
                         body: { rewardId }
                     });
 
@@ -627,11 +648,9 @@
                         throw new Error(error?.message || data?.error || 'Redemption failed');
                     }
 
-                    // Deduct points locally for immediate UI update based on the server response
+                    // Update local state from server response (don't trust client-side math)
                     this.userPoints = data.newBalance;
                     this.redeemedRewards.push(rewardId);
-
-                    // Save to localStorage
                     this.saveData();
 
                     // Update UI
@@ -641,25 +660,46 @@
                     this.loadBadges();
 
                     const redeemModal = bootstrap.Modal.getInstance(document.getElementById('redeemModal'));
-                    redeemModal.hide();
+                    if (redeemModal) redeemModal.hide();
 
-                    // Show success message with voucher code
-                    const voucherHtml = `
-                        <div>
-                            <strong>Successfully redeemed ${rewardName}!</strong><br>
-                            Your Voucher Code:<br>
-                            <span class="bg-dark text-white p-1 rounded font-monospace user-select-all me-2" id="voucherCodeSpan">${data.voucherCode}</span>
-                            <button class="btn btn-sm btn-outline-light mt-1" onclick="navigator.clipboard.writeText('${data.voucherCode}').then(() => { const t = document.querySelector('.toast-container').lastElementChild; if(t) { const tb = t.querySelector('.toast-body'); tb.innerHTML = '<i class=\\'bi bi-check-circle-fill me-2\\'></i>Code copied!'; } })">Copy Code</button>
+                    // Show voucher code in a dedicated modal-style toast
+                    // Use textContent for user-controlled data, never innerHTML.
+                    const voucherCode = data.voucherCode || '';
+                    const toastId = 'toast-voucher-' + Date.now();
+                    const toastHtml = `
+                        <div id="${toastId}" class="toast align-items-start text-bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="12000">
+                            <div class="d-flex">
+                                <div class="toast-body">
+                                    <strong id="${toastId}-title"></strong><br>
+                                    Your Voucher Code:<br>
+                                    <span class="bg-dark text-white p-1 rounded font-monospace user-select-all d-inline-block mt-1" id="${toastId}-code"></span>
+                                    <button class="btn btn-sm btn-outline-light mt-2 d-block" id="${toastId}-copy">Copy Code</button>
+                                </div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
                         </div>
                     `;
-                    this.showToast(voucherHtml, 'success');
+                    document.querySelector('.toast-container').insertAdjacentHTML('beforeend', toastHtml);
+                    // Set text via textContent — never via innerHTML — to prevent XSS
+                    document.getElementById(`${toastId}-title`).textContent = `Successfully redeemed ${rewardName}!`;
+                    document.getElementById(`${toastId}-code`).textContent = voucherCode;
+                    document.getElementById(`${toastId}-copy`).onclick = () => {
+                        navigator.clipboard.writeText(voucherCode).then(() => {
+                            document.getElementById(`${toastId}-copy`).textContent = 'Copied!';
+                        }).catch(() => {});
+                    };
+                    const toastEl = document.getElementById(toastId);
+                    new bootstrap.Toast(toastEl, { delay: 12000 }).show();
+                    toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
 
-                    // Sync point display from DB again to make sure everything's in sync
+                    // Sync from DB to verify balance
                     setTimeout(() => this.fetchPoints(), 1000);
 
                 } catch (e) {
                     console.error('Error redeeming reward', e);
                     this.showToast(e.message || 'Could not redeem reward at this time.', 'error');
+                } finally {
+                    if (btn) { btn.disabled = false; btn.textContent = 'Yes, Redeem'; }
                 }
             }
 
@@ -677,10 +717,15 @@
             async confirmDonation() {
                 const { donationId, donationName, pointsAmount } = this.currentDonation;
 
+                const btn = document.getElementById('confirmDonateBtn');
+                if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...'; }
+
                 if (this.userPoints >= parseInt(pointsAmount)) {
                     try {
-                        // Call the secure Deno edge function instead of direct database writes
-                        const { data, error } = await supabase.functions.invoke('redeem-reward', {
+                        if (!this.currentUser) throw new Error('Not authenticated');
+
+                        // Call the secure Deno Edge Function — no direct DB writes from client
+                        const { data, error } = await this.supabase.functions.invoke('redeem-reward', {
                             body: { rewardId: donationId }
                         });
 
@@ -688,7 +733,7 @@
                             throw new Error(error?.message || data?.error || 'Donation failed');
                         }
 
-                        // Deduct points locally for immediate UI update based on server response
+                        // Update local state from server response
                         this.userPoints = data.newBalance;
                         this.donationsMade.push(donationId);
                         this.saveData();
@@ -699,18 +744,21 @@
 
                         // Close modal
                         const donateModal = bootstrap.Modal.getInstance(document.getElementById('donateModal'));
-                        donateModal.hide();
+                        if (donateModal) donateModal.hide();
 
-                        setTimeout(() => {
-                            window.location.href = 'donate-success.html';
-                        }, 500);
+                        // Show inline success — donate-success.html page does not exist
+                        this.showToast(`Thank you! Your ${pointsAmount} points have been donated to ${donationName}. 💚`, 'success');
+                        setTimeout(() => this.fetchPoints(), 1000);
 
                     } catch (err) {
                         this.showToast('Error making donation: ' + err.message, 'error');
                         console.error('Error donating points:', err);
+                    } finally {
+                        if (btn) { btn.disabled = false; btn.textContent = 'Yes, Donate'; }
                     }
                 } else {
-                    this.showToast('Not enough points to make this donation', 'error');
+                    this.showToast('Not enough points to make this donation.', 'error');
+                    if (btn) { btn.disabled = false; btn.textContent = 'Yes, Donate'; }
                 }
             }
 
@@ -730,13 +778,12 @@
                 historyModal.show();
 
                 try {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (!user) return;
+                    if (!this.currentUser) return;
 
-                    const { data: redemptions, error } = await supabase
+                    const { data: redemptions, error } = await this.supabase
                         .from('redemptions')
                         .select('*, rewards(name)')
-                        .eq('user_id', user.id)
+                        .eq('user_id', this.currentUser.id)
                         .order('created_at', { ascending: false })
                         .limit(25);
 
@@ -751,7 +798,7 @@
                                 ...redemptions.map(r => ({
                                     type: 'redeem',
                                     description: `Redeemed: ${r.rewards?.name || 'Unknown Reward'}`,
-                                    points: 0, // Points are deducted at redemption
+                                    points: 0,
                                     date: r.created_at,
                                     code: r.voucher_code
                                 })),
@@ -765,19 +812,40 @@
                                 const pointsClass = entry.points > 0 ? 'text-success' : 'text-danger';
                                 const pointsSign = entry.points > 0 ? '+' : '';
                                 const date = new Date(entry.date).toLocaleDateString();
-                                const codeHtml = entry.code ? `<div class="mt-1 small"><span class="bg-light px-2 py-1 rounded border font-monospace text-dark">${entry.code}</span></div>` : '';
 
-                                item.innerHTML = `
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="mb-1">${entry.description}</h6>
-                                            <small class="text-muted">${date}</small>
-                                            ${codeHtml}
-                                        </div>
-                                        <span class="${pointsClass}">${pointsSign}${entry.points || '...'}</span>
-                                    </div>
-                                `;
+                                // Use DOM methods — never innerHTML — for user/DB-sourced content
+                                const wrapper = document.createElement('div');
+                                wrapper.className = 'd-flex justify-content-between align-items-center';
 
+                                const leftDiv = document.createElement('div');
+                                const h6 = document.createElement('h6');
+                                h6.className = 'mb-1';
+                                h6.textContent = entry.description;
+
+                                const small = document.createElement('small');
+                                small.className = 'text-muted';
+                                small.textContent = date;
+
+                                leftDiv.appendChild(h6);
+                                leftDiv.appendChild(small);
+
+                                if (entry.code) {
+                                    const codeDiv = document.createElement('div');
+                                    codeDiv.className = 'mt-1 small';
+                                    const codeSpan = document.createElement('span');
+                                    codeSpan.className = 'bg-light px-2 py-1 rounded border font-monospace text-dark';
+                                    codeSpan.textContent = entry.code;
+                                    codeDiv.appendChild(codeSpan);
+                                    leftDiv.appendChild(codeDiv);
+                                }
+
+                                const pointsSpan = document.createElement('span');
+                                pointsSpan.className = pointsClass;
+                                pointsSpan.textContent = `${pointsSign}${entry.points || '...'}` ;
+
+                                wrapper.appendChild(leftDiv);
+                                wrapper.appendChild(pointsSpan);
+                                item.appendChild(wrapper);
                                 container.appendChild(item);
                             });
                         }
@@ -839,18 +907,20 @@
                     info: 'bi-info-circle-fill'
                 }[type] || 'bi-info-circle-fill';
 
+                // Build the toast shell in HTML (no user data in the template)
                 const toastHtml = `
                     <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
                         <div class="d-flex">
                             <div class="toast-body">
-                                <i class="bi ${icon} me-2"></i>${message}
+                                <i class="bi ${icon} me-2"></i><span class="toast-text"></span>
                             </div>
                             <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
                         </div>
                     </div>
                 `;
-
                 toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                // Set message via textContent — never via innerHTML
+                document.getElementById(toastId).querySelector('.toast-text').textContent = message;
 
                 const toastElement = document.getElementById(toastId);
                 const toast = new bootstrap.Toast(toastElement, { delay: 4000 });

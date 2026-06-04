@@ -57,7 +57,10 @@ BEGIN
         'new_balance', v_new_points
     );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- SECURITY DEFINER runs as the function owner (postgres), not the calling role.
+-- SET search_path prevents search_path hijacking: without this, a rogue schema
+-- earlier in the search_path could shadow public.profiles or public.rewards.
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_catalog;
 
 -- Grant execution permission to authenticated users (so the edge function running with auth context, or service_role, can call it)
 GRANT EXECUTE ON FUNCTION public.redeem_reward_secure(UUID, VARCHAR, VARCHAR) TO authenticated;
