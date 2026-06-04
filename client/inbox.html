@@ -38,12 +38,6 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="config.js"></script>
-    <script>
-        // Authentication check
-        if (!isUserLoggedIn()) {
-            window.location.href = 'index.html';
-        }
-    </script>
 </head>
 
 <body class="bg-light" style="padding-bottom: 72px;">
@@ -129,12 +123,18 @@
     </nav>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const apiBase = CONFIG.API_BASE_URL;
+        document.addEventListener('DOMContentLoaded', async function () {
+            // Real JWT auth check — replaces bypassable isUserLoggedIn()
+            const { data: { user: authUser }, error: authErr } = await supabase.auth.getUser();
+            if (authErr || !authUser) {
+                window.location.replace('index.html');
+                return;
+            }
+
             // Elements
             const searchInput = document.getElementById('searchInput');
             const categoryButtons = document.querySelectorAll('.btn-category');
-            const messageCards = document.querySelectorAll('.message-card');
+            let messageCards = document.querySelectorAll('.message-card'); // let — reassigned after dynamic render
             const messagesList = document.getElementById('messagesList');
             const emptyState = document.getElementById('emptyState');
             const filterToggle = document.getElementById('filterToggle');
@@ -143,9 +143,15 @@
             // Current filter state
             let currentCategory = 'all';
             let searchQuery = '';
+            let pollInterval = null;
 
             // Initialize
             fetchNotifications();
+            // Poll every 15s for new notifications; clear on page unload
+            pollInterval = setInterval(fetchNotifications, 15000);
+            window.addEventListener('beforeunload', () => {
+                if (pollInterval) clearInterval(pollInterval);
+            });
 
             // Search functionality
             searchInput.addEventListener('input', function () {
@@ -173,14 +179,14 @@
 
             async function fetchNotifications() {
                 try {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    if (!user) return;
+                    if (!authUser) return;
 
                     const { data: notifications, error } = await supabase
                         .from('inbox')
                         .select('*')
-                        .eq('user_id', user.id)
-                        .order('created_at', { ascending: false });
+                        .eq('user_id', authUser.id)
+                        .order('created_at', { ascending: false })
+                        .limit(50);
 
                     if (error) throw error;
                     if (notifications) {
@@ -208,20 +214,40 @@
                     a.setAttribute('data-read', n.is_read ? 'true' : 'false');
                     a.setAttribute('data-id', n.id);
 
-                    a.innerHTML = `
-                        <div class="d-flex">
-                            <div class="avatar-sm bg-light rounded-circle me-3 d-flex align-items-center justify-content-center">
-                                <i class="bi ${iconClass}"></i>
-                            </div>
-                            <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <h6 class="mb-0">${n.title}</h6>
-                                    <small class="text-muted message-time">${date}</small>
-                                </div>
-                                <p class="mb-1">${n.message}</p>
-                            </div>
-                        </div>
-                    `;
+                    // Build card with DOM methods — n.title and n.message are DB data (XSS risk if set via innerHTML)
+                    const outer = document.createElement('div');
+                    outer.className = 'd-flex';
+
+                    const iconWrap = document.createElement('div');
+                    iconWrap.className = 'avatar-sm bg-light rounded-circle me-3 d-flex align-items-center justify-content-center';
+                    iconWrap.innerHTML = `<i class="bi ${iconClass}"></i>`; // icon class is safe (not from DB)
+
+                    const body = document.createElement('div');
+                    body.className = 'flex-grow-1';
+
+                    const topRow = document.createElement('div');
+                    topRow.className = 'd-flex justify-content-between align-items-center mb-1';
+
+                    const titleEl = document.createElement('h6');
+                    titleEl.className = 'mb-0';
+                    titleEl.textContent = n.title; // textContent — never innerHTML for DB data
+
+                    const dateEl = document.createElement('small');
+                    dateEl.className = 'text-muted message-time';
+                    dateEl.textContent = date;
+
+                    topRow.appendChild(titleEl);
+                    topRow.appendChild(dateEl);
+
+                    const msgEl = document.createElement('p');
+                    msgEl.className = 'mb-1';
+                    msgEl.textContent = n.message; // textContent — never innerHTML for DB data
+
+                    body.appendChild(topRow);
+                    body.appendChild(msgEl);
+                    outer.appendChild(iconWrap);
+                    outer.appendChild(body);
+                    a.appendChild(outer);
 
                     a.addEventListener('click', async function (e) {
                         e.preventDefault();
@@ -248,6 +274,7 @@
                     messagesList.appendChild(a);
                 });
 
+                // Re-query after dynamic render (messageCards is let, not const)
                 messageCards = document.querySelectorAll('.message-card');
                 updateUnreadCount();
                 filterMessages();
@@ -312,7 +339,7 @@
                 // In a real app, you might also update the badge on the bottom nav
             }
 
-            // Filter toggle buttons (for future functionality)
+            // Filter toggle buttons
             filterToggle.addEventListener('click', function () {
                 alert('Advanced filtering options would appear here');
             });
@@ -320,9 +347,6 @@
             advancedFilterToggle.addEventListener('click', function () {
                 alert('Additional search filters would appear here');
             });
-
-            // Periodically refresh Inbox
-            setInterval(fetchNotifications, 15000);
 
             // Request notification permission
             if ('Notification' in window && Notification.permission === 'default') {

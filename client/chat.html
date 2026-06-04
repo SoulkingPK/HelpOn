@@ -214,11 +214,6 @@
     <script src="config.js?v=3.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Authentication check
-        if (!isUserLoggedIn()) {
-            window.location.replace('index.html');
-        }
-
         const supabase = window.supabase;
         let myUser = null;
         let recipientId = null;
@@ -243,10 +238,10 @@
                 return;
             }
 
-            // Get Current logged in user
+            // Get Current logged in user (also serves as real JWT auth guard)
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                window.location.href = 'index.html';
+                window.location.replace('index.html');
                 return;
             }
             myUser = user;
@@ -427,8 +422,9 @@
             const container = document.querySelector('.toast-container');
             if (!container) return;
             const id = 't-' + Date.now();
-            container.insertAdjacentHTML('beforeend', `<div id="${id}" class="toast align-items-center text-bg-${type} border-0" role="alert"><div class="d-flex"><div class="toast-body">${message}</div></div></div>`);
+            container.insertAdjacentHTML('beforeend', `<div id="${id}" class="toast align-items-center text-bg-${type} border-0" role="alert"><div class="d-flex"><div class="toast-body"><span class="toast-msg"></span></div></div></div>`);
             const node = document.getElementById(id);
+            node.querySelector('.toast-msg').textContent = message; // textContent — never innerHTML
             (new bootstrap.Toast(node, { delay: 4000 })).show();
             node.addEventListener('hidden.bs.toast', () => node.remove());
         }

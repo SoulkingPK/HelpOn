@@ -591,7 +591,7 @@
                 syncLocationToDB(userLat, userLon);
             }
 
-            setInterval(() => syncLocationToDB(userLat, userLon), 60000);
+            locationSyncInterval = setInterval(() => syncLocationToDB(userLat, userLon), 60000);
         }
 
         async function syncLocationToDB(lat, lon) {
@@ -624,14 +624,19 @@
             }
         }
 
+        // Hold refs for cleanup on beforeunload
+        let realtimeProfilesChannel = null;
+        let realtimeEmergenciesChannel = null;
+        let locationSyncInterval = null;
+
         function initRealtime() {
             // Helpers count realtime
-            supabase.channel('public:profiles')
+            realtimeProfilesChannel = supabase.channel('public:profiles')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, refreshNearbyCount)
                 .subscribe();
             
             // Emergencies realtime
-            supabase.channel('public:emergencies')
+            realtimeEmergenciesChannel = supabase.channel('public:emergencies')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'emergencies' }, refreshRequests)
                 .subscribe();
 
@@ -641,7 +646,8 @@
 
         async function refreshNearbyCount() {
             const activeSince = new Date(Date.now() - 10 * 60000).toISOString();
-            const { data: users } = await supabase.from('profiles').select('id, latitude, longitude').gt('last_active', activeSince);
+            // Limit to 200 — a table-wide scan is unnecessary for a proximity count
+            const { data: users } = await supabase.from('profiles').select('id, latitude, longitude').gt('last_active', activeSince).limit(200);
             if (users) {
                 const count = users.filter(u => getDistanceKm(userLat, userLon, u.latitude, u.longitude) <= 5).length;
                 const el = document.getElementById('helpersCount');
@@ -650,7 +656,8 @@
         }
 
         async function refreshRequests() {
-            const { data } = await supabase.from('emergencies').select('*, profiles(full_name)').eq('status', 'active');
+            // Limit to 25 — only show the most recent active emergencies on the home feed
+            const { data } = await supabase.from('emergencies').select('*, profiles(full_name)').eq('status', 'active').order('created_at', { ascending: false }).limit(25);
             const container = document.getElementById('helpRequestsContainer');
             if (!data || data.length === 0) {
                 container.innerHTML = '<div class="col-12"><div class="card border-0 shadow-sm text-center py-4 text-muted"><i class="bi bi-check-circle fs-1 text-success mb-2"></i><p class="mb-0">All quiet nearby</p></div></div>';
@@ -683,6 +690,15 @@
                 </div>`;
             }).join('');
         }
+
+        // Clean up realtime subscriptions and sync interval on page unload
+        // Without this, Supabase channels remain open as zombie connections
+        // and setInterval keeps firing after navigation (SPA style or bfcache restore)
+        window.addEventListener('beforeunload', () => {
+            if (realtimeProfilesChannel) supabase.removeChannel(realtimeProfilesChannel);
+            if (realtimeEmergenciesChannel) supabase.removeChannel(realtimeEmergenciesChannel);
+            if (locationSyncInterval) clearInterval(locationSyncInterval);
+        });
 
         function showToast(m, t = 'info') {
             const id = 't-' + Date.now();

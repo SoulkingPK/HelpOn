@@ -1,4 +1,4 @@
-name: Deploy to Netlify
+name: Deploy HelpOn
 
 on:
   push:
@@ -10,13 +10,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4   # v3 is deprecated; v4 is the current LTS
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Deploy Supabase Edge Functions first so the client site always
+      # references a version of the functions that already exists.
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Deploy Edge Functions
+        run: |
+          supabase functions deploy triage-emergency --project-ref $SUPABASE_PROJECT_REF
+          supabase functions deploy redeem-reward    --project-ref $SUPABASE_PROJECT_REF
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+      # Deploy the static client to Netlify
       - name: Install Netlify CLI
         run: npm install -g netlify-cli
 
       - name: Deploy to Netlify Production
-        run: netlify deploy --dir=client --auth=$NETLIFY_AUTH_TOKEN --site=$NETLIFY_SITE_ID --prod
+        run: >
+          netlify deploy
+          --dir=client
+          --auth=$NETLIFY_AUTH_TOKEN
+          --site=$NETLIFY_SITE_ID
+          --prod
+          --message="Deploy ${{ github.sha }} — ${{ github.event.head_commit.message }}"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
